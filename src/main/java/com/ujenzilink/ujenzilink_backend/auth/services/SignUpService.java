@@ -111,7 +111,7 @@ public class SignUpService {
             return new ApiCustomResponse<>(
                     null,
                     "The verification token has expired.",
-                    HttpStatus.NOT_ACCEPTABLE.value());
+                    HttpStatus.GONE.value());
         }
 
         // Token is valid, you can proceed with confirmation
