@@ -30,7 +30,7 @@ public class SignUpService {
         if (!agree) {
             return new ApiCustomResponse<>(
                     null,
-                    "You must agree to the terms and conditions to sign up.",
+                    "Terms acceptance required to sign up.",
                     HttpStatus.BAD_REQUEST.value());
         }
 
@@ -38,7 +38,7 @@ public class SignUpService {
         if (existingUser != null) {
             return new ApiCustomResponse<>(
                     null,
-                    "User with " + signUpRequest.email().toLowerCase() + " already exists. Kindly proceed to login!",
+                    "Email already registered. Please log in.",
                     HttpStatus.CONFLICT.value());
         }
 
@@ -67,8 +67,7 @@ public class SignUpService {
 
         return new ApiCustomResponse<>(
                 null,
-                "Dear " + createdUser.getFirstName() + " ,your registration has been received. Kindly check your email("
-                        + createdUser.getEmail() + ") and confirm your account.",
+                "Registration successful. Please check your email for the confirmation code.",
                 HttpStatus.OK.value());
     }
 
@@ -103,7 +102,7 @@ public class SignUpService {
         if (tokenDetails == null) {
             return new ApiCustomResponse<>(
                     null,
-                    "Token not found or expired",
+                    "The verification token is invalid or has expired.",
                     HttpStatus.BAD_REQUEST.value());
         }
 
@@ -111,7 +110,7 @@ public class SignUpService {
             tokenStore.remove(token); // Remove expired token
             return new ApiCustomResponse<>(
                     null,
-                    "Token is expired",
+                    "The verification token has expired.",
                     HttpStatus.NOT_ACCEPTABLE.value());
         }
 
@@ -130,7 +129,7 @@ public class SignUpService {
 
         return new ApiCustomResponse<>(
                 null,
-                "Token is valid, you can proceed to login",
+                "Account successfully verified. You may now log in.",
                 HttpStatus.OK.value());
     }
 }

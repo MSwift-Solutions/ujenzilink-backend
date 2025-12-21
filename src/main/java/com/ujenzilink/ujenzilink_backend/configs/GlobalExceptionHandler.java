@@ -28,15 +28,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiCustomResponse<String>> handleAllUncaughtExceptions(Exception ex) {
         return ResponseEntity.internalServerError().body(new ApiCustomResponse<>(
                 null,
-                "An unexpected error occurred: " + ex.getMessage(),
-                HttpStatus.INTERNAL_SERVER_ERROR.value()
-        ));
+                "Error: " + ex.getMessage(),
+                HttpStatus.INTERNAL_SERVER_ERROR.value()));
     }
-
 
     // Handles @Valid failures
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiCustomResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiCustomResponse<Map<String, String>>> handleValidationExceptions(
+            MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
@@ -46,29 +45,28 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest().body(new ApiCustomResponse<>(
                 errors,
-                "Validation failed",
-                HttpStatus.BAD_REQUEST.value()
-        ));
+                "Input validation failed",
+                HttpStatus.BAD_REQUEST.value()));
     }
 
     // Handles JSON parsing errors
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiCustomResponse<String>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+    public ResponseEntity<ApiCustomResponse<String>> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException ex) {
         return ResponseEntity.badRequest().body(new ApiCustomResponse<>(
                 null,
                 "Malformed JSON request: " + ex.getMessage(),
-                HttpStatus.BAD_REQUEST.value()
-        ));
+                HttpStatus.BAD_REQUEST.value()));
     }
 
     // Handles wrong HTTP Methods (e.g. GET instead of POST)
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ApiCustomResponse<String>> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
+    public ResponseEntity<ApiCustomResponse<String>> handleHttpRequestMethodNotSupportedException(
+            HttpRequestMethodNotSupportedException ex) {
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(new ApiCustomResponse<>(
                 null,
                 ex.getMessage(),
-                HttpStatus.METHOD_NOT_ALLOWED.value()
-        ));
+                HttpStatus.METHOD_NOT_ALLOWED.value()));
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
@@ -76,8 +74,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiCustomResponse<>(
                 null,
                 ex.getMessage(),
-                HttpStatus.NOT_FOUND.value()
-        ));
+                HttpStatus.NOT_FOUND.value()));
     }
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -85,8 +82,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiCustomResponse<>(
                 null,
                 "Invalid email or password",
-                HttpStatus.UNAUTHORIZED.value()
-        ));
+                HttpStatus.UNAUTHORIZED.value()));
     }
 
     @ExceptionHandler(DisabledException.class)
@@ -94,21 +90,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiCustomResponse<>(
                 null,
                 ex.getMessage(),
-                HttpStatus.FORBIDDEN.value()
-        ));
+                HttpStatus.FORBIDDEN.value()));
     }
-
 
     @ExceptionHandler(ExpiredJwtException.class)
     public ResponseEntity<ApiCustomResponse<Void>> handleExpiredJwt(ExpiredJwtException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiCustomResponse<>(
-                null, "Session expired, please login again.", 401));
+                null, "Your session has expired. Please log in again.", 401));
     }
 
     @ExceptionHandler(MalformedJwtException.class)
     public ResponseEntity<ApiCustomResponse<Void>> handleMalformedJwt(MalformedJwtException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiCustomResponse<>(
-                null, "Invalid token format.", 401));
+                null, "Invalid authentication token.", 401));
     }
 
 }

@@ -31,8 +31,7 @@ public class SignIn {
     @PostMapping("/sign-in")
     public ResponseEntity<ApiCustomResponse<SignInResponse>> signIn(@RequestBody @Valid SignInRequest signInRequest) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(signInRequest.email(), signInRequest.password())
-        );
+                new UsernamePasswordAuthenticationToken(signInRequest.email(), signInRequest.password()));
 
         System.out.println("reacheeeeeeeeeeeeeee");
 
@@ -45,8 +44,7 @@ public class SignIn {
 
         return ResponseEntity.ok(new ApiCustomResponse<>(
                 signInData,
-                "Sign in successful",
-                200
-        ));
+                "Login successful.",
+                200));
     }
 }

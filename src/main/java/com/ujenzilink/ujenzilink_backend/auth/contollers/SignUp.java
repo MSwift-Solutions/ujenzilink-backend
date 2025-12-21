@@ -36,9 +36,8 @@ public class SignUp {
         if (token == null || token.isBlank()) {
             return ResponseEntity.badRequest().body(new ApiCustomResponse<>(
                     null,
-                    "Token is required",
-                    HttpStatus.BAD_REQUEST.value()
-            ));
+                    "Token required",
+                    HttpStatus.BAD_REQUEST.value()));
         }
 
         ApiCustomResponse<String> response = signUpService.confirmToken(token);

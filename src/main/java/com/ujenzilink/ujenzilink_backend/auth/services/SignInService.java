@@ -11,21 +11,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class SignInService implements UserDetailsService {
     private final UserRepository userRepository;
-    private final SignUpService signUpService;
 
     public SignInService(UserRepository userRepository, SignUpService signUpService) {
         this.userRepository = userRepository;
-        this.signUpService = signUpService;
     }
 
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findFirstByEmail(email);
         if (user == null) {
-            throw new UsernameNotFoundException("Username " + email + " not found, kindly register.");
+            throw new UsernameNotFoundException("Account not found. Please register.");
         }
         if (!user.isEnabled()) {
-            throw new DisabledException(
-                    "Verify account first before trying to log in. Confirmation code was sent to " + user.getEmail());
+            throw new DisabledException("Account unverified. Please check your email for the confirmation code.");
         }
         return new org.springframework.security.core.userdetails.User(user.getEmail(),
                 user.getPassword(), user.getAuthorities());
