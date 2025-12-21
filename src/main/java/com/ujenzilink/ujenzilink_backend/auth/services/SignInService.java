@@ -4,11 +4,12 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
-public class SignInService {
+public class SignInService implements UserDetailsService {
     private final UserRepository userRepository;
     private final SignUpService signUpService;
 
@@ -23,9 +24,8 @@ public class SignInService {
             throw new UsernameNotFoundException("Username " + email + " not found, kindly register.");
         }
         if (!user.isEnabled()) {
-            String token = signUpService.generateToken(user);
-            System.out.println("Regenerated token: " + token);
-            throw new DisabledException("Verify account first before trying to log in. Confirmation code was sent to " + user.getEmail());
+            throw new DisabledException(
+                    "Verify account first before trying to log in. Confirmation code was sent to " + user.getEmail());
         }
         return new org.springframework.security.core.userdetails.User(user.getEmail(),
                 user.getPassword(), user.getAuthorities());

@@ -34,6 +34,8 @@ public class SignIn {
                 new UsernamePasswordAuthenticationToken(signInRequest.email(), signInRequest.password())
         );
 
+        System.out.println("reacheeeeeeeeeeeeeee");
+
         UserDetails userDetails = signInService.loadUserByUsername(signInRequest.email());
         User user = signInService.findUserByEmail(signInRequest.email());
 
