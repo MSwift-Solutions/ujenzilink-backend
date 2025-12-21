@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -90,8 +91,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiCustomResponse<Void>> handleDisabledAccount(DisabledException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiCustomResponse<>(
                 null,
-                ex.getMessage(),
+                "Account unverified. Please check your email for verification instructions.",
                 HttpStatus.FORBIDDEN.value()));
+    }
+
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<ApiCustomResponse<Void>> handleLockedAccount(LockedException ex) {
+        return ResponseEntity.status(HttpStatus.LOCKED).body(new ApiCustomResponse<>(
+                null,
+                "Account locked due to multiple failed login attempts. Please contact support.",
+                HttpStatus.LOCKED.value()));
     }
 
     @ExceptionHandler(ExpiredJwtException.class)
@@ -119,7 +128,7 @@ public class GlobalExceptionHandler {
 
         // TODO: Add proper logging here
         System.err.println("Database constraint violation: " + ex.getMessage());
-        
+
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ApiCustomResponse<>(
                 null,
                 "An error occurred while processing your request. Please try again.",

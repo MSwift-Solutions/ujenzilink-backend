@@ -2,7 +2,6 @@ package com.ujenzilink.ujenzilink_backend.auth.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -25,16 +24,17 @@ public class SignInService implements UserDetailsService {
             throw new UsernameNotFoundException("Account not found. Please register.");
         }
 
-        if (user.getIsLocked()) {
-            throw new DisabledException(
-                    "Account locked due to multiple failed login attempts. Please contact support.");
-        }
-
-        if (!user.isEnabled()) {
-            throw new DisabledException("Account unverified. Please check your email for the confirmation code.");
-        }
-        return new org.springframework.security.core.userdetails.User(user.getEmail(),
-                user.getPassword(), user.getAuthorities());
+        // Return Spring Security User with correct status flags
+        // User(username, password, enabled, accountNonExpired, credentialsNonExpired,
+        // accountNonLocked, authorities)
+        return new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPassword(),
+                user.isEnabled(),
+                true, // accountNonExpired
+                true, // credentialsNonExpired
+                !user.getIsLocked(), // accountNonLocked
+                user.getAuthorities());
     }
 
     public User findUserByEmail(String email) {
