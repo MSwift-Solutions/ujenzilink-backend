@@ -54,7 +54,7 @@ public class SignUpService {
         user.setTermsAgreedAt(LocalDateTime.now());
         user.setTermsVersion("1.0");
 
-        User createdUser = userRepository.save(user);
+        userRepository.save(user);
 
         String token = generateToken(user);
         System.out.println("Confirmation token: " + token);
