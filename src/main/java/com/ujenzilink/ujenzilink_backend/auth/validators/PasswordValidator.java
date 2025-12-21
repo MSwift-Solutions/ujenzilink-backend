@@ -36,20 +36,19 @@ public class PasswordValidator implements ConstraintValidator<Password, String> 
         }
 
         // Enforce at least one special character
-        Pattern specialCharPattern = Pattern.compile("(?=.*[@#$%^&*()_+={}|\\[\\]\\-:;'\"<>,.?/\\\\])");
+        Pattern specialCharPattern = Pattern.compile("(?=.*[@#$%^&*()_+={}|\\[\\]\\-:;'\"<>,.?/\\\\!])");
         Matcher specialCharMatcher = specialCharPattern.matcher(password);
         if (!specialCharMatcher.find()) {
             errorMessages.add("Password should contain at least one special character");
         }
-        if(password.length() < 8){
+        if (password.length() < 8) {
             errorMessages.add("Password should be more than 8 characters!");
         }
         if (!errorMessages.isEmpty()) {
             constraintValidatorContext.disableDefaultConstraintViolation();
             errorMessages.forEach(
                     message -> constraintValidatorContext.buildConstraintViolationWithTemplate(message)
-                            .addConstraintViolation()
-            );
+                            .addConstraintViolation());
         }
         return errorMessages.isEmpty();
     }

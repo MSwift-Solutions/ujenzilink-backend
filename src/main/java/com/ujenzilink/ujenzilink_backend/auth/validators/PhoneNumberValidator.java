@@ -13,26 +13,33 @@ public class PhoneNumberValidator implements ConstraintValidator<PhoneNumber, St
     public boolean isValid(String phoneNumber, ConstraintValidatorContext constraintValidatorContext) {
         Set<String> errorMessage = new HashSet<>();
 
-        Pattern pattern = Pattern.compile("^[0-9]+$");
+        // Accept phone numbers with optional + prefix followed by digits
+        Pattern pattern = Pattern.compile("^\\+?[0-9]+$");
         Matcher matcher = pattern.matcher(phoneNumber);
-        if(!matcher.matches()){
-            errorMessage.add("Phone number should only contain digits!");
+        if (!matcher.matches()) {
+            errorMessage.add("Phone number should only contain digits and optional + prefix!");
         }
-        if(!phoneNumber.startsWith("2547") && !phoneNumber.startsWith("2541")){
-            errorMessage.add("Phone number should include country code!");
+
+        // Check for valid country code (with or without + prefix)
+        if (!phoneNumber.startsWith("+2547") && !phoneNumber.startsWith("+2541")
+                && !phoneNumber.startsWith("2547") && !phoneNumber.startsWith("2541")) {
+            errorMessage.add("Phone number should include valid country code (+254 or 254)!");
         }
-        if(phoneNumber.length() < 12){
-            errorMessage.add("Phone number too short!") ;
+
+        // Length validation: 12 digits for format without +, 13 characters for format
+        // with +
+        int expectedLength = phoneNumber.startsWith("+") ? 13 : 12;
+        if (phoneNumber.length() < expectedLength) {
+            errorMessage.add("Phone number too short!");
         }
-        if(phoneNumber.length() > 12){
-            errorMessage.add("Phone number too long!") ;
+        if (phoneNumber.length() > expectedLength) {
+            errorMessage.add("Phone number too long!");
         }
-        if (!errorMessage.isEmpty()){
+        if (!errorMessage.isEmpty()) {
             constraintValidatorContext.disableDefaultConstraintViolation();
             errorMessage.forEach(
                     message -> constraintValidatorContext.buildConstraintViolationWithTemplate(message)
-                            .addConstraintViolation()
-            );
+                            .addConstraintViolation());
         }
 
         return errorMessage.isEmpty();
