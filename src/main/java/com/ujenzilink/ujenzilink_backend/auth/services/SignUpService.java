@@ -1,11 +1,12 @@
 package com.ujenzilink.ujenzilink_backend.auth.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.dtos.SignUpRequest;
-import com.ujenzilink.ujenzilink_backend.auth.dtos.TokenDetails;
 import com.ujenzilink.ujenzilink_backend.auth.dtos.EmailDetails;
 import com.ujenzilink.ujenzilink_backend.auth.enums.Roles;
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
+import com.ujenzilink.ujenzilink_backend.auth.models.VerificationToken;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
+import com.ujenzilink.ujenzilink_backend.auth.repositories.VerificationTokenRepository;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,11 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
 
 @Service
 public class SignUpService {
@@ -26,8 +25,9 @@ public class SignUpService {
     private UserRepository userRepository;
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private VerificationTokenRepository verificationTokenRepository;
 
-    private final Map<String, TokenDetails> tokenStore = new ConcurrentHashMap<>();
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional(rollbackFor = Exception.class)
@@ -81,48 +81,35 @@ public class SignUpService {
         System.out.println("Registration code: " + resetCode);
         Instant expiresAt = Instant.now().plus(15, ChronoUnit.MINUTES);
 
-        TokenDetails tokenDetails = new TokenDetails(resetCode, expiresAt, user);
-        tokenStore.put(resetCode, tokenDetails);
-
-        scheduleTokenRemoval(resetCode, expiresAt);
+        VerificationToken verificationToken = new VerificationToken(resetCode, user.getId(), expiresAt);
+        verificationTokenRepository.save(verificationToken);
 
         return resetCode;
     }
 
-    private void scheduleTokenRemoval(String token, Instant expiresAt) {
-        long delay = Duration.between(Instant.now(), expiresAt)
-                .toMillis();
-        new java.util.Timer().schedule(new java.util.TimerTask() {
-            @Override
-            public void run() {
-                tokenStore.remove(token);
-            }
-        }, delay);
-    }
-
     @Transactional
     public ApiCustomResponse<String> confirmToken(String token) {
-        TokenDetails tokenDetails = tokenStore.get(token);
+        VerificationToken verificationToken = verificationTokenRepository.findById(token).orElse(null);
 
-        if (tokenDetails == null) {
+        if (verificationToken == null) {
             return new ApiCustomResponse<>(
                     null,
                     "The verification token is invalid or has expired.",
                     HttpStatus.BAD_REQUEST.value());
         }
 
-        if (tokenDetails.expiresAt().isBefore(Instant.now())) {
-            tokenStore.remove(token); // Remove expired token
+        if (verificationToken.getExpiresAt().isBefore(Instant.now())) {
+            verificationTokenRepository.delete(verificationToken);
             return new ApiCustomResponse<>(
                     null,
                     "The verification token has expired.",
                     HttpStatus.GONE.value());
         }
 
-        // Token is valid, you can proceed with confirmation
-        tokenStore.remove(token); // Remove the token after successful confirmation
+        // Token is valid, proceed with confirmation
+        verificationTokenRepository.delete(verificationToken);
 
-        User user = tokenDetails.user();
+        User user = userRepository.findById(verificationToken.getUserId()).orElse(null);
         user.setIsEnabled(true);
         user.setConfirmedAt(Instant.now());
         userRepository.save(user);
@@ -218,7 +205,7 @@ public class SignUpService {
 
     // Helper method to invalidate all tokens for a user
     private void invalidateUserTokens(User user) {
-        // Remove all tokens for this user from the token store
-        tokenStore.entrySet().removeIf(entry -> entry.getValue().user().getId().equals(user.getId()));
+        List<VerificationToken> userTokens = verificationTokenRepository.findByUserId(user.getId());
+        verificationTokenRepository.deleteAll(userTokens);
     }
 }
