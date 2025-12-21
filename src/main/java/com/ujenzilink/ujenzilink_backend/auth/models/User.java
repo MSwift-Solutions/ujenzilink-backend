@@ -39,6 +39,10 @@ public class User implements UserDetails {
 
     private String termsVersion;
 
+    // Resend verification rate limiting
+    private int resendVerificationCount = 0;
+    private LocalDateTime lastResendAttempt;
+
     @Enumerated(EnumType.STRING)
     private Roles role;
 
@@ -172,5 +176,21 @@ public class User implements UserDetails {
 
     public void setRole(Roles role) {
         this.role = role;
+    }
+
+    public int getResendVerificationCount() {
+        return resendVerificationCount;
+    }
+
+    public void setResendVerificationCount(int resendVerificationCount) {
+        this.resendVerificationCount = resendVerificationCount;
+    }
+
+    public LocalDateTime getLastResendAttempt() {
+        return lastResendAttempt;
+    }
+
+    public void setLastResendAttempt(LocalDateTime lastResendAttempt) {
+        this.lastResendAttempt = lastResendAttempt;
     }
 }

@@ -132,4 +132,88 @@ public class SignUpService {
                 "Account successfully verified. You may now log in.",
                 HttpStatus.OK.value());
     }
+
+    public ApiCustomResponse<String> resendVerification(String email) {
+        User user = userRepository.findFirstByEmail(email.toLowerCase());
+
+        if (user == null) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "Email not found, kindly register.",
+                    HttpStatus.OK.value());
+        }
+
+        if (user.getIsEnabled()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "Account already verified. Please log in.",
+                    HttpStatus.BAD_REQUEST.value());
+        }
+
+        if (hasExceededResendLimit(user)) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "Too many verification requests. Please try again later.",
+                    HttpStatus.TOO_MANY_REQUESTS.value());
+        }
+
+        invalidateUserTokens(user);
+
+
+        String token = generateToken(user);
+        System.out.println("Resent confirmation token: " + token);
+
+        EmailDetails emailDetails = new EmailDetails(
+                user.getEmail(),
+                user.getFirstName(),
+                token);
+        emailService.sendConfirmationEmail(emailDetails);
+
+        updateResendTracking(user);
+
+        return new ApiCustomResponse<>(
+                null,
+                "If this email is registered and unverified, a new verification code has been sent.",
+                HttpStatus.OK.value());
+    }
+
+
+    private boolean hasExceededResendLimit(User user) {
+        if (user.getLastResendAttempt() == null) {
+            return false;
+        }
+
+        // Reset counter if more than 1 hour has passed
+        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+        if (user.getLastResendAttempt().isBefore(oneHourAgo)) {
+            user.setResendVerificationCount(0);
+            return false;
+        }
+
+        // Check if exceeded limit (3 attempts per hour)
+        return user.getResendVerificationCount() >= 3;
+    }
+
+    // Helper method to update resend tracking
+    private void updateResendTracking(User user) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime oneHourAgo = now.minusHours(1);
+
+        // Reset count if last attempt was more than an hour ago
+        if (user.getLastResendAttempt() == null ||
+                user.getLastResendAttempt().isBefore(oneHourAgo)) {
+            user.setResendVerificationCount(1);
+        } else {
+            user.setResendVerificationCount(user.getResendVerificationCount() + 1);
+        }
+
+        user.setLastResendAttempt(now);
+        userRepository.save(user);
+    }
+
+    // Helper method to invalidate all tokens for a user
+    private void invalidateUserTokens(User user) {
+        // Remove all tokens for this user from the token store
+        tokenStore.entrySet().removeIf(entry -> entry.getValue().user().getId().equals(user.getId()));
+    }
 }

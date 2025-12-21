@@ -45,6 +45,24 @@ public class SignUp {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/resend-verification")
+    public ResponseEntity<ApiCustomResponse<String>> resendVerification(
+            @RequestParam(required = false) String email) {
+
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(new ApiCustomResponse<>(
+                    null,
+                    "Email required",
+                    HttpStatus.BAD_REQUEST.value()));
+        }
+
+        ApiCustomResponse<String> response = signUpService.resendVerification(email);
+
+        return ResponseEntity
+                .status(response.statusCode())
+                .body(response);
+    }
+
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("test");
