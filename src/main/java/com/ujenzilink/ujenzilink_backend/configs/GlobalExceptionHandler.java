@@ -1,5 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.configs;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -94,6 +96,25 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 HttpStatus.FORBIDDEN.value()
         ));
+    }
+
+
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<ApiCustomResponse<Void>> handleExpiredJwt(ExpiredJwtException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiCustomResponse<>(
+                null, "Session expired, please login again.", 401));
+    }
+
+    @ExceptionHandler(MalformedJwtException.class)
+    public ResponseEntity<ApiCustomResponse<Void>> handleMalformedJwt(MalformedJwtException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiCustomResponse<>(
+                null, "Invalid token format.", 401));
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiCustomResponse<Void>> handleDisabledException(DisabledException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiCustomResponse<>(
+                null, ex.getMessage(), 403));
     }
 
 }
