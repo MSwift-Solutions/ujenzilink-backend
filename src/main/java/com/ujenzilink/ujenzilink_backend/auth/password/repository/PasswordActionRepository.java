@@ -10,7 +10,6 @@ import java.util.List;
 
 @Repository
 public interface PasswordActionRepository extends JpaRepository<PasswordAction, Long> {
-    List<PasswordAction> findByUserOrderByActionDateDesc(User user);
 
     PasswordAction findTopByUserAndActionTypeOrderByActionDateDesc(User user, PasswordActionType actionType);
 }
