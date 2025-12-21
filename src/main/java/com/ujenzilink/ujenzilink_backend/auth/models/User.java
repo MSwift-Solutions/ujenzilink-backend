@@ -28,13 +28,22 @@ public class User implements UserDetails {
     private String password;
 
     private LocalDateTime dateOfCreation;
-    private Boolean isEnabled = Boolean.FALSE;
-    private Boolean hasAgreedToTerms = Boolean.FALSE;
+
+    @Column(nullable = false)
+    private boolean isEnabled = false;
+
+    @Column(nullable = false)
+    private boolean hasAgreedToTerms = false;
+
+    private LocalDateTime termsAgreedAt;
+
+    private String termsVersion;
 
     @Enumerated(EnumType.STRING)
     private Roles role;
 
-    public User() {}
+    public User() {
+    }
 
     // Spring Security Methods
     @Override
@@ -69,36 +78,99 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return this.isEnabled != null && this.isEnabled;
+        return this.isEnabled;
     }
 
     // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getLastName() { return lastName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
+    public String getFirstName() {
+        return firstName;
+    }
 
-    public String getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public String getLastName() {
+        return lastName;
+    }
 
-    public void setPassword(String password) { this.password = password; }
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
 
-    public LocalDateTime getDateOfCreation() { return dateOfCreation; }
-    public void setDateOfCreation(LocalDateTime dateOfCreation) { this.dateOfCreation = dateOfCreation; }
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
 
-    public Boolean getIsEnabled() { return isEnabled; }
-    public void setIsEnabled(Boolean isEnabled) { this.isEnabled = isEnabled; }
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
 
-    public Boolean getHasAgreedToTerms() { return hasAgreedToTerms; }
-    public void setHasAgreedToTerms(Boolean hasAgreedToTerms) { this.hasAgreedToTerms = hasAgreedToTerms; }
+    public String getEmail() {
+        return email;
+    }
 
-    public Roles getRole() { return role; }
-    public void setRole(Roles role) { this.role = role; }
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public LocalDateTime getDateOfCreation() {
+        return dateOfCreation;
+    }
+
+    public void setDateOfCreation(LocalDateTime dateOfCreation) {
+        this.dateOfCreation = dateOfCreation;
+    }
+
+    public boolean getIsEnabled() {
+        return isEnabled;
+    }
+
+    public void setIsEnabled(boolean isEnabled) {
+        this.isEnabled = isEnabled;
+    }
+
+    public boolean getHasAgreedToTerms() {
+        return hasAgreedToTerms;
+    }
+
+    public void setHasAgreedToTerms(boolean hasAgreedToTerms) {
+        this.hasAgreedToTerms = hasAgreedToTerms;
+    }
+
+    public LocalDateTime getTermsAgreedAt() {
+        return termsAgreedAt;
+    }
+
+    public void setTermsAgreedAt(LocalDateTime termsAgreedAt) {
+        this.termsAgreedAt = termsAgreedAt;
+    }
+
+    public String getTermsVersion() {
+        return termsVersion;
+    }
+
+    public void setTermsVersion(String termsVersion) {
+        this.termsVersion = termsVersion;
+    }
+
+    public Roles getRole() {
+        return role;
+    }
+
+    public void setRole(Roles role) {
+        this.role = role;
+    }
 }

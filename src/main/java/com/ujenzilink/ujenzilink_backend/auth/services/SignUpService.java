@@ -24,25 +24,22 @@ public class SignUpService {
     @Autowired
     private EmailService emailService;
 
-
     private final Map<String, TokenDetails> tokenStore = new ConcurrentHashMap<>();
 
     public ApiCustomResponse<String> createUser(SignUpRequest signUpRequest, boolean agree) {
-        if(!agree){
+        if (!agree) {
             return new ApiCustomResponse<>(
                     null,
                     "You must agree to the terms and conditions to sign up.",
-                    HttpStatus.BAD_REQUEST.value()
-            );
+                    HttpStatus.BAD_REQUEST.value());
         }
 
         User existingUser = userRepository.findFirstByEmail(signUpRequest.email().toLowerCase());
-        if(existingUser != null){
+        if (existingUser != null) {
             return new ApiCustomResponse<>(
                     null,
                     "User with " + signUpRequest.email().toLowerCase() + " already exists. Kindly proceed to login!",
-                    HttpStatus.CONFLICT.value()
-            );
+                    HttpStatus.CONFLICT.value());
         }
 
         User user = new User();
@@ -53,7 +50,9 @@ public class SignUpService {
         user.setDateOfCreation(LocalDateTime.now());
         user.setPassword(new BCryptPasswordEncoder().encode(signUpRequest.password()));
         user.setRole(Roles.ROLE_USER);
-        user.setHasAgreedToTerms(Boolean.TRUE);
+        user.setHasAgreedToTerms(true);
+        user.setTermsAgreedAt(LocalDateTime.now());
+        user.setTermsVersion("1.0");
 
         User createdUser = userRepository.save(user);
 
@@ -63,18 +62,15 @@ public class SignUpService {
         EmailDetails emailDetails = new EmailDetails(
                 signUpRequest.email(),
                 signUpRequest.firstName(),
-                token
-        );
+                token);
         emailService.sendConfirmationEmail(emailDetails);
 
         return new ApiCustomResponse<>(
                 null,
                 "Dear " + createdUser.getFirstName() + " ,your registration has been received. Kindly check your email("
                         + createdUser.getEmail() + ") and confirm your account.",
-                HttpStatus.OK.value()
-        );
+                HttpStatus.OK.value());
     }
-
 
     public String generateToken(User user) {
         Random random = new Random();
@@ -108,37 +104,33 @@ public class SignUpService {
             return new ApiCustomResponse<>(
                     null,
                     "Token not found or expired",
-                    HttpStatus.BAD_REQUEST.value()
-            );
+                    HttpStatus.BAD_REQUEST.value());
         }
 
         if (tokenDetails.expiresAt().isBefore(LocalDateTime.now())) {
-            tokenStore.remove(token);  // Remove expired token
+            tokenStore.remove(token); // Remove expired token
             return new ApiCustomResponse<>(
                     null,
                     "Token is expired",
-                    HttpStatus.NOT_ACCEPTABLE.value()
-            );
+                    HttpStatus.NOT_ACCEPTABLE.value());
         }
 
         // Token is valid, you can proceed with confirmation
-        tokenStore.remove(token);  // Remove the token after successful confirmation
+        tokenStore.remove(token); // Remove the token after successful confirmation
 
         User user = tokenDetails.user();
-        user.setIsEnabled(Boolean.TRUE);
+        user.setIsEnabled(true);
         userRepository.save(user);
 
         EmailDetails emailDetails = new EmailDetails(
                 user.getEmail(),
                 user.getFirstName(),
-                null
-        );
+                null);
         emailService.sendSuccessfulCreationEmail(emailDetails);
 
         return new ApiCustomResponse<>(
                 null,
                 "Token is valid, you can proceed to login",
-                HttpStatus.OK.value()
-        );
+                HttpStatus.OK.value());
     }
 }
