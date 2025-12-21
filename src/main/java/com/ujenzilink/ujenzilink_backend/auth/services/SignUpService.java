@@ -67,7 +67,7 @@ public class SignUpService {
                 signUpRequest.email(),
                 signUpRequest.firstName(),
                 token);
-        emailService.sendConfirmationEmail(emailDetails);
+        emailService.sendConfirmationEmail(emailDetails, user);
 
         return new ApiCustomResponse<>(
                 null,
@@ -173,7 +173,7 @@ public class SignUpService {
                 user.getEmail(),
                 user.getFirstName(),
                 token);
-        emailService.sendConfirmationEmail(emailDetails);
+        emailService.sendConfirmationEmail(emailDetails, user);
 
         updateResendTracking(user);
 

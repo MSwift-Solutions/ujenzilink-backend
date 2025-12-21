@@ -19,7 +19,7 @@ public class EmailService {
         this.emailRepository = emailRepository;
     }
 
-    public void sendConfirmationEmail(EmailDetails emailDetails) {
+    public void sendConfirmationEmail(EmailDetails emailDetails, User user) {
         try {
             SimpleMailMessage mailMessage = new SimpleMailMessage();
             mailMessage.setFrom("wd213230@gmail.com");
@@ -39,7 +39,7 @@ public class EmailService {
             mailSender.send(mailMessage);
 
             // Log email to database
-            logEmail(emailDetails.email(), EmailTypes.VERIFICATION_CODE, stringBuilder, null);
+            logEmail(emailDetails.email(), EmailTypes.VERIFICATION_CODE, stringBuilder, user);
 
         } catch (Exception e) {
             System.out.println("Failed to send mail " + e.getMessage());
