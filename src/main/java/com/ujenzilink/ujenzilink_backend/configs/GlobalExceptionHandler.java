@@ -111,10 +111,4 @@ public class GlobalExceptionHandler {
                 null, "Invalid token format.", 401));
     }
 
-    @ExceptionHandler(DisabledException.class)
-    public ResponseEntity<ApiCustomResponse<Void>> handleDisabledException(DisabledException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiCustomResponse<>(
-                null, ex.getMessage(), 403));
-    }
-
 }
