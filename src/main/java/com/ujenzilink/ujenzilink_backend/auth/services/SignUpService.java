@@ -133,7 +133,7 @@ public class SignUpService {
                 user.getEmail(),
                 user.getFirstName(),
                 null);
-        emailService.sendSuccessfulCreationEmail(emailDetails);
+        emailService.sendSuccessfulCreationEmail(emailDetails, user);
 
         return new ApiCustomResponse<>(
                 null,
