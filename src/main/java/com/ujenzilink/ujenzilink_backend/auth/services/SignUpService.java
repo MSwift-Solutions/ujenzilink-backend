@@ -11,10 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -25,7 +26,9 @@ public class SignUpService {
     private EmailService emailService;
 
     private final Map<String, TokenDetails> tokenStore = new ConcurrentHashMap<>();
+    private final SecureRandom secureRandom = new SecureRandom();
 
+    @Transactional(rollbackFor = Exception.class)
     public ApiCustomResponse<String> createUser(SignUpRequest signUpRequest, boolean agree) {
         if (!agree) {
             return new ApiCustomResponse<>(
@@ -72,8 +75,8 @@ public class SignUpService {
     }
 
     public String generateToken(User user) {
-        Random random = new Random();
-        String resetCode = String.valueOf(random.nextInt(900000) + 100000);
+        // Use SecureRandom for cryptographically secure token generation
+        String resetCode = String.format("%06d", secureRandom.nextInt(1000000));
         System.out.println("Registration code: " + resetCode);
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(15);
 
@@ -95,7 +98,7 @@ public class SignUpService {
         }, delay);
     }
 
-    // Method to confirm the token
+    @Transactional
     public ApiCustomResponse<String> confirmToken(String token) {
         TokenDetails tokenDetails = tokenStore.get(token);
 
@@ -133,6 +136,7 @@ public class SignUpService {
                 HttpStatus.OK.value());
     }
 
+    @Transactional
     public ApiCustomResponse<String> resendVerification(String email) {
         User user = userRepository.findFirstByEmail(email.toLowerCase());
 
@@ -159,7 +163,6 @@ public class SignUpService {
 
         invalidateUserTokens(user);
 
-
         String token = generateToken(user);
         System.out.println("Resent confirmation token: " + token);
 
@@ -176,7 +179,6 @@ public class SignUpService {
                 "If this email is registered and unverified, a new verification code has been sent.",
                 HttpStatus.OK.value());
     }
-
 
     private boolean hasExceededResendLimit(User user) {
         if (user.getLastResendAttempt() == null) {
