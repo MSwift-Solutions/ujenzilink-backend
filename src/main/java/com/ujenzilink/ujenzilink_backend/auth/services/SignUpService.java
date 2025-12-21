@@ -47,6 +47,7 @@ public class SignUpService {
 
         User user = new User();
         user.setFirstName(signUpRequest.firstName());
+        user.setMiddleName(signUpRequest.middleName());
         user.setLastName(signUpRequest.lastName());
         user.setPhoneNumber(signUpRequest.phoneNumber());
         user.setEmail(signUpRequest.email().toLowerCase());
@@ -122,6 +123,7 @@ public class SignUpService {
 
         User user = tokenDetails.user();
         user.setIsEnabled(true);
+        user.setConfirmedAt(LocalDateTime.now());
         userRepository.save(user);
 
         EmailDetails emailDetails = new EmailDetails(

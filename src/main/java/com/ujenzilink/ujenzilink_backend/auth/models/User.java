@@ -18,6 +18,7 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
     private String firstName;
+    private String middleName;
     private String lastName;
     private String phoneNumber;
 
@@ -28,6 +29,7 @@ public class User implements UserDetails {
     private String password;
 
     private LocalDateTime dateOfCreation;
+    private LocalDateTime confirmedAt;
 
     @Column(nullable = false)
     private boolean isEnabled = false;
@@ -39,7 +41,6 @@ public class User implements UserDetails {
 
     private String termsVersion;
 
-    // Resend verification rate limiting
     private int resendVerificationCount = 0;
     private LocalDateTime lastResendAttempt;
 
@@ -85,6 +86,31 @@ public class User implements UserDetails {
         return this.isEnabled;
     }
 
+    // Helper method to get full name
+    public String getFullName() {
+        StringBuilder fullName = new StringBuilder();
+
+        if (firstName != null && !firstName.isEmpty()) {
+            fullName.append(firstName);
+        }
+
+        if (middleName != null && !middleName.isEmpty()) {
+            if (fullName.length() > 0) {
+                fullName.append(" ");
+            }
+            fullName.append(middleName);
+        }
+
+        if (lastName != null && !lastName.isEmpty()) {
+            if (fullName.length() > 0) {
+                fullName.append(" ");
+            }
+            fullName.append(lastName);
+        }
+
+        return fullName.toString().trim();
+    }
+
     // Getters and Setters
     public Long getId() {
         return id;
@@ -100,6 +126,14 @@ public class User implements UserDetails {
 
     public void setFirstName(String firstName) {
         this.firstName = firstName;
+    }
+
+    public String getMiddleName() {
+        return middleName;
+    }
+
+    public void setMiddleName(String middleName) {
+        this.middleName = middleName;
     }
 
     public String getLastName() {
@@ -136,6 +170,14 @@ public class User implements UserDetails {
 
     public void setDateOfCreation(LocalDateTime dateOfCreation) {
         this.dateOfCreation = dateOfCreation;
+    }
+
+    public LocalDateTime getConfirmedAt() {
+        return confirmedAt;
+    }
+
+    public void setConfirmedAt(LocalDateTime confirmedAt) {
+        this.confirmedAt = confirmedAt;
     }
 
     public boolean getIsEnabled() {

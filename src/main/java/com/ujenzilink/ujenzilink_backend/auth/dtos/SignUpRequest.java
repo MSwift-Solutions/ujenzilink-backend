@@ -7,22 +7,15 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 public record SignUpRequest(
-        @NotBlank(message = "First Name cannot be null or empty!")
-        @Name
-        String firstName,
+                @NotBlank(message = "First Name cannot be null or empty!") @Name String firstName,
 
-        @NotBlank(message = "Last Name cannot be null or empty!")
-        @Name
-        String lastName,
+                @Name String middleName,
 
-        @NotBlank(message = "Phone Number cannot be null or empty!")
-        @PhoneNumber
-        String phoneNumber,
+                @NotBlank(message = "Last Name cannot be null or empty!") @Name String lastName,
 
-        @NotBlank(message = "Email cannot be null or empty!")
-        @Email(message = "Invalid email!")
-        String email,
+                @NotBlank(message = "Phone Number cannot be null or empty!") @PhoneNumber String phoneNumber,
 
-        @Password
-        String password
-) {}
+                @NotBlank(message = "Email cannot be null or empty!") @Email(message = "Invalid email!") String email,
+
+                @Password String password) {
+}
