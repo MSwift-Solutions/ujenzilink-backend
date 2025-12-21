@@ -7,7 +7,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -28,8 +28,8 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
-    private LocalDateTime dateOfCreation;
-    private LocalDateTime confirmedAt;
+    private Instant dateOfCreation;
+    private Instant confirmedAt;
 
     @Column(nullable = false)
     private boolean isEnabled = false;
@@ -37,12 +37,12 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean hasAgreedToTerms = false;
 
-    private LocalDateTime termsAgreedAt;
+    private Instant termsAgreedAt;
 
     private String termsVersion;
 
     private int resendVerificationCount = 0;
-    private LocalDateTime lastResendAttempt;
+    private Instant lastResendAttempt;
 
     @Enumerated(EnumType.STRING)
     private Roles role;
@@ -95,14 +95,14 @@ public class User implements UserDetails {
         }
 
         if (middleName != null && !middleName.isEmpty()) {
-            if (fullName.length() > 0) {
+            if (!fullName.isEmpty()) {
                 fullName.append(" ");
             }
             fullName.append(middleName);
         }
 
         if (lastName != null && !lastName.isEmpty()) {
-            if (fullName.length() > 0) {
+            if (!fullName.isEmpty()) {
                 fullName.append(" ");
             }
             fullName.append(lastName);
@@ -164,19 +164,19 @@ public class User implements UserDetails {
         this.password = password;
     }
 
-    public LocalDateTime getDateOfCreation() {
+    public Instant getDateOfCreation() {
         return dateOfCreation;
     }
 
-    public void setDateOfCreation(LocalDateTime dateOfCreation) {
+    public void setDateOfCreation(Instant dateOfCreation) {
         this.dateOfCreation = dateOfCreation;
     }
 
-    public LocalDateTime getConfirmedAt() {
+    public Instant getConfirmedAt() {
         return confirmedAt;
     }
 
-    public void setConfirmedAt(LocalDateTime confirmedAt) {
+    public void setConfirmedAt(Instant confirmedAt) {
         this.confirmedAt = confirmedAt;
     }
 
@@ -196,11 +196,11 @@ public class User implements UserDetails {
         this.hasAgreedToTerms = hasAgreedToTerms;
     }
 
-    public LocalDateTime getTermsAgreedAt() {
+    public Instant getTermsAgreedAt() {
         return termsAgreedAt;
     }
 
-    public void setTermsAgreedAt(LocalDateTime termsAgreedAt) {
+    public void setTermsAgreedAt(Instant termsAgreedAt) {
         this.termsAgreedAt = termsAgreedAt;
     }
 
@@ -228,11 +228,11 @@ public class User implements UserDetails {
         this.resendVerificationCount = resendVerificationCount;
     }
 
-    public LocalDateTime getLastResendAttempt() {
+    public Instant getLastResendAttempt() {
         return lastResendAttempt;
     }
 
-    public void setLastResendAttempt(LocalDateTime lastResendAttempt) {
+    public void setLastResendAttempt(Instant lastResendAttempt) {
         this.lastResendAttempt = lastResendAttempt;
     }
 }

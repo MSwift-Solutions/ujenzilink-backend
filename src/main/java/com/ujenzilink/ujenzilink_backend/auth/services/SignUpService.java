@@ -14,7 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -51,11 +53,11 @@ public class SignUpService {
         user.setLastName(signUpRequest.lastName());
         user.setPhoneNumber(signUpRequest.phoneNumber());
         user.setEmail(signUpRequest.email().toLowerCase());
-        user.setDateOfCreation(LocalDateTime.now());
+        user.setDateOfCreation(Instant.now());
         user.setPassword(new BCryptPasswordEncoder().encode(signUpRequest.password()));
         user.setRole(Roles.ROLE_USER);
         user.setHasAgreedToTerms(true);
-        user.setTermsAgreedAt(LocalDateTime.now());
+        user.setTermsAgreedAt(Instant.now());
         user.setTermsVersion("1.0");
 
         userRepository.save(user);
@@ -79,7 +81,7 @@ public class SignUpService {
         // Use SecureRandom for cryptographically secure token generation
         String resetCode = String.format("%06d", secureRandom.nextInt(1000000));
         System.out.println("Registration code: " + resetCode);
-        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(15);
+        Instant expiresAt = Instant.now().plus(15, ChronoUnit.MINUTES);
 
         TokenDetails tokenDetails = new TokenDetails(resetCode, expiresAt, user);
         tokenStore.put(resetCode, tokenDetails);
@@ -89,8 +91,9 @@ public class SignUpService {
         return resetCode;
     }
 
-    private void scheduleTokenRemoval(String token, LocalDateTime expiresAt) {
-        long delay = java.time.Duration.between(LocalDateTime.now(), expiresAt).toMillis();
+    private void scheduleTokenRemoval(String token, Instant expiresAt) {
+        long delay = Duration.between(Instant.now(), expiresAt)
+                .toMillis();
         new java.util.Timer().schedule(new java.util.TimerTask() {
             @Override
             public void run() {
@@ -110,7 +113,7 @@ public class SignUpService {
                     HttpStatus.BAD_REQUEST.value());
         }
 
-        if (tokenDetails.expiresAt().isBefore(LocalDateTime.now())) {
+        if (tokenDetails.expiresAt().isBefore(Instant.now())) {
             tokenStore.remove(token); // Remove expired token
             return new ApiCustomResponse<>(
                     null,
@@ -123,7 +126,7 @@ public class SignUpService {
 
         User user = tokenDetails.user();
         user.setIsEnabled(true);
-        user.setConfirmedAt(LocalDateTime.now());
+        user.setConfirmedAt(Instant.now());
         userRepository.save(user);
 
         EmailDetails emailDetails = new EmailDetails(
@@ -188,7 +191,7 @@ public class SignUpService {
         }
 
         // Reset counter if more than 1 hour has passed
-        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+        Instant oneHourAgo = Instant.now().minus(1, ChronoUnit.HOURS);
         if (user.getLastResendAttempt().isBefore(oneHourAgo)) {
             user.setResendVerificationCount(0);
             return false;
@@ -200,8 +203,8 @@ public class SignUpService {
 
     // Helper method to update resend tracking
     private void updateResendTracking(User user) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime oneHourAgo = now.minusHours(1);
+        Instant now = Instant.now();
+        Instant oneHourAgo = now.minus(1, ChronoUnit.HOURS);
 
         // Reset count if last attempt was more than an hour ago
         if (user.getLastResendAttempt() == null ||

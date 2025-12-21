@@ -2,10 +2,10 @@ package com.ujenzilink.ujenzilink_backend.auth.dtos;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record TokenDetails(
-        String token,
-        LocalDateTime expiresAt,
-        User user
-) {}
+                String token,
+                Instant expiresAt,
+                User user) {
+}
