@@ -99,7 +99,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiCustomResponse<Void>> handleLockedAccount(LockedException ex) {
         return ResponseEntity.status(HttpStatus.LOCKED).body(new ApiCustomResponse<>(
                 null,
-                "Account locked due to multiple failed login attempts. Please contact support.",
+                "Account locked due to multiple failed login attempts. Reset password and try again.",
                 HttpStatus.LOCKED.value()));
     }
 

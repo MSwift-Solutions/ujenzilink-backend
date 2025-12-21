@@ -33,9 +33,14 @@ public class SignIn {
         // Track login attempt (for security auditing)
         signInService.trackLoginAttempt(signInRequest.email());
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(signInRequest.email(), signInRequest.password()));
-
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(signInRequest.email(), signInRequest.password()));
+        } catch (org.springframework.security.core.AuthenticationException e) {
+            // Track failed login attempt
+            signInService.trackFailedLoginAttempt(signInRequest.email());
+            throw e;
+        }
 
         UserDetails userDetails = signInService.loadUserByUsername(signInRequest.email());
         User user = signInService.findUserByEmail(signInRequest.email());
