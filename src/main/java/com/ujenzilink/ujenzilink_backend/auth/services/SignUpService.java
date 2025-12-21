@@ -61,7 +61,6 @@ public class SignUpService {
         userRepository.save(user);
 
         String token = generateToken(user);
-        System.out.println("Confirmation token: " + token);
 
         EmailDetails emailDetails = new EmailDetails(
                 signUpRequest.email(),
@@ -154,7 +153,6 @@ public class SignUpService {
         invalidateUserTokens(user);
 
         String token = generateToken(user);
-        System.out.println("Resent confirmation token: " + token);
 
         EmailDetails emailDetails = new EmailDetails(
                 user.getEmail(),

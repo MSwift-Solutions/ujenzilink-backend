@@ -3,6 +3,7 @@ package com.ujenzilink.ujenzilink_backend.configs;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -23,14 +24,32 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     /**
+     * REDIS CONNECTION FAILURE HANDLER
+     * Handles Redis connection issues gracefully with a generic message
+     */
+    @ExceptionHandler(RedisConnectionFailureException.class)
+    public ResponseEntity<ApiCustomResponse<Void>> handleRedisConnectionFailure(RedisConnectionFailureException ex) {
+        // Log the actual error for debugging (in production, use a proper logger)
+        System.err.println("Redis connection failed: " + ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(new ApiCustomResponse<>(
+                null,
+                "Service temporarily unavailable. Please try again later.",
+                HttpStatus.SERVICE_UNAVAILABLE.value()));
+    }
+
+    /**
      * CATCH-ALL EXCEPTION HANDLER
      * Any unhandled RuntimeException in the Service or Controller will end up here.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiCustomResponse<String>> handleAllUncaughtExceptions(Exception ex) {
+        // Log the actual error for debugging (in production, use a proper logger)
+        System.err.println("Unhandled exception: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
+
         return ResponseEntity.internalServerError().body(new ApiCustomResponse<>(
                 null,
-                "Error: " + ex.getMessage(),
+                "An unexpected error occurred. Please try again later.",
                 HttpStatus.INTERNAL_SERVER_ERROR.value()));
     }
 
