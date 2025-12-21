@@ -7,6 +7,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 @Service
 public class SignInService implements UserDetailsService {
@@ -21,6 +24,12 @@ public class SignInService implements UserDetailsService {
         if (user == null) {
             throw new UsernameNotFoundException("Account not found. Please register.");
         }
+
+        if (user.getIsLocked()) {
+            throw new DisabledException(
+                    "Account locked due to multiple failed login attempts. Please contact support.");
+        }
+
         if (!user.isEnabled()) {
             throw new DisabledException("Account unverified. Please check your email for the confirmation code.");
         }
@@ -29,7 +38,44 @@ public class SignInService implements UserDetailsService {
     }
 
     public User findUserByEmail(String email) {
-
         return userRepository.findFirstByEmail(email);
+    }
+
+    // Track login attempt (both successful and failed)
+    @Transactional
+    public void trackLoginAttempt(String email) {
+        User user = userRepository.findFirstByEmail(email);
+        if (user != null) {
+            user.setLastLoginAttempt(Instant.now());
+            userRepository.save(user);
+        }
+    }
+
+    // Track successful login
+    @Transactional
+    public void trackSuccessfulLogin(String email) {
+        User user = userRepository.findFirstByEmail(email);
+        if (user != null) {
+            user.setLastSuccessfulLogin(Instant.now());
+            user.setFailedLoginAttempts(0);
+            user.setIsLocked(false);
+            userRepository.save(user);
+        }
+    }
+
+    // Track failed login attempt and lock account after 3 attempts
+    @Transactional
+    public void trackFailedLoginAttempt(String email) {
+        User user = userRepository.findFirstByEmail(email);
+        if (user != null) {
+            int failedAttempts = user.getFailedLoginAttempts() + 1;
+            user.setFailedLoginAttempts(failedAttempts);
+
+            if (failedAttempts >= 3) {
+                user.setIsLocked(true);
+            }
+
+            userRepository.save(user);
+        }
     }
 }

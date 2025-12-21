@@ -53,11 +53,9 @@ public class SignUpService {
         user.setLastName(signUpRequest.lastName());
         user.setPhoneNumber(signUpRequest.phoneNumber());
         user.setEmail(signUpRequest.email().toLowerCase());
-        user.setDateOfCreation(Instant.now());
         user.setPassword(new BCryptPasswordEncoder().encode(signUpRequest.password()));
         user.setRole(Roles.ROLE_USER);
         user.setHasAgreedToTerms(true);
-        user.setTermsAgreedAt(Instant.now());
         user.setTermsVersion("1.0");
 
         userRepository.save(user);

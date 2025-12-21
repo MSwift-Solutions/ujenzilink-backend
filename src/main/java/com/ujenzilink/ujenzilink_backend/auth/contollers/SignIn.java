@@ -30,15 +30,20 @@ public class SignIn {
 
     @PostMapping("/sign-in")
     public ResponseEntity<ApiCustomResponse<SignInResponse>> signIn(@RequestBody @Valid SignInRequest signInRequest) {
+        // Track login attempt (for security auditing)
+        signInService.trackLoginAttempt(signInRequest.email());
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(signInRequest.email(), signInRequest.password()));
 
-        System.out.println("reacheeeeeeeeeeeeeee");
 
         UserDetails userDetails = signInService.loadUserByUsername(signInRequest.email());
         User user = signInService.findUserByEmail(signInRequest.email());
 
         String jwt = jwtUtil.generateToken(userDetails);
+
+        // Track successful login
+        signInService.trackSuccessfulLogin(signInRequest.email());
 
         SignInResponse signInData = new SignInResponse(jwt, user.getFirstName(), user.getLastName());
 

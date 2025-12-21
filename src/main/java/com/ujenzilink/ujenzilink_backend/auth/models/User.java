@@ -2,6 +2,7 @@ package com.ujenzilink.ujenzilink_backend.auth.models;
 
 import com.ujenzilink.ujenzilink_backend.auth.enums.Roles;
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -28,7 +29,9 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
+    @CreationTimestamp
     private Instant dateOfCreation;
+
     private Instant confirmedAt;
 
     @Column(nullable = false)
@@ -37,12 +40,20 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean hasAgreedToTerms = false;
 
+    @CreationTimestamp
     private Instant termsAgreedAt;
 
     private String termsVersion;
 
     private int resendVerificationCount = 0;
     private Instant lastResendAttempt;
+
+    private Instant lastSuccessfulLogin;
+    private Instant lastLoginAttempt;
+
+    private int failedLoginAttempts = 0;
+    @Column(nullable = false)
+    private boolean isLocked = false;
 
     @Enumerated(EnumType.STRING)
     private Roles role;
@@ -234,5 +245,37 @@ public class User implements UserDetails {
 
     public void setLastResendAttempt(Instant lastResendAttempt) {
         this.lastResendAttempt = lastResendAttempt;
+    }
+
+    public Instant getLastSuccessfulLogin() {
+        return lastSuccessfulLogin;
+    }
+
+    public void setLastSuccessfulLogin(Instant lastSuccessfulLogin) {
+        this.lastSuccessfulLogin = lastSuccessfulLogin;
+    }
+
+    public Instant getLastLoginAttempt() {
+        return lastLoginAttempt;
+    }
+
+    public void setLastLoginAttempt(Instant lastLoginAttempt) {
+        this.lastLoginAttempt = lastLoginAttempt;
+    }
+
+    public int getFailedLoginAttempts() {
+        return failedLoginAttempts;
+    }
+
+    public void setFailedLoginAttempts(int failedLoginAttempts) {
+        this.failedLoginAttempts = failedLoginAttempts;
+    }
+
+    public boolean getIsLocked() {
+        return isLocked;
+    }
+
+    public void setIsLocked(boolean isLocked) {
+        this.isLocked = isLocked;
     }
 }
