@@ -17,8 +17,10 @@ public class NameValidator implements ConstraintValidator<Name, String> {
 
     @Override
     public boolean isValid(String name, ConstraintValidatorContext constraintValidatorContext) {
+        // Allow null or empty for optional fields.
+        // Use @NotBlank alongside @Name if the field is required.
         if (name == null || name.isBlank()) {
-            return false;
+            return true;
         }
 
         String trimmedName = name.trim();
