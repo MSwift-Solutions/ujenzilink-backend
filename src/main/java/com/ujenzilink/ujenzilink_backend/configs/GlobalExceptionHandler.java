@@ -3,6 +3,9 @@ package com.ujenzilink.ujenzilink_backend.configs;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,6 +17,20 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /**
+     * CATCH-ALL EXCEPTION HANDLER
+     * Any unhandled RuntimeException in the Service or Controller will end up here.
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiCustomResponse<String>> handleAllUncaughtExceptions(Exception ex) {
+        return ResponseEntity.internalServerError().body(new ApiCustomResponse<>(
+                null,
+                "An unexpected error occurred: " + ex.getMessage(),
+                HttpStatus.INTERNAL_SERVER_ERROR.value()
+        ));
+    }
+
 
     // Handles @Valid failures
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -52,16 +69,31 @@ public class GlobalExceptionHandler {
         ));
     }
 
-    /**
-     * CATCH-ALL EXCEPTION HANDLER
-     * Any unhandled RuntimeException in the Service or Controller will end up here.
-     */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiCustomResponse<String>> handleAllUncaughtExceptions(Exception ex) {
-        return ResponseEntity.internalServerError().body(new ApiCustomResponse<>(
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<ApiCustomResponse<Void>> handleUsernameNotFound(UsernameNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiCustomResponse<>(
                 null,
-                "An unexpected error occurred: " + ex.getMessage(),
-                HttpStatus.INTERNAL_SERVER_ERROR.value()
+                ex.getMessage(),
+                HttpStatus.NOT_FOUND.value()
         ));
     }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiCustomResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiCustomResponse<>(
+                null,
+                "Invalid email or password",
+                HttpStatus.UNAUTHORIZED.value()
+        ));
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiCustomResponse<Void>> handleDisabledAccount(DisabledException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiCustomResponse<>(
+                null,
+                ex.getMessage(),
+                HttpStatus.FORBIDDEN.value()
+        ));
+    }
+
 }
