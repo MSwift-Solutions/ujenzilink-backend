@@ -26,7 +26,9 @@ public class PasswordAction {
     private Roles initiatedBy;
 
     @Column(nullable = false)
-    private Boolean completed = false;
+    private boolean completed = false;
+
+    private boolean codeConfirmed = false;
 
     @ManyToOne
     @JoinColumn(nullable = false, name = "user_id")
@@ -84,6 +86,11 @@ public class PasswordAction {
     public void setCompleted(Boolean completed) {
         this.completed = completed;
     }
+
+    public  void setCodeConfirmed(Boolean codeConfirmed) {
+        this.codeConfirmed = codeConfirmed;
+    }
+    public Boolean getCodeConfirmed() {return codeConfirmed;}
 
     public User getUser() {
         return user;

@@ -1,5 +1,6 @@
 package com.ujenzilink.ujenzilink_backend.auth.password.controller;
 
+import com.ujenzilink.ujenzilink_backend.auth.password.dto.CodeConfirmRequest;
 import com.ujenzilink.ujenzilink_backend.auth.password.dto.ForgotPassResetNew;
 import com.ujenzilink.ujenzilink_backend.auth.password.dto.ForgotPassResetRequest;
 import com.ujenzilink.ujenzilink_backend.auth.password.dto.PassChangeRequest;
@@ -28,6 +29,13 @@ public class PassAction {
     public ResponseEntity<ApiCustomResponse<String>> resetPasswordRequest(
             @RequestBody @Valid ForgotPassResetRequest request) {
         ApiCustomResponse<String> response = passActionsService.requestPasswordReset(request);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @PostMapping("/confirm-reset-code")
+    public ResponseEntity<ApiCustomResponse<String>> confirmResetCode(
+            @RequestBody @Valid CodeConfirmRequest request) {
+        ApiCustomResponse<String> response = passActionsService.confirmResetCode(request);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
