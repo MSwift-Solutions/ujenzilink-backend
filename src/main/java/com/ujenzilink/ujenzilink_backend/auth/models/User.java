@@ -1,6 +1,8 @@
 package com.ujenzilink.ujenzilink_backend.auth.models;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.ujenzilink.ujenzilink_backend.auth.enums.Roles;
+import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.jspecify.annotations.NonNull;
@@ -29,7 +31,10 @@ public class User implements UserDetails {
     @Column(unique = true)
     private String username;
 
-    private String profilePicture;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profile_picture_id")
+    @JsonManagedReference
+    private Image profilePicture;
 
     @Column(nullable = false)
     private String password;
@@ -184,11 +189,11 @@ public class User implements UserDetails {
         this.username = username;
     }
 
-    public String getProfilePicture() {
+    public Image getProfilePicture() {
         return this.profilePicture;
     }
 
-    public void setProfilePicture(String profilePicture) {
+    public void setProfilePicture(Image profilePicture) {
         this.profilePicture = profilePicture;
     }
 

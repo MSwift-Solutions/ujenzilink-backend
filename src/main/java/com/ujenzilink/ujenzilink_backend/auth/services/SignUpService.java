@@ -8,6 +8,8 @@ import com.ujenzilink.ujenzilink_backend.auth.models.VerificationToken;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.VerificationTokenRepository;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.images.models.Image;
+import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -27,6 +29,8 @@ public class SignUpService {
     private EmailService emailService;
     @Autowired
     private VerificationTokenRepository verificationTokenRepository;
+    @Autowired
+    private ImageRepository imageRepository;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -69,7 +73,12 @@ public class SignUpService {
 
         // Handle profile picture if provided
         if (signUpRequest.profilePicture() != null && !signUpRequest.profilePicture().isBlank()) {
-            user.setProfilePicture(signUpRequest.profilePicture().trim());
+            Image profileImage = new Image();
+            profileImage.setUrl(signUpRequest.profilePicture().trim());
+            // For now, store the base64 string as URL. Later, when Cloudinary is integrated,
+            // this will be replaced with the Cloudinary URL
+            profileImage = imageRepository.save(profileImage);
+            user.setProfilePicture(profileImage);
         }
 
         userRepository.save(user);
