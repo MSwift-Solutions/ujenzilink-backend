@@ -50,7 +50,7 @@ public class SignIn {
         // Track successful login
         signInService.trackSuccessfulLogin(signInRequest.email());
 
-        SignInResponse signInData = new SignInResponse(jwt, user.getFirstName(), user.getLastName());
+        SignInResponse signInData = new SignInResponse(jwt, user.getFirstName(), user.getLastName(), user.getEmail(), user.getUserHandle());
 
         return ResponseEntity.ok(new ApiCustomResponse<>(
                 signInData,

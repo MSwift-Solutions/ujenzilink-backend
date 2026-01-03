@@ -1,5 +1,6 @@
 package com.ujenzilink.ujenzilink_backend.auth.services;
 
+import com.ujenzilink.ujenzilink_backend.auth.dtos.SignInResponse;
 import com.ujenzilink.ujenzilink_backend.auth.dtos.SignUpRequest;
 import com.ujenzilink.ujenzilink_backend.auth.dtos.EmailDetails;
 import com.ujenzilink.ujenzilink_backend.auth.enums.Roles;
@@ -7,9 +8,10 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.models.VerificationToken;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.VerificationTokenRepository;
+import com.ujenzilink.ujenzilink_backend.auth.utils.JWTUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.images.models.Image;
-import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -30,7 +32,9 @@ public class SignUpService {
     @Autowired
     private VerificationTokenRepository verificationTokenRepository;
     @Autowired
-    private ImageRepository imageRepository;
+    private JWTUtil jwtUtil;
+    @Autowired
+    private UserDetailsService userDetailsService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -71,16 +75,6 @@ public class SignUpService {
         user.setHasAgreedToTerms(true);
         user.setTermsVersion("1.0");
 
-        // Handle profile picture if provided
-        if (signUpRequest.profilePicture() != null && !signUpRequest.profilePicture().isBlank()) {
-            Image profileImage = new Image();
-            profileImage.setUrl(signUpRequest.profilePicture().trim());
-            // For now, store the base64 string as URL. Later, when Cloudinary is integrated,
-            // this will be replaced with the Cloudinary URL
-            profileImage = imageRepository.save(profileImage);
-            user.setProfilePicture(profileImage);
-        }
-
         userRepository.save(user);
 
         String token = generateToken(user);
@@ -110,7 +104,7 @@ public class SignUpService {
     }
 
     @Transactional
-    public ApiCustomResponse<String> confirmToken(String token) {
+    public ApiCustomResponse<SignInResponse> confirmToken(String token) {
         VerificationToken verificationToken = verificationTokenRepository.findById(token).orElse(null);
 
         if (verificationToken == null) {
@@ -136,15 +130,27 @@ public class SignUpService {
         user.setConfirmedAt(Instant.now());
         userRepository.save(user);
 
+        // Generate JWT token for immediate authentication
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        String jwt = jwtUtil.generateToken(userDetails);
+
         EmailDetails emailDetails = new EmailDetails(
                 user.getEmail(),
                 user.getFirstName(),
                 null);
         emailService.sendSuccessfulCreationEmail(emailDetails, user);
 
+       SignInResponse confirmResponse = new SignInResponse(
+                jwt,
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getUserHandle()
+        );
+
         return new ApiCustomResponse<>(
-                null,
-                "Account successfully verified. You may now log in.",
+                confirmResponse,
+                "Account successfully verified. You can now upload your profile picture.",
                 HttpStatus.OK.value());
     }
 

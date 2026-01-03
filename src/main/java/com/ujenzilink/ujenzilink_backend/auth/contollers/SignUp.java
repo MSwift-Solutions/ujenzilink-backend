@@ -1,5 +1,6 @@
 package com.ujenzilink.ujenzilink_backend.auth.contollers;
 
+import com.ujenzilink.ujenzilink_backend.auth.dtos.SignInResponse;
 import com.ujenzilink.ujenzilink_backend.auth.dtos.SignUpRequest;
 import com.ujenzilink.ujenzilink_backend.auth.services.SignUpService;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
@@ -30,7 +31,7 @@ public class SignUp {
     }
 
     @PostMapping("/confirm")
-    public ResponseEntity<ApiCustomResponse<String>> confirmUser(
+    public ResponseEntity<ApiCustomResponse<SignInResponse>> confirmUser(
             @RequestParam(required = false) String token) {
 
         if (token == null || token.isBlank()) {
@@ -40,9 +41,11 @@ public class SignUp {
                     HttpStatus.BAD_REQUEST.value()));
         }
 
-        ApiCustomResponse<String> response = signUpService.confirmToken(token);
+        ApiCustomResponse<SignInResponse> response = signUpService.confirmToken(token);
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity
+                .status(response.statusCode())
+                .body(response);
     }
 
     @PostMapping("/resend-verification")

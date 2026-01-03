@@ -14,7 +14,7 @@ import java.time.Instant;
 public class SignInService implements UserDetailsService {
     private final UserRepository userRepository;
 
-    public SignInService(UserRepository userRepository, SignUpService signUpService) {
+    public SignInService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
