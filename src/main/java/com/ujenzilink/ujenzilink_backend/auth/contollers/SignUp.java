@@ -63,6 +63,29 @@ public class SignUp {
                 .body(response);
     }
 
+    @GetMapping("/check-username")
+    public ResponseEntity<ApiCustomResponse<Boolean>> checkUsernameAvailability(
+            @RequestParam(required = false) String username) {
+
+        if (username == null || username.isBlank()) {
+            return ResponseEntity.badRequest().body(new ApiCustomResponse<>(
+                    false,
+                    "Username parameter is required",
+                    HttpStatus.BAD_REQUEST.value()));
+        }
+
+        boolean isAvailable = !signUpService.isUsernameTaken(username.toLowerCase());
+        
+        String message = isAvailable 
+                ? "Username is available" 
+                : "Username is already taken";
+
+        return ResponseEntity.ok(new ApiCustomResponse<>(
+                isAvailable,
+                message,
+                HttpStatus.OK.value()));
+    }
+
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("test");

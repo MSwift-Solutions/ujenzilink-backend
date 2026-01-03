@@ -47,12 +47,21 @@ public class SignUpService {
                     HttpStatus.CONFLICT.value());
         }
 
+        User existingUserByUsername = userRepository.findFirstByUsername(signUpRequest.username().toLowerCase());
+        if (existingUserByUsername != null) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "Username already taken. Please choose a different username.",
+                    HttpStatus.CONFLICT.value());
+        }
+
         User user = new User();
         user.setFirstName(signUpRequest.firstName());
         user.setMiddleName(signUpRequest.middleName());
         user.setLastName(signUpRequest.lastName());
         user.setPhoneNumber(signUpRequest.phoneNumber());
         user.setEmail(signUpRequest.email().toLowerCase());
+        user.setUsername(signUpRequest.username().toLowerCase());
         user.setPassword(new BCryptPasswordEncoder().encode(signUpRequest.password()));
         user.setRole(Roles.ROLE_USER);
         user.setHasAgreedToTerms(true);
@@ -205,5 +214,9 @@ public class SignUpService {
     private void invalidateUserTokens(User user) {
         List<VerificationToken> userTokens = verificationTokenRepository.findByUserId(user.getId());
         verificationTokenRepository.deleteAll(userTokens);
+    }
+
+    public boolean isUsernameTaken(String username) {
+        return userRepository.existsByUsername(username.toLowerCase());
     }
 }
