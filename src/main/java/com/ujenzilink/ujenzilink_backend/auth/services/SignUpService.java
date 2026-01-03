@@ -67,6 +67,11 @@ public class SignUpService {
         user.setHasAgreedToTerms(true);
         user.setTermsVersion("1.0");
 
+        // Handle profile picture if provided
+        if (signUpRequest.profilePicture() != null && !signUpRequest.profilePicture().isBlank()) {
+            user.setProfilePicture(signUpRequest.profilePicture().trim());
+        }
+
         userRepository.save(user);
 
         String token = generateToken(user);

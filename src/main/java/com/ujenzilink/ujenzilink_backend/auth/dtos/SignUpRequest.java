@@ -20,5 +20,7 @@ public record SignUpRequest(
 
                 @NotBlank(message = "Username cannot be null or empty!") @Username String username,
 
+                String profilePicture,
+
                 @Password String password) {
 }

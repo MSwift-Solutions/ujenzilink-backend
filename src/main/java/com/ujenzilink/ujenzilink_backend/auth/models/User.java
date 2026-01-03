@@ -29,6 +29,8 @@ public class User implements UserDetails {
     @Column(unique = true)
     private String username;
 
+    private String profilePicture;
+
     @Column(nullable = false)
     private String password;
 
@@ -180,6 +182,14 @@ public class User implements UserDetails {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getProfilePicture() {
+        return this.profilePicture;
+    }
+
+    public void setProfilePicture(String profilePicture) {
+        this.profilePicture = profilePicture;
     }
 
     public void setPassword(String password) {
