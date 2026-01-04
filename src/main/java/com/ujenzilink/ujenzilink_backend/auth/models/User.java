@@ -1,6 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.auth.models;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.ujenzilink.ujenzilink_backend.auth.enums.Gender;
 import com.ujenzilink.ujenzilink_backend.auth.enums.Roles;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import jakarta.persistence.*;
@@ -11,6 +12,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.UUID;
@@ -74,6 +76,18 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     private Roles role;
+
+    @Column(length = 500)
+    private String bio;
+
+    private LocalDate dateOfBirth;
+
+    private String location;
+
+    private String geoLocation;
+
+    @Enumerated(EnumType.STRING)
+    private Gender gender;
 
     public User() {
     }
@@ -326,5 +340,45 @@ public class User implements UserDetails {
 
     public void setDeletedAt(Instant deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getGeoLocation() {
+        return geoLocation;
+    }
+
+    public void setGeoLocation(String geoLocation) {
+        this.geoLocation = geoLocation;
+    }
+
+    public Gender getGender() {
+        return gender;
+    }
+
+    public void setGender(Gender gender) {
+        this.gender = gender;
     }
 }
