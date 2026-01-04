@@ -16,6 +16,8 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -157,7 +159,7 @@ public class GlobalExceptionHandler {
         }
 
         // Handles file size limit exceeded
-        @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+        @ExceptionHandler(MaxUploadSizeExceededException.class)
         public ResponseEntity<ApiCustomResponse<Void>> handleMaxUploadSizeExceededException(
                         org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
                 return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(new ApiCustomResponse<>(
@@ -167,7 +169,7 @@ public class GlobalExceptionHandler {
         }
 
         // Handles generic multipart file upload errors
-        @ExceptionHandler(org.springframework.web.multipart.MultipartException.class)
+        @ExceptionHandler(MultipartException.class)
         public ResponseEntity<ApiCustomResponse<Void>> handleMultipartException(
                         org.springframework.web.multipart.MultipartException ex) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiCustomResponse<>(
@@ -175,5 +177,17 @@ public class GlobalExceptionHandler {
                                 "File upload failed. Please ensure you are uploading a valid file.",
                                 HttpStatus.BAD_REQUEST.value()));
         }
+
+        /**
+         * Handles validation errors thrown by ImageValidationService and other logic
+         */
+        @ExceptionHandler(IllegalArgumentException.class)
+        public ResponseEntity<ApiCustomResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiCustomResponse<>(
+                        null,
+                        ex.getMessage(),
+                        HttpStatus.BAD_REQUEST.value()));
+        }
+
 
 }
