@@ -1,6 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.images.constroller;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.images.dtos.ProfileImageResponse;
 import com.ujenzilink.ujenzilink_backend.images.services.ImageService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +35,25 @@ public class ImageController {
     @DeleteMapping("/{imageId}")
     public ResponseEntity<ApiCustomResponse<Void>> deleteImage(@PathVariable UUID imageId) {
         ApiCustomResponse<Void> response = imageService.deleteImage(imageId);
+
+        return ResponseEntity
+                .status(response.statusCode())
+                .body(response);
+    }
+
+    @GetMapping("/profile-picture/me")
+    public ResponseEntity<ApiCustomResponse<ProfileImageResponse>> getMyProfilePicture() {
+        ApiCustomResponse<ProfileImageResponse> response = imageService.getMyProfileImage();
+
+        return ResponseEntity
+                .status(response.statusCode())
+                .body(response);
+    }
+
+    @GetMapping("/profile-picture/{userId}")
+    public ResponseEntity<ApiCustomResponse<ProfileImageResponse>> getProfilePicture(
+            @PathVariable UUID userId) {
+        ApiCustomResponse<ProfileImageResponse> response = imageService.getProfileImage(userId);
 
         return ResponseEntity
                 .status(response.statusCode())

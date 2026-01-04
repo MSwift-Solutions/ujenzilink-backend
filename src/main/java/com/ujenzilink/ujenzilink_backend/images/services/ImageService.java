@@ -6,6 +6,7 @@ import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.ImageMetadata;
+import com.ujenzilink.ujenzilink_backend.images.dtos.ProfileImageResponse;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
 import org.springframework.http.HttpStatus;
@@ -148,6 +149,101 @@ public class ImageService {
         return new ApiCustomResponse<>(
                 null,
                 "Image deleted successfully.",
+                HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<ProfileImageResponse> getMyProfileImage() {
+        String currentUserEmail = SecurityUtil.getCurrentUsername();
+
+        if (currentUserEmail == null) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not authenticated.",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userRepository.findFirstByEmail(currentUserEmail);
+
+        if (user == null) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not found.",
+                    HttpStatus.NOT_FOUND.value());
+        }
+
+        Image profilePicture = user.getProfilePicture();
+
+        if (profilePicture == null || profilePicture.getIsDeleted()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "No profile picture found.",
+                    HttpStatus.NOT_FOUND.value());
+        }
+
+        ProfileImageResponse response = new ProfileImageResponse(
+                profilePicture.getId(),
+                profilePicture.getUrl(),
+                profilePicture.getFilename(),
+                profilePicture.getFileType(),
+                profilePicture.getFileSize(),
+                profilePicture.getWidth(),
+                profilePicture.getHeight(),
+                profilePicture.getUploadedAt());
+
+        return new ApiCustomResponse<>(
+                response,
+                "Profile picture retrieved successfully.",
+                HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<ProfileImageResponse> getProfileImage(UUID userId) {
+        String currentUserEmail = SecurityUtil.getCurrentUsername();
+
+        if (currentUserEmail == null) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not authenticated.",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User targetUser = userRepository.findById(userId).orElse(null);
+
+        if (targetUser == null) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not found.",
+                    HttpStatus.NOT_FOUND.value());
+        }
+
+        if (targetUser.getIsDeleted()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not found.",
+                    HttpStatus.NOT_FOUND.value());
+        }
+
+        Image profilePicture = targetUser.getProfilePicture();
+
+        if (profilePicture == null || profilePicture.getIsDeleted()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "No profile picture found.",
+                    HttpStatus.NOT_FOUND.value());
+        }
+
+        ProfileImageResponse response = new ProfileImageResponse(
+                profilePicture.getId(),
+                profilePicture.getUrl(),
+                profilePicture.getFilename(),
+                profilePicture.getFileType(),
+                profilePicture.getFileSize(),
+                profilePicture.getWidth(),
+                profilePicture.getHeight(),
+                profilePicture.getUploadedAt());
+
+        return new ApiCustomResponse<>(
+                response,
+                "Profile picture retrieved successfully.",
                 HttpStatus.OK.value());
     }
 }
