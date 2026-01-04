@@ -156,4 +156,24 @@ public class GlobalExceptionHandler {
                                 HttpStatus.INTERNAL_SERVER_ERROR.value()));
         }
 
+        // Handles file size limit exceeded
+        @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+        public ResponseEntity<ApiCustomResponse<Void>> handleMaxUploadSizeExceededException(
+                        org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
+                return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(new ApiCustomResponse<>(
+                                null,
+                                "File size exceeds the maximum limit. Please upload a smaller file.",
+                                HttpStatus.PAYLOAD_TOO_LARGE.value()));
+        }
+
+        // Handles generic multipart file upload errors
+        @ExceptionHandler(org.springframework.web.multipart.MultipartException.class)
+        public ResponseEntity<ApiCustomResponse<Void>> handleMultipartException(
+                        org.springframework.web.multipart.MultipartException ex) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiCustomResponse<>(
+                                null,
+                                "File upload failed. Please ensure you are uploading a valid file.",
+                                HttpStatus.BAD_REQUEST.value()));
+        }
+
 }
