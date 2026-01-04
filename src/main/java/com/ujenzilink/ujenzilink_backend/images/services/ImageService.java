@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -23,41 +24,34 @@ public class ImageService {
         private final UserRepository userRepository;
         private final ImageValidationService imageValidationService;
         private final CloudinaryService cloudinaryService;
+        private final SecurityUtil securityUtil;
 
         public ImageService(
                         ImageRepository imageRepository,
                         UserRepository userRepository,
                         ImageValidationService imageValidationService,
-                        CloudinaryService cloudinaryService) {
+                        CloudinaryService cloudinaryService,
+                        SecurityUtil securityUtil) {
                 this.imageRepository = imageRepository;
                 this.userRepository = userRepository;
                 this.imageValidationService = imageValidationService;
                 this.cloudinaryService = cloudinaryService;
+                this.securityUtil = securityUtil;
         }
 
         @Transactional
         public ApiCustomResponse<String> uploadProfilePicture(MultipartFile file) {
-                // 1. Validate user authentication
-                String currentUserEmail = SecurityUtil.getCurrentUsername();
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
 
-                if (currentUserEmail == null) {
+                if (userOpt.isEmpty()) {
                         return new ApiCustomResponse<>(
                                         null,
-                                        "User not authenticated.",
+                                        "User not authenticated or not found.",
                                         HttpStatus.UNAUTHORIZED.value());
                 }
 
-                // 2. Retrieve user from database
-                User user = userRepository.findFirstByEmail(currentUserEmail);
+                User user = userOpt.get();
 
-                if (user == null) {
-                        return new ApiCustomResponse<>(
-                                        null,
-                                        "User not found.",
-                                        HttpStatus.NOT_FOUND.value());
-                }
-
-                // 3. Verify account is enabled
                 if (!user.getIsEnabled()) {
                         return new ApiCustomResponse<>(
                                         null,
@@ -65,14 +59,10 @@ public class ImageService {
                                         HttpStatus.FORBIDDEN.value());
                 }
 
-                // 4. Validate image and extract metadata
                 ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
 
-                // 5. Upload to Cloudinary
-                CloudinaryUploadResponse uploadResponse = cloudinaryService
-                                .uploadImage(file);
+                CloudinaryUploadResponse uploadResponse = cloudinaryService.uploadImage(file);
 
-                // 6. Create and populate Image entity
                 Image profileImage = new Image();
                 profileImage.setUrl(uploadResponse.secureUrl());
                 profileImage.setFilename(metadata.filename());
@@ -82,10 +72,8 @@ public class ImageService {
                 profileImage.setHeight(uploadResponse.height());
                 profileImage.setUser(user);
 
-                // 7. Save the new image to the gallery (images table)
                 profileImage = imageRepository.save(profileImage);
 
-                // 8. Update the user's active pointer to this specific new image
                 user.setProfilePicture(profileImage);
                 userRepository.save(user);
 
@@ -97,27 +85,17 @@ public class ImageService {
 
         @Transactional
         public ApiCustomResponse<Void> deleteImage(UUID imageId) {
-                // 1. Validate user authentication
-                String currentUserEmail = SecurityUtil.getCurrentUsername();
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
 
-                if (currentUserEmail == null) {
+                if (userOpt.isEmpty()) {
                         return new ApiCustomResponse<>(
                                         null,
-                                        "User not authenticated.",
+                                        "User not authenticated or not found.",
                                         HttpStatus.UNAUTHORIZED.value());
                 }
 
-                // 2. Retrieve user from database
-                User user = userRepository.findFirstByEmail(currentUserEmail);
+                User user = userOpt.get();
 
-                if (user == null) {
-                        return new ApiCustomResponse<>(
-                                        null,
-                                        "User not found.",
-                                        HttpStatus.NOT_FOUND.value());
-                }
-
-                // 3. Retrieve image
                 Image image = imageRepository.findById(imageId).orElse(null);
 
                 if (image == null) {
@@ -127,7 +105,6 @@ public class ImageService {
                                         HttpStatus.NOT_FOUND.value());
                 }
 
-                // 4. Verify ownership
                 if (!image.getUser().getId().equals(user.getId())) {
                         return new ApiCustomResponse<>(
                                         null,
@@ -135,12 +112,10 @@ public class ImageService {
                                         HttpStatus.FORBIDDEN.value());
                 }
 
-                // 5. Soft delete
                 image.setIsDeleted(true);
                 image.setDeletedAt(java.time.Instant.now());
                 imageRepository.save(image);
 
-                // 6. If it was the profile picture, remove the reference
                 if (user.getProfilePicture() != null && user.getProfilePicture().getId().equals(imageId)) {
                         user.setProfilePicture(null);
                         userRepository.save(user);
@@ -153,24 +128,16 @@ public class ImageService {
         }
 
         public ApiCustomResponse<ProfileImageResponse> getMyProfileImage() {
-                String currentUserEmail = SecurityUtil.getCurrentUsername();
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
 
-                if (currentUserEmail == null) {
+                if (userOpt.isEmpty()) {
                         return new ApiCustomResponse<>(
                                         null,
-                                        "User not authenticated.",
+                                        "User not authenticated or not found.",
                                         HttpStatus.UNAUTHORIZED.value());
                 }
 
-                User user = userRepository.findFirstByEmail(currentUserEmail);
-
-                if (user == null) {
-                        return new ApiCustomResponse<>(
-                                        null,
-                                        "User not found.",
-                                        HttpStatus.NOT_FOUND.value());
-                }
-
+                User user = userOpt.get();
                 Image profilePicture = user.getProfilePicture();
 
                 if (profilePicture == null || profilePicture.getIsDeleted()) {
@@ -197,25 +164,18 @@ public class ImageService {
         }
 
         public ApiCustomResponse<ProfileImageResponse> getProfileImage(String username) {
-                String currentUserEmail = SecurityUtil.getCurrentUsername();
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
 
-                if (currentUserEmail == null) {
+                if (userOpt.isEmpty()) {
                         return new ApiCustomResponse<>(
                                         null,
-                                        "User not authenticated.",
+                                        "User not authenticated or not found.",
                                         HttpStatus.UNAUTHORIZED.value());
                 }
 
                 User targetUser = userRepository.findFirstByUsername(username);
 
-                if (targetUser == null) {
-                        return new ApiCustomResponse<>(
-                                        null,
-                                        "User not found.",
-                                        HttpStatus.NOT_FOUND.value());
-                }
-
-                if (targetUser.getIsDeleted()) {
+                if (targetUser == null || targetUser.getIsDeleted()) {
                         return new ApiCustomResponse<>(
                                         null,
                                         "User not found.",

@@ -8,35 +8,30 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Optional;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
+    private final SecurityUtil securityUtil;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, SecurityUtil securityUtil) {
         this.userRepository = userRepository;
+        this.securityUtil = securityUtil;
     }
 
     public ApiCustomResponse<String> deleteUser() {
-        String email = SecurityUtil.getCurrentUsername();
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
 
-        if (email == null) {
+        if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(
                     null,
-                    "User not authenticated",
+                    "User not authenticated or not found.",
                     HttpStatus.UNAUTHORIZED.value());
         }
 
-        User user = userRepository.findFirstByEmail(email);
-
-        if (user == null) {
-            return new ApiCustomResponse<>(
-                    null,
-                    "User not found",
-                    HttpStatus.NOT_FOUND.value());
-        }
-
+        User user = userOpt.get();
         user.setIsDeleted(true);
         user.setDeletedAt(Instant.now());
         userRepository.save(user);
