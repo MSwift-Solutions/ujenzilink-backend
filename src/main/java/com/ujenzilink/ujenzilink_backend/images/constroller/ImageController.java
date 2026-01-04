@@ -1,11 +1,11 @@
 package com.ujenzilink.ujenzilink_backend.images.constroller;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.images.dtos.ProfilePictureRequest;
 import com.ujenzilink.ujenzilink_backend.images.services.ImageService;
-import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/v1/images")
@@ -18,15 +18,14 @@ public class ImageController {
         this.imageService = imageService;
     }
 
-    @PostMapping("/profile-picture")
+    @PostMapping(value = "/profile-picture", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiCustomResponse<String>> uploadProfilePicture(
-            @RequestBody @Valid ProfilePictureRequest request) {
-        
-        ApiCustomResponse<String> response = imageService.uploadProfilePicture(request.profilePicture());
-        
+            @RequestPart("profilePicture") MultipartFile file) {
+
+        ApiCustomResponse<String> response = imageService.uploadProfilePicture(file);
+
         return ResponseEntity
                 .status(response.statusCode())
                 .body(response);
     }
 }
-

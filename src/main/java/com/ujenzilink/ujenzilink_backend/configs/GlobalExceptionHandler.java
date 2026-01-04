@@ -154,4 +154,25 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR.value()));
     }
 
+    @ExceptionHandler(com.ujenzilink.ujenzilink_backend.images.exceptions.ImageValidationException.class)
+    public ResponseEntity<ApiCustomResponse<Void>> handleImageValidation(
+            com.ujenzilink.ujenzilink_backend.images.exceptions.ImageValidationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiCustomResponse<>(
+                null,
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST.value()));
+    }
+
+    @ExceptionHandler(com.ujenzilink.ujenzilink_backend.images.exceptions.CloudinaryUploadException.class)
+    public ResponseEntity<ApiCustomResponse<Void>> handleCloudinaryUpload(
+            com.ujenzilink.ujenzilink_backend.images.exceptions.CloudinaryUploadException ex) {
+        // Log the actual error for debugging (in production, use a proper logger)
+        System.err.println("Cloudinary upload failed: " + ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(new ApiCustomResponse<>(
+                null,
+                ex.getMessage(),
+                HttpStatus.BAD_GATEWAY.value()));
+    }
+
 }
