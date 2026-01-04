@@ -1,7 +1,8 @@
 package com.ujenzilink.ujenzilink_backend.configs;
 
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.MalformedJwtException;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.http.HttpStatus;
@@ -20,8 +21,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 
-import java.util.HashMap;
-import java.util.Map;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -163,10 +164,10 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(MaxUploadSizeExceededException.class)
         public ResponseEntity<ApiCustomResponse<Void>> handleMaxUploadSizeExceededException(
                         org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
-                return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(new ApiCustomResponse<>(
+                return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body(new ApiCustomResponse<>(
                                 null,
                                 "File size exceeds the maximum limit. Please upload a smaller file.",
-                                HttpStatus.PAYLOAD_TOO_LARGE.value()));
+                                HttpStatus.CONTENT_TOO_LARGE.value()));
         }
 
         // Handles generic multipart file upload errors
