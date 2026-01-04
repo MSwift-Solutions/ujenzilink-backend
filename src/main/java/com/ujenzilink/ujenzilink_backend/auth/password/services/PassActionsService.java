@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 
 @Service
 public class PassActionsService {
@@ -264,7 +265,7 @@ public class PassActionsService {
                 return resetCode;
         }
 
-        private void invalidateUserPasswordTokens(Long userId) {
+        private void invalidateUserPasswordTokens(UUID userId) {
                 var tokens = passwordActionTokenRepository.findByUserId(userId);
                 passwordActionTokenRepository.deleteAll(tokens);
         }

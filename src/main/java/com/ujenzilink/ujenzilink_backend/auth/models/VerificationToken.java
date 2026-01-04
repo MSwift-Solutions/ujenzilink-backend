@@ -5,6 +5,7 @@ import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.redis.core.index.Indexed;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @RedisHash(value = "verification_tokens", timeToLive = 900)
 public class VerificationToken {
@@ -13,14 +14,14 @@ public class VerificationToken {
     private String token;
 
     @Indexed
-    private Long userId;
+    private UUID userId;
 
     private Instant expiresAt;
 
     public VerificationToken() {
     }
 
-    public VerificationToken(String token, Long userId, Instant expiresAt) {
+    public VerificationToken(String token, UUID userId, Instant expiresAt) {
         this.token = token;
         this.userId = userId;
         this.expiresAt = expiresAt;
@@ -34,11 +35,11 @@ public class VerificationToken {
         this.token = token;
     }
 
-    public Long getUserId() {
+    public UUID getUserId() {
         return userId;
     }
 
-    public void setUserId(Long userId) {
+    public void setUserId(UUID userId) {
         this.userId = userId;
     }
 

@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/v1/images")
 @CrossOrigin
@@ -30,7 +32,7 @@ public class ImageController {
     }
 
     @DeleteMapping("/{imageId}")
-    public ResponseEntity<ApiCustomResponse<Void>> deleteImage(@PathVariable Long imageId) {
+    public ResponseEntity<ApiCustomResponse<Void>> deleteImage(@PathVariable UUID imageId) {
         ApiCustomResponse<Void> response = imageService.deleteImage(imageId);
 
         return ResponseEntity

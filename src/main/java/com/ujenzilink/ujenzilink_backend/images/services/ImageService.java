@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.UUID;
+
 @Service
 public class ImageService {
 
@@ -94,7 +96,7 @@ public class ImageService {
     }
 
     @Transactional
-    public ApiCustomResponse<Void> deleteImage(Long imageId) {
+    public ApiCustomResponse<Void> deleteImage(UUID imageId) {
         // 1. Validate user authentication
         String currentUserEmail = SecurityUtil.getCurrentUsername();
 

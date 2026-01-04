@@ -6,6 +6,7 @@ import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.redis.core.index.Indexed;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @RedisHash(value = "password_tokens", timeToLive = 900)
 public class PasswordActionToken {
@@ -14,7 +15,7 @@ public class PasswordActionToken {
     private String token;
 
     @Indexed
-    private Long userId;
+    private UUID userId;
 
     private Instant expiresAt;
 
@@ -23,7 +24,7 @@ public class PasswordActionToken {
     public PasswordActionToken() {
     }
 
-    public PasswordActionToken(String token, Long userId, Instant expiresAt, PasswordActionType actionType) {
+    public PasswordActionToken(String token, UUID userId, Instant expiresAt, PasswordActionType actionType) {
         this.token = token;
         this.userId = userId;
         this.expiresAt = expiresAt;
@@ -38,11 +39,11 @@ public class PasswordActionToken {
         this.token = token;
     }
 
-    public Long getUserId() {
+    public UUID getUserId() {
         return userId;
     }
 
-    public void setUserId(Long userId) {
+    public void setUserId(UUID userId) {
         this.userId = userId;
     }
 

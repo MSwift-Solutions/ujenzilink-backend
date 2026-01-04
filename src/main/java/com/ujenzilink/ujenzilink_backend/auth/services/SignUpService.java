@@ -126,6 +126,12 @@ public class SignUpService {
         verificationTokenRepository.delete(verificationToken);
 
         User user = userRepository.findById(verificationToken.getUserId()).orElse(null);
+        if (user == null) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not found, kindly register.",
+                    HttpStatus.NOT_FOUND.value());
+        }
         user.setIsEnabled(true);
         user.setConfirmedAt(Instant.now());
         userRepository.save(user);

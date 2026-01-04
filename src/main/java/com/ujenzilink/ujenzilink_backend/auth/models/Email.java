@@ -3,13 +3,15 @@ package com.ujenzilink.ujenzilink_backend.auth.models;
 import com.ujenzilink.ujenzilink_backend.auth.enums.EmailTypes;
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Table(name = "emails")
 public class Email {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
+    private UUID id;
 
     private String recipientEmail;
 
@@ -37,11 +39,11 @@ public class Email {
     }
 
     // Getters and Setters
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
