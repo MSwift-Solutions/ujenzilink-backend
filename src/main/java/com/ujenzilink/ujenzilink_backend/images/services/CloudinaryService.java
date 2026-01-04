@@ -18,7 +18,7 @@ public class CloudinaryService {
         this.cloudinary = cloudinary;
     }
 
-    public String uploadImage(MultipartFile file) {
+    public com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse uploadImage(MultipartFile file) {
         try {
             Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap(
@@ -32,11 +32,9 @@ public class CloudinaryService {
                                     .fetchFormat("auto")
                                     .quality("auto")
                                     .width(2000)
-                                    .crop("limit")
-                    )
-            );
+                                    .crop("limit")));
 
-            return (String) uploadResult.get("secure_url");
+            return com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse.from(uploadResult);
         } catch (IOException e) {
             throw new RuntimeException("Cloudinary upload failed: " + e.getMessage());
         }

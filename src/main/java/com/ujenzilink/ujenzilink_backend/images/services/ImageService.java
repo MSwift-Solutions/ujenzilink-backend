@@ -4,6 +4,7 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.ImageMetadata;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
@@ -66,16 +67,17 @@ public class ImageService {
         ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
 
         // 5. Upload to Cloudinary
-        String cloudinaryUrl = cloudinaryService.uploadImage(file);
+        CloudinaryUploadResponse uploadResponse = cloudinaryService
+                .uploadImage(file);
 
         // 6. Create and populate Image entity
         Image profileImage = new Image();
-        profileImage.setUrl(cloudinaryUrl);
+        profileImage.setUrl(uploadResponse.secureUrl());
         profileImage.setFilename(metadata.filename());
         profileImage.setFileType(metadata.fileType());
         profileImage.setFileSize(metadata.fileSize());
-        profileImage.setWidth(metadata.width());
-        profileImage.setHeight(metadata.height());
+        profileImage.setWidth(uploadResponse.width());
+        profileImage.setHeight(uploadResponse.height());
         profileImage.setUser(user);
 
         // 7. Save the new image to the gallery (images table)
@@ -86,7 +88,7 @@ public class ImageService {
         userRepository.save(user);
 
         return new ApiCustomResponse<>(
-                cloudinaryUrl,
+                uploadResponse.secureUrl(),
                 "Profile picture uploaded successfully.",
                 HttpStatus.OK.value());
     }

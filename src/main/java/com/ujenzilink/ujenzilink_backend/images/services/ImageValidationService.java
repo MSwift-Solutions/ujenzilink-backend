@@ -27,13 +27,9 @@ public class ImageValidationService {
             throw new IllegalArgumentException("Unsupported image format. Allowed: JPEG, PNG, WEBP, HEIC.");
         }
 
-        // Dimensions (0,0) are placeholders; Cloudinary will provide actuals after upload
         return new ImageMetadata(
                 file.getOriginalFilename(),
                 contentType,
-                file.getSize(),
-                0,
-                0
-        );
+                file.getSize());
     }
 }
