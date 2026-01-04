@@ -21,7 +21,7 @@ public class ImageController {
         this.imageService = imageService;
     }
 
-    @PostMapping(value = "/profile-picture", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/upload-profile-picture", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiCustomResponse<String>> uploadProfilePicture(
             @RequestPart("profilePicture") MultipartFile file) {
 
@@ -50,10 +50,10 @@ public class ImageController {
                 .body(response);
     }
 
-    @GetMapping("/profile-picture/{userId}")
+    @GetMapping("/profile-picture/{username}")
     public ResponseEntity<ApiCustomResponse<ProfileImageResponse>> getProfilePicture(
-            @PathVariable UUID userId) {
-        ApiCustomResponse<ProfileImageResponse> response = imageService.getProfileImage(userId);
+            @PathVariable String username) {
+        ApiCustomResponse<ProfileImageResponse> response = imageService.getProfileImage(username);
 
         return ResponseEntity
                 .status(response.statusCode())
