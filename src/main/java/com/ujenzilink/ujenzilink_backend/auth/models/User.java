@@ -67,6 +67,11 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean isLocked = false;
 
+    @Column(nullable = false)
+    private boolean isDeleted = false;
+
+    private Instant deletedAt;
+
     @Enumerated(EnumType.STRING)
     private Roles role;
 
@@ -305,5 +310,21 @@ public class User implements UserDetails {
 
     public void setIsLocked(boolean isLocked) {
         this.isLocked = isLocked;
+    }
+
+    public boolean getIsDeleted() {
+        return isDeleted;
+    }
+
+    public void setIsDeleted(boolean isDeleted) {
+        this.isDeleted = isDeleted;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Instant deletedAt) {
+        this.deletedAt = deletedAt;
     }
 }

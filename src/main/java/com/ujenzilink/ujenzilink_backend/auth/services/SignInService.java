@@ -24,6 +24,10 @@ public class SignInService implements UserDetailsService {
             throw new UsernameNotFoundException("Account not found. Please register.");
         }
 
+        if (user.getIsDeleted()) {
+            throw new UsernameNotFoundException("Account is deleted. Please register again.");
+        }
+
         // Return Spring Security User with correct status flags
         // User(username, password, enabled, accountNonExpired, credentialsNonExpired,
         // accountNonLocked, authorities)

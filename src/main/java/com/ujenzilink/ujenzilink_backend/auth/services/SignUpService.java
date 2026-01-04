@@ -49,18 +49,48 @@ public class SignUpService {
 
         User existingUser = userRepository.findFirstByEmail(signUpRequest.email().toLowerCase());
         if (existingUser != null) {
-            return new ApiCustomResponse<>(
-                    null,
-                    "Email already registered. Please log in.",
-                    HttpStatus.CONFLICT.value());
+            if (existingUser.getIsDeleted()) {
+                long daysSinceDeletion = ChronoUnit.DAYS.between(existingUser.getDeletedAt(), Instant.now());
+                if (daysSinceDeletion < 7) {
+                    return new ApiCustomResponse<>(
+                            null,
+                            "Account was deleted recently. You can create a new account after "
+                                    + (7 - daysSinceDeletion) + " days.",
+                            HttpStatus.FORBIDDEN.value());
+                } else {
+                    // Permanently delete the old account to allow new registration
+                    userRepository.delete(existingUser);
+                    userRepository.flush(); // Ensure deletion happens before insertion
+                }
+            } else {
+                return new ApiCustomResponse<>(
+                        null,
+                        "Email already registered. Please log in.",
+                        HttpStatus.CONFLICT.value());
+            }
         }
 
         User existingUserByUsername = userRepository.findFirstByUsername(signUpRequest.username().toLowerCase());
         if (existingUserByUsername != null) {
-            return new ApiCustomResponse<>(
-                    null,
-                    "Username already taken. Please choose a different username.",
-                    HttpStatus.CONFLICT.value());
+            if (existingUserByUsername.getIsDeleted()) {
+                long daysSinceDeletion = ChronoUnit.DAYS.between(existingUserByUsername.getDeletedAt(), Instant.now());
+                if (daysSinceDeletion < 7) {
+                    return new ApiCustomResponse<>(
+                            null,
+                            "Account was deleted recently. You can create a new account after "
+                                    + (7 - daysSinceDeletion) + " days.",
+                            HttpStatus.FORBIDDEN.value());
+                } else {
+                    // Permanently delete the old account
+                    userRepository.delete(existingUserByUsername);
+                    userRepository.flush();
+                }
+            } else {
+                return new ApiCustomResponse<>(
+                        null,
+                        "Username already taken. Please choose a different username.",
+                        HttpStatus.CONFLICT.value());
+            }
         }
 
         User user = new User();
@@ -146,13 +176,12 @@ public class SignUpService {
                 null);
         emailService.sendSuccessfulCreationEmail(emailDetails, user);
 
-       SignInResponse confirmResponse = new SignInResponse(
+        SignInResponse confirmResponse = new SignInResponse(
                 jwt,
                 user.getFirstName(),
                 user.getLastName(),
                 user.getEmail(),
-                user.getUserHandle()
-        );
+                user.getUserHandle());
 
         return new ApiCustomResponse<>(
                 confirmResponse,
