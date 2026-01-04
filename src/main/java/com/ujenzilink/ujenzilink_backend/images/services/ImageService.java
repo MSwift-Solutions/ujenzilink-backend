@@ -92,4 +92,61 @@ public class ImageService {
                 "Profile picture uploaded successfully.",
                 HttpStatus.OK.value());
     }
+
+    @Transactional
+    public ApiCustomResponse<Void> deleteImage(Long imageId) {
+        // 1. Validate user authentication
+        String currentUserEmail = SecurityUtil.getCurrentUsername();
+
+        if (currentUserEmail == null) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not authenticated.",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        // 2. Retrieve user from database
+        User user = userRepository.findFirstByEmail(currentUserEmail);
+
+        if (user == null) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not found.",
+                    HttpStatus.NOT_FOUND.value());
+        }
+
+        // 3. Retrieve image
+        Image image = imageRepository.findById(imageId).orElse(null);
+
+        if (image == null) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "Image not found.",
+                    HttpStatus.NOT_FOUND.value());
+        }
+
+        // 4. Verify ownership
+        if (!image.getUser().getId().equals(user.getId())) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "You do not have permission to delete this image.",
+                    HttpStatus.FORBIDDEN.value());
+        }
+
+        // 5. Soft delete
+        image.setIsDeleted(true);
+        image.setDeletedAt(java.time.Instant.now());
+        imageRepository.save(image);
+
+        // 6. If it was the profile picture, remove the reference
+        if (user.getProfilePicture() != null && user.getProfilePicture().getId().equals(imageId)) {
+            user.setProfilePicture(null);
+            userRepository.save(user);
+        }
+
+        return new ApiCustomResponse<>(
+                null,
+                "Image deleted successfully.",
+                HttpStatus.OK.value());
+    }
 }

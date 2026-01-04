@@ -28,4 +28,13 @@ public class ImageController {
                 .status(response.statusCode())
                 .body(response);
     }
+
+    @DeleteMapping("/{imageId}")
+    public ResponseEntity<ApiCustomResponse<Void>> deleteImage(@PathVariable Long imageId) {
+        ApiCustomResponse<Void> response = imageService.deleteImage(imageId);
+
+        return ResponseEntity
+                .status(response.statusCode())
+                .body(response);
+    }
 }

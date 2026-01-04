@@ -30,6 +30,11 @@ public class Image {
     @CreationTimestamp
     private Instant uploadedAt;
 
+    @Column(nullable = false)
+    private Boolean isDeleted = false;
+
+    private Instant deletedAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     @JsonBackReference
@@ -117,5 +122,20 @@ public class Image {
     public void setUser(User user) {
         this.user = user;
     }
-}
 
+    public Boolean getIsDeleted() {
+        return isDeleted;
+    }
+
+    public void setIsDeleted(Boolean deleted) {
+        isDeleted = deleted;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Instant deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+}
