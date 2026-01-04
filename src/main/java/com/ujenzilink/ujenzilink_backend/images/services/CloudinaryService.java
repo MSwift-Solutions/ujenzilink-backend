@@ -1,6 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.images.services;
 
 import com.cloudinary.Cloudinary;
+import com.cloudinary.Transformation;
 import com.cloudinary.utils.ObjectUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,44 +18,27 @@ public class CloudinaryService {
         this.cloudinary = cloudinary;
     }
 
-    /**
-     * Uploads an image file to Cloudinary and returns the secure URL.
-     * 
-     * @param file The multipart file to upload
-     * @return The secure HTTPS URL of the uploaded image
-     * @throws RuntimeException if upload fails
-     */
     public String uploadImage(MultipartFile file) {
         try {
-            // Upload to Cloudinary with specific options
-            Map<String, Object> uploadParams = ObjectUtils.asMap(
-                    "folder", "ujenzilink/profile-pictures",
-                    "resource_type", "image",
-                    "use_filename", true,
-                    "unique_filename", true,
-                    "overwrite", false);
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "ujenzilink/profile-pictures",
+                            "resource_type", "image",
+                            "use_filename", true,
+                            "unique_filename", true,
+                            "overwrite", false,
+                            // Transformation: auto-format, auto-quality, and max width of 2000px
+                            "transformation", new Transformation<>()
+                                    .fetchFormat("auto")
+                                    .quality("auto")
+                                    .width(2000)
+                                    .crop("limit")
+                    )
+            );
 
-            Map<?, ?> uploadResult = cloudinary.uploader().upload(
-                    file.getBytes(),
-                    uploadParams);
-
-            // Extract and return the secure URL
-            String secureUrl = (String) uploadResult.get("secure_url");
-
-            if (secureUrl == null || secureUrl.isEmpty()) {
-                throw new RuntimeException("Failed to retrieve secure URL from Cloudinary response.");
-            }
-
-            return secureUrl;
-
+            return (String) uploadResult.get("secure_url");
         } catch (IOException e) {
-            throw new RuntimeException(
-                    "Failed to upload image to Cloudinary. Please try again later.",
-                    e);
-        } catch (Exception e) {
-            throw new RuntimeException(
-                    "An unexpected error occurred during image upload: " + e.getMessage(),
-                    e);
+            throw new RuntimeException("Cloudinary upload failed: " + e.getMessage());
         }
     }
 }
