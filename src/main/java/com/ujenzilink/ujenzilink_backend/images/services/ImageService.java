@@ -8,7 +8,6 @@ import com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.ImageMetadata;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

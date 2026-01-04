@@ -16,6 +16,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 
@@ -184,10 +185,20 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(IllegalArgumentException.class)
         public ResponseEntity<ApiCustomResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiCustomResponse<>(
-                        null,
-                        ex.getMessage(),
-                        HttpStatus.BAD_REQUEST.value()));
+                                null,
+                                ex.getMessage(),
+                                HttpStatus.BAD_REQUEST.value()));
         }
 
+        @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+        public ResponseEntity<ApiCustomResponse<Void>> handleMethodArgumentTypeMismatch(
+                        MethodArgumentTypeMismatchException ex) {
+                String error = "Unable to delete image, retry later";
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiCustomResponse<>(
+                                null,
+                                error,
+                                HttpStatus.BAD_REQUEST.value()));
+        }
 
 }
