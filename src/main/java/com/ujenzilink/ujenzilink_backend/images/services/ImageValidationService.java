@@ -1,7 +1,6 @@
 package com.ujenzilink.ujenzilink_backend.images.services;
 
 import com.ujenzilink.ujenzilink_backend.images.dtos.ImageMetadata;
-import com.ujenzilink.ujenzilink_backend.images.exceptions.ImageValidationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,18 +28,18 @@ public class ImageValidationService {
      * 
      * @param file The multipart file to validate
      * @return ImageMetadata containing extracted information
-     * @throws ImageValidationException if validation fails
+     * @throws IllegalArgumentException if validation fails
      */
     public ImageMetadata validateAndExtractMetadata(MultipartFile file) {
         // 1. Check if file is present
         if (file == null || file.isEmpty()) {
-            throw new ImageValidationException("Image file is required and cannot be empty.");
+            throw new IllegalArgumentException("Image file is required and cannot be empty.");
         }
 
         // 2. Get original filename
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || originalFilename.trim().isEmpty()) {
-            throw new ImageValidationException("Invalid filename.");
+            throw new IllegalArgumentException("Invalid filename.");
         }
 
         // 3. Validate file extension
@@ -49,14 +48,14 @@ public class ImageValidationService {
                 .anyMatch(lowercaseFilename::endsWith);
 
         if (!hasValidExtension) {
-            throw new ImageValidationException(
+            throw new IllegalArgumentException(
                     "Invalid file type. Only JPEG, PNG, and WEBP images are allowed.");
         }
 
         // 4. Validate MIME type
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType.toLowerCase())) {
-            throw new ImageValidationException(
+            throw new IllegalArgumentException(
                     "Invalid content type. Only JPEG, PNG, and WEBP images are allowed.");
         }
 
@@ -64,7 +63,7 @@ public class ImageValidationService {
         long fileSize = file.getSize();
         if (fileSize > MAX_FILE_SIZE) {
             double sizeMB = fileSize / (1024.0 * 1024.0);
-            throw new ImageValidationException(
+            throw new IllegalArgumentException(
                     String.format("File size (%.2f MB) exceeds the maximum allowed size of 1.5 MB.", sizeMB));
         }
 
@@ -73,11 +72,11 @@ public class ImageValidationService {
         try {
             image = ImageIO.read(file.getInputStream());
         } catch (IOException e) {
-            throw new ImageValidationException("Failed to read image file. The file may be corrupted.", e);
+            throw new IllegalArgumentException("Failed to read image file. The file may be corrupted.", e);
         }
 
         if (image == null) {
-            throw new ImageValidationException(
+            throw new IllegalArgumentException(
                     "Invalid image file. The file is not a valid image or the format is not supported.");
         }
 
@@ -86,7 +85,7 @@ public class ImageValidationService {
 
         // 7. Validate dimensions
         if (width > MAX_WIDTH || height > MAX_HEIGHT) {
-            throw new ImageValidationException(
+            throw new IllegalArgumentException(
                     String.format(
                             "Image dimensions (%dx%d) exceed the maximum allowed size of %dx%d.",
                             width, height, MAX_WIDTH, MAX_HEIGHT));
