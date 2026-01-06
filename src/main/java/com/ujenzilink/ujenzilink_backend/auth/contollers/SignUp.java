@@ -30,7 +30,7 @@ public class SignUp {
                 .body(response);
     }
 
-    @PostMapping("/confirm")
+    @GetMapping("/confirm")
     public ResponseEntity<ApiCustomResponse<SignInResponse>> confirmUser(
             @RequestParam(required = false) String token) {
 
