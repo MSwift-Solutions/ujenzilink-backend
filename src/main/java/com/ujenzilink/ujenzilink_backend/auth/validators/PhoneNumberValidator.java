@@ -11,6 +11,10 @@ import java.util.regex.Pattern;
 public class PhoneNumberValidator implements ConstraintValidator<PhoneNumber, String> {
     @Override
     public boolean isValid(String phoneNumber, ConstraintValidatorContext constraintValidatorContext) {
+        if (phoneNumber == null) {
+            return true; // Let @NotNull handle null validation if needed
+        }
+
         Set<String> errorMessage = new HashSet<>();
 
         // Accept phone numbers with optional + prefix followed by digits
@@ -20,21 +24,16 @@ public class PhoneNumberValidator implements ConstraintValidator<PhoneNumber, St
             errorMessage.add("Phone number should only contain digits and optional + prefix!");
         }
 
-        // Check for valid country code (with or without + prefix)
-        if (!phoneNumber.startsWith("+2547") && !phoneNumber.startsWith("+2541")
-                && !phoneNumber.startsWith("2547") && !phoneNumber.startsWith("2541")) {
-            errorMessage.add("Phone number should include valid country code (+254 or 254)!");
-        }
-
-        // Length validation: 12 digits for format without +, 13 characters for format
-        // with +
-        int expectedLength = phoneNumber.startsWith("+") ? 13 : 12;
-        if (phoneNumber.length() < expectedLength) {
+        // Basic length check for international numbers (typically 7-15 excluding
+        // non-digits, but we only have digits/+)
+        // E.164 allows up to 15 digits. Min length varies, but 7 is a safe lower bound.
+        if (phoneNumber.length() < 7) {
             errorMessage.add("Phone number too short!");
         }
-        if (phoneNumber.length() > expectedLength) {
+        if (phoneNumber.length() > 15) {
             errorMessage.add("Phone number too long!");
         }
+
         if (!errorMessage.isEmpty()) {
             constraintValidatorContext.disableDefaultConstraintViolation();
             errorMessage.forEach(
