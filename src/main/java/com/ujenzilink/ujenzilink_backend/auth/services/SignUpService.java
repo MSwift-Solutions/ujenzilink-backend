@@ -274,4 +274,8 @@ public class SignUpService {
     public boolean isUsernameTaken(String username) {
         return userRepository.existsByUsername(username.toLowerCase());
     }
+
+    public boolean isEmailTaken(String email) {
+        return userRepository.existsByEmail(email.toLowerCase());
+    }
 }

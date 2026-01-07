@@ -78,10 +78,33 @@ public class SignUp {
         }
 
         boolean isAvailable = !signUpService.isUsernameTaken(username.toLowerCase());
-        
-        String message = isAvailable 
-                ? "Username is available" 
+
+        String message = isAvailable
+                ? "Username is available"
                 : "Username is already taken";
+
+        return ResponseEntity.ok(new ApiCustomResponse<>(
+                isAvailable,
+                message,
+                HttpStatus.OK.value()));
+    }
+
+    @GetMapping("/check-email")
+    public ResponseEntity<ApiCustomResponse<Boolean>> checkEmailAvailability(
+            @RequestParam(required = false) String email) {
+
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(new ApiCustomResponse<>(
+                    false,
+                    "Email parameter is required",
+                    HttpStatus.BAD_REQUEST.value()));
+        }
+
+        boolean isAvailable = !signUpService.isEmailTaken(email.toLowerCase());
+
+        String message = isAvailable
+                ? "Email is available"
+                : "Email is already registered";
 
         return ResponseEntity.ok(new ApiCustomResponse<>(
                 isAvailable,
