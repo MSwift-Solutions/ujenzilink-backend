@@ -51,6 +51,7 @@ public class WebSecurityConfiguration {
                         .requestMatchers("/v1/auth/change-password").authenticated()
                         .requestMatchers(
                                 "/v1/auth/**",
+                                "/v1/public/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**")
                         .permitAll()
