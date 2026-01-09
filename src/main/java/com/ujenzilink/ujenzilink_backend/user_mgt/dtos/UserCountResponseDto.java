@@ -3,23 +3,23 @@ package com.ujenzilink.ujenzilink_backend.user_mgt.dtos;
 import java.util.List;
 
 public class UserCountResponseDto {
-    private long totalUsers;
+    private String totalUsers;
 
     private List<UserInfoDto> users;
 
     public UserCountResponseDto() {
     }
 
-    public UserCountResponseDto(long totalUsers, List<UserInfoDto> users) {
+    public UserCountResponseDto(String totalUsers, List<UserInfoDto> users) {
         this.totalUsers = totalUsers;
         this.users = users;
     }
 
-    public long getTotalUsers() {
+    public String getTotalUsers() {
         return totalUsers;
     }
 
-    public void setTotalUsers(long totalUsers) {
+    public void setTotalUsers(String totalUsers) {
         this.totalUsers = totalUsers;
     }
 

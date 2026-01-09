@@ -47,8 +47,29 @@ public class UserService {
                 HttpStatus.OK.value());
     }
 
+    private String formatUserCount(long count) {
+        if (count >= 1_000_000) {
+            double millions = count / 1_000_000.0;
+            if (millions == (long) millions) {
+                return String.format("%d million %s", (long) millions, millions == 1 ? "user" : "users");
+            } else {
+                return String.format("%.1f million users", millions);
+            }
+        } else if (count >= 1_000) {
+            double thousands = count / 1_000.0;
+            if (thousands == (long) thousands) {
+                return String.format("%d thousand %s", (long) thousands, thousands == 1 ? "user" : "users");
+            } else {
+                return String.format("%.1f thousand users", thousands);
+            }
+        } else {
+            return String.format("%d %s", count, count == 1 ? "user" : "users");
+        }
+    }
+
     public ApiCustomResponse<UserCountResponseDto> getUserCount() {
         long totalUsers = userRepository.count();
+        String formattedCount = formatUserCount(totalUsers);
 
         List<User> allUsers = userRepository.findAll();
         Collections.shuffle(allUsers);
@@ -63,7 +84,7 @@ public class UserService {
             randomUsers.add(new UserInfoDto(name, profileUrl));
         }
 
-        UserCountResponseDto responseDto = new UserCountResponseDto(totalUsers, randomUsers);
+        UserCountResponseDto responseDto = new UserCountResponseDto(formattedCount, randomUsers);
 
         return new ApiCustomResponse<>(
                 responseDto,
