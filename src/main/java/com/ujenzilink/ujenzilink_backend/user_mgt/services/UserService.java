@@ -4,6 +4,7 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.TestimonialItemDto;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserCountResponseDto;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserInfoDto;
 import org.springframework.http.HttpStatus;
@@ -80,7 +81,9 @@ public class UserService {
         for (int i = 0; i < userCount; i++) {
             User user = allUsers.get(i);
             String name = user.getFullName();
-            String profileUrl = (user.getProfilePicture() != null) ? user.getProfilePicture().getUrl() : null;
+            String profileUrl = (user.getProfilePicture() != null)
+                    ? user.getProfilePicture().getUrl()
+                    : "https://ui-avatars.com/api/?name=" + name.replace(" ", "+") + "&background=random";
             randomUsers.add(new UserInfoDto(name, profileUrl));
         }
 
@@ -89,6 +92,41 @@ public class UserService {
         return new ApiCustomResponse<>(
                 responseDto,
                 "User count retrieved successfully",
+                HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<List<TestimonialItemDto>> getTestimonials() {
+        // Placeholder quotes
+        String[] quotes = {
+                "The platform has transformed how we present our portfolio to potential clients. It's intuitive and professional.",
+                "Outstanding service! UjenziLink helped us win more contracts by showcasing our work effectively.",
+                "A game-changer for our construction business. The detailed project listings attract quality leads consistently.",
+                "Working with UjenziLink has been amazing. Our project visibility has increased significantly.",
+                "The best platform for construction professionals. Highly recommend to anyone in the industry.",
+                "UjenziLink made it easy to connect with clients and showcase our expertise."
+        };
+
+        List<User> allUsers = userRepository.findAll();
+        Collections.shuffle(allUsers);
+
+        List<TestimonialItemDto> testimonials = new ArrayList<>();
+        int testimonialCount = Math.min(6, allUsers.size());
+
+        for (int i = 0; i < testimonialCount; i++) {
+            User user = allUsers.get(i);
+            String name = user.getFullName();
+            String title = user.getUserHandle() != null ? user.getUserHandle() : "User";
+            String profileUrl = (user.getProfilePicture() != null)
+                    ? user.getProfilePicture().getUrl()
+                    : "https://ui-avatars.com/api/?name=" + name.replace(" ", "+") + "&background=random";
+            String quote = quotes[i % quotes.length];
+
+            testimonials.add(new TestimonialItemDto(quote, name, title, profileUrl));
+        }
+
+        return new ApiCustomResponse<>(
+                testimonials,
+                "Testimonials retrieved successfully",
                 HttpStatus.OK.value());
     }
 }

@@ -1,8 +1,11 @@
 package com.ujenzilink.ujenzilink_backend.user_mgt.controllers;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.TestimonialItemDto;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserCountResponseDto;
 import com.ujenzilink.ujenzilink_backend.user_mgt.services.UserService;
+
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +24,12 @@ public class UserCount {
     @GetMapping("/user-count")
     public ResponseEntity<ApiCustomResponse<UserCountResponseDto>> getUserCount() {
         ApiCustomResponse<UserCountResponseDto> response = userService.getUserCount();
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/testimonials")
+    public ResponseEntity<ApiCustomResponse<List<TestimonialItemDto>>> getTestimonials() {
+        ApiCustomResponse<List<TestimonialItemDto>> response = userService.getTestimonials();
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }
