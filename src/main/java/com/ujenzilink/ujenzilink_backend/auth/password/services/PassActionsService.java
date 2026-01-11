@@ -42,6 +42,9 @@ public class PassActionsService {
         @Autowired
         private EmailService emailService;
 
+        @Autowired
+        private SecurityUtil securityUtil;
+
         private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         private final SecureRandom secureRandom = new SecureRandom();
 
@@ -54,16 +57,16 @@ public class PassActionsService {
                                         HttpStatus.BAD_REQUEST.value());
                 }
 
-                // Get current user
-                String currentUserEmail = SecurityUtil.getCurrentUsername();
-                User user = userRepository.findFirstByEmail(currentUserEmail);
+                java.util.Optional<User> userOpt = securityUtil.getAuthenticatedUser();
 
-                if (user == null) {
+                if (userOpt.isEmpty()) {
                         return new ApiCustomResponse<>(
                                         null,
-                                        "User not found.",
-                                        HttpStatus.NOT_FOUND.value());
+                                        "User not authenticated or not found.",
+                                        HttpStatus.UNAUTHORIZED.value());
                 }
+
+                User user = userOpt.get();
 
                 // Check if new password is same as old password
                 if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {

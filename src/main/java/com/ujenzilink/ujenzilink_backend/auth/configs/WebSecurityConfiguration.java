@@ -27,9 +27,11 @@ import java.util.List;
 public class WebSecurityConfiguration {
 
     private final JWTFilter jwtFilter;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
 
-    public WebSecurityConfiguration(JWTFilter jwtFilter) {
+    public WebSecurityConfiguration(JWTFilter jwtFilter, CustomAuthenticationEntryPoint authenticationEntryPoint) {
         this.jwtFilter = jwtFilter;
+        this.authenticationEntryPoint = authenticationEntryPoint;
     }
 
     @Bean
@@ -49,6 +51,7 @@ public class WebSecurityConfiguration {
                         .requestMatchers("/v1/auth/change-password").authenticated()
                         .requestMatchers(
                                 "/v1/auth/**",
+                                "/v1/public/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**")
                         .permitAll()
@@ -56,6 +59,8 @@ public class WebSecurityConfiguration {
                         .requestMatchers("/api/**").authenticated()
                         // All other requests require authentication
                         .anyRequest().authenticated())
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authenticationEntryPoint))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
