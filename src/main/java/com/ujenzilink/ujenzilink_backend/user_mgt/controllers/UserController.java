@@ -6,6 +6,7 @@ import com.ujenzilink.ujenzilink_backend.user_mgt.services.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,9 +20,19 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("/summary")
-    public ResponseEntity<ApiCustomResponse<UserSummaryResponse>> getUserSummary() {
-        ApiCustomResponse<UserSummaryResponse> response = userService.getUserSummary();
+    @GetMapping("/summary/me")
+    public ResponseEntity<ApiCustomResponse<UserSummaryResponse>> getMySummary() {
+        ApiCustomResponse<UserSummaryResponse> response = userService.getMySummary();
+
+        return ResponseEntity
+                .status(response.statusCode())
+                .body(response);
+    }
+
+    @GetMapping("/summary/{username}")
+    public ResponseEntity<ApiCustomResponse<UserSummaryResponse>> getUserSummary(
+            @PathVariable String username) {
+        ApiCustomResponse<UserSummaryResponse> response = userService.getUserSummary(username);
 
         return ResponseEntity
                 .status(response.statusCode())

@@ -136,7 +136,7 @@ public class UserService {
                 HttpStatus.OK.value());
     }
 
-    public ApiCustomResponse<UserSummaryResponse> getUserSummary() {
+    public ApiCustomResponse<UserSummaryResponse> getMySummary() {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
 
         if (userOpt.isEmpty()) {
@@ -188,6 +188,74 @@ public class UserService {
                 user.getLocation(),
                 user.getEmail(),
                 user.getPhoneNumber(),
+                profileUrl,
+                socialLinks);
+
+        return new ApiCustomResponse<>(
+                response,
+                "User summary retrieved successfully",
+                HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<UserSummaryResponse> getUserSummary(String username) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not authenticated or not found.",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User targetUser = userRepository.findFirstByUsername(username);
+
+        if (targetUser == null || targetUser.getIsDeleted()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not found.",
+                    HttpStatus.NOT_FOUND.value());
+        }
+
+        // Build profile image URL
+        String name = targetUser.getFullName();
+        String profileUrl = (targetUser.getProfilePicture() != null)
+                ? targetUser.getProfilePicture().getUrl()
+                : "https://ui-avatars.com/api/?name=" + name.replace(" ", "+") + "&background=random";
+
+        // Get bio and build social links
+        List<SocialLink> socialLinks = new ArrayList<>();
+        Optional<Bio> bioOpt = bioRepository.findByUser(targetUser);
+
+        if (bioOpt.isPresent()) {
+            Bio bio = bioOpt.get();
+
+            if (bio.getTiktok() != null && !bio.getTiktok().isEmpty()) {
+                socialLinks.add(new SocialLink("tiktok", bio.getTiktok()));
+            }
+            if (bio.getWhatsapp() != null && !bio.getWhatsapp().isEmpty()) {
+                socialLinks.add(new SocialLink("whatsapp", bio.getWhatsapp()));
+            }
+            if (bio.getTwitter() != null && !bio.getTwitter().isEmpty()) {
+                socialLinks.add(new SocialLink("twitter", bio.getTwitter()));
+            }
+            if (bio.getFacebook() != null && !bio.getFacebook().isEmpty()) {
+                socialLinks.add(new SocialLink("facebook", bio.getFacebook()));
+            }
+            if (bio.getLinkedin() != null && !bio.getLinkedin().isEmpty()) {
+                socialLinks.add(new SocialLink("linkedin", bio.getLinkedin()));
+            }
+            if (bio.getWebsite() != null && !bio.getWebsite().isEmpty()) {
+                socialLinks.add(new SocialLink("website", bio.getWebsite()));
+            }
+        }
+
+        // Build the response
+        UserSummaryResponse response = new UserSummaryResponse(
+                targetUser.getFullName(),
+                targetUser.getUserHandle(),
+                targetUser.getLocation(),
+                targetUser.getEmail(),
+                targetUser.getPhoneNumber(),
                 profileUrl,
                 socialLinks);
 
