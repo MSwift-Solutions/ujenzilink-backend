@@ -4,9 +4,13 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.SocialLink;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.TestimonialItemDto;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserCountResponseDto;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserInfoDto;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserSummaryResponse;
+import com.ujenzilink.ujenzilink_backend.user_mgt.models.Bio;
+import com.ujenzilink.ujenzilink_backend.user_mgt.repositories.BioRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -20,10 +24,12 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final BioRepository bioRepository;
     private final SecurityUtil securityUtil;
 
-    public UserService(UserRepository userRepository, SecurityUtil securityUtil) {
+    public UserService(UserRepository userRepository, BioRepository bioRepository, SecurityUtil securityUtil) {
         this.userRepository = userRepository;
+        this.bioRepository = bioRepository;
         this.securityUtil = securityUtil;
     }
 
@@ -127,6 +133,67 @@ public class UserService {
         return new ApiCustomResponse<>(
                 testimonials,
                 "Testimonials retrieved successfully",
+                HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<UserSummaryResponse> getUserSummary() {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not authenticated or not found.",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userOpt.get();
+
+        // Build profile image URL
+        String name = user.getFullName();
+        String profileUrl = (user.getProfilePicture() != null)
+                ? user.getProfilePicture().getUrl()
+                : "https://ui-avatars.com/api/?name=" + name.replace(" ", "+") + "&background=random";
+
+        // Get bio and build social links
+        List<SocialLink> socialLinks = new ArrayList<>();
+        Optional<Bio> bioOpt = bioRepository.findByUser(user);
+
+        if (bioOpt.isPresent()) {
+            Bio bio = bioOpt.get();
+
+            if (bio.getTiktok() != null && !bio.getTiktok().isEmpty()) {
+                socialLinks.add(new SocialLink("tiktok", bio.getTiktok()));
+            }
+            if (bio.getWhatsapp() != null && !bio.getWhatsapp().isEmpty()) {
+                socialLinks.add(new SocialLink("whatsapp", bio.getWhatsapp()));
+            }
+            if (bio.getTwitter() != null && !bio.getTwitter().isEmpty()) {
+                socialLinks.add(new SocialLink("twitter", bio.getTwitter()));
+            }
+            if (bio.getFacebook() != null && !bio.getFacebook().isEmpty()) {
+                socialLinks.add(new SocialLink("facebook", bio.getFacebook()));
+            }
+            if (bio.getLinkedin() != null && !bio.getLinkedin().isEmpty()) {
+                socialLinks.add(new SocialLink("linkedin", bio.getLinkedin()));
+            }
+            if (bio.getWebsite() != null && !bio.getWebsite().isEmpty()) {
+                socialLinks.add(new SocialLink("website", bio.getWebsite()));
+            }
+        }
+
+        // Build the response
+        UserSummaryResponse response = new UserSummaryResponse(
+                user.getFullName(),
+                user.getUserHandle(),
+                user.getLocation(),
+                user.getEmail(),
+                user.getPhoneNumber(),
+                profileUrl,
+                socialLinks);
+
+        return new ApiCustomResponse<>(
+                response,
+                "User summary retrieved successfully",
                 HttpStatus.OK.value());
     }
 }
