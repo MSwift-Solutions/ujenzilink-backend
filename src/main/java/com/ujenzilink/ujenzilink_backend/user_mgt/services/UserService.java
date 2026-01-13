@@ -6,8 +6,10 @@ import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.SocialLink;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.TestimonialItemDto;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UpdateUserProfileRequest;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserCountResponseDto;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserInfoDto;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserProfileResponse;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserSummaryResponse;
 import com.ujenzilink.ujenzilink_backend.user_mgt.models.Bio;
 import com.ujenzilink.ujenzilink_backend.user_mgt.repositories.BioRepository;
@@ -263,5 +265,139 @@ public class UserService {
                 response,
                 "User summary retrieved successfully",
                 HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<UserProfileResponse> getMyProfile() {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not authenticated or not found.",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userOpt.get();
+
+        // Get bio and build social links
+        List<SocialLink> socialLinks = new ArrayList<>();
+        String bioText = null;
+        String title = null;
+        Optional<Bio> bioOpt = bioRepository.findByUser(user);
+
+        if (bioOpt.isPresent()) {
+            Bio bio = bioOpt.get();
+            bioText = bio.getBio();
+            title = bio.getTitle();
+
+            if (bio.getTiktok() != null && !bio.getTiktok().isEmpty()) {
+                socialLinks.add(new SocialLink("tiktok", bio.getTiktok()));
+            }
+            if (bio.getWhatsapp() != null && !bio.getWhatsapp().isEmpty()) {
+                socialLinks.add(new SocialLink("whatsapp", bio.getWhatsapp()));
+            }
+            if (bio.getTwitter() != null && !bio.getTwitter().isEmpty()) {
+                socialLinks.add(new SocialLink("twitter", bio.getTwitter()));
+            }
+            if (bio.getFacebook() != null && !bio.getFacebook().isEmpty()) {
+                socialLinks.add(new SocialLink("facebook", bio.getFacebook()));
+            }
+            if (bio.getLinkedin() != null && !bio.getLinkedin().isEmpty()) {
+                socialLinks.add(new SocialLink("linkedin", bio.getLinkedin()));
+            }
+            if (bio.getWebsite() != null && !bio.getWebsite().isEmpty()) {
+                socialLinks.add(new SocialLink("website", bio.getWebsite()));
+            }
+        }
+
+        // Build the response (excluding password and image)
+        UserProfileResponse response = new UserProfileResponse(
+                user.getFirstName(),
+                user.getMiddleName(),
+                user.getLastName(),
+                user.getPhoneNumber(),
+                user.getEmail(),
+                user.getUserHandle(),
+                bioText,
+                title,
+                user.getDateOfBirth(),
+                user.getLocation(),
+                user.getGeoLocation(),
+                user.getGender(),
+                socialLinks);
+
+        return new ApiCustomResponse<>(
+                response,
+                "User profile retrieved successfully",
+                HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<UserProfileResponse> updateMyProfile(UpdateUserProfileRequest request) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not authenticated or not found.",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userOpt.get();
+
+        // Update user fields
+        if (request.firstName() != null) {
+            user.setFirstName(request.firstName());
+        }
+        if (request.middleName() != null) {
+            user.setMiddleName(request.middleName());
+        }
+        if (request.lastName() != null) {
+            user.setLastName(request.lastName());
+        }
+        if (request.phoneNumber() != null) {
+            user.setPhoneNumber(request.phoneNumber());
+        }
+        if (request.dateOfBirth() != null) {
+            user.setDateOfBirth(request.dateOfBirth());
+        }
+        if (request.location() != null) {
+            user.setLocation(request.location());
+        }
+        if (request.geoLocation() != null) {
+            user.setGeoLocation(request.geoLocation());
+        }
+        if (request.gender() != null) {
+            user.setGender(request.gender());
+        }
+
+        // Save user
+        userRepository.save(user);
+
+        // Update or create bio
+        Bio bio = bioRepository.findByUser(user).orElse(new Bio());
+        bio.setUser(user);
+
+        if (request.bio() != null) {
+            bio.setBio(request.bio());
+        }
+        if (request.title() != null) {
+            bio.setTitle(request.title());
+        }
+
+        // Update social links
+        if (request.socialLinks() != null) {
+            bio.setTiktok(request.socialLinks().get("tiktok"));
+            bio.setWhatsapp(request.socialLinks().get("whatsapp"));
+            bio.setTwitter(request.socialLinks().get("twitter"));
+            bio.setFacebook(request.socialLinks().get("facebook"));
+            bio.setLinkedin(request.socialLinks().get("linkedin"));
+            bio.setWebsite(request.socialLinks().get("website"));
+        }
+
+        // Save bio
+        bioRepository.save(bio);
+
+        // Return updated profile
+        return getMyProfile();
     }
 }
