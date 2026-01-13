@@ -279,36 +279,17 @@ public class UserService {
 
         User user = userOpt.get();
 
-        // Get bio and build social links
+        // Get bio (or empty default) and build social links
+        Bio bio = bioRepository.findByUser(user).orElse(new Bio());
         List<SocialLink> socialLinks = new ArrayList<>();
-        String bioText = null;
-        String title = null;
-        Optional<Bio> bioOpt = bioRepository.findByUser(user);
 
-        if (bioOpt.isPresent()) {
-            Bio bio = bioOpt.get();
-            bioText = bio.getBio();
-            title = bio.getTitle();
-
-            if (bio.getTiktok() != null && !bio.getTiktok().isEmpty()) {
-                socialLinks.add(new SocialLink("tiktok", bio.getTiktok()));
-            }
-            if (bio.getWhatsapp() != null && !bio.getWhatsapp().isEmpty()) {
-                socialLinks.add(new SocialLink("whatsapp", bio.getWhatsapp()));
-            }
-            if (bio.getTwitter() != null && !bio.getTwitter().isEmpty()) {
-                socialLinks.add(new SocialLink("twitter", bio.getTwitter()));
-            }
-            if (bio.getFacebook() != null && !bio.getFacebook().isEmpty()) {
-                socialLinks.add(new SocialLink("facebook", bio.getFacebook()));
-            }
-            if (bio.getLinkedin() != null && !bio.getLinkedin().isEmpty()) {
-                socialLinks.add(new SocialLink("linkedin", bio.getLinkedin()));
-            }
-            if (bio.getWebsite() != null && !bio.getWebsite().isEmpty()) {
-                socialLinks.add(new SocialLink("website", bio.getWebsite()));
-            }
-        }
+        // Always add all supported platforms for the edit form
+        socialLinks.add(new SocialLink("tiktok", bio.getTiktok()));
+        socialLinks.add(new SocialLink("whatsapp", bio.getWhatsapp()));
+        socialLinks.add(new SocialLink("twitter", bio.getTwitter()));
+        socialLinks.add(new SocialLink("facebook", bio.getFacebook()));
+        socialLinks.add(new SocialLink("linkedin", bio.getLinkedin()));
+        socialLinks.add(new SocialLink("website", bio.getWebsite()));
 
         // Build the response (excluding password and image)
         UserProfileResponse response = new UserProfileResponse(
@@ -318,8 +299,8 @@ public class UserService {
                 user.getPhoneNumber(),
                 user.getEmail(),
                 user.getUserHandle(),
-                bioText,
-                title,
+                bio.getBio(),
+                bio.getTitle(),
                 user.getDateOfBirth(),
                 user.getLocation(),
                 user.getGeoLocation(),
@@ -386,12 +367,18 @@ public class UserService {
 
         // Update social links
         if (request.socialLinks() != null) {
-            bio.setTiktok(request.socialLinks().get("tiktok"));
-            bio.setWhatsapp(request.socialLinks().get("whatsapp"));
-            bio.setTwitter(request.socialLinks().get("twitter"));
-            bio.setFacebook(request.socialLinks().get("facebook"));
-            bio.setLinkedin(request.socialLinks().get("linkedin"));
-            bio.setWebsite(request.socialLinks().get("website"));
+            for (SocialLink link : request.socialLinks()) {
+                if (link.platform() != null) {
+                    switch (link.platform().toLowerCase()) {
+                        case "tiktok" -> bio.setTiktok(link.url());
+                        case "whatsapp" -> bio.setWhatsapp(link.url());
+                        case "twitter" -> bio.setTwitter(link.url());
+                        case "facebook" -> bio.setFacebook(link.url());
+                        case "linkedin" -> bio.setLinkedin(link.url());
+                        case "website" -> bio.setWebsite(link.url());
+                    }
+                }
+            }
         }
 
         // Save bio
