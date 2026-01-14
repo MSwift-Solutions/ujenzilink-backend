@@ -28,6 +28,7 @@ public class Bio {
     private String linkedin;
     private String website;
     private String title;
+    private Integer yearsOfExperience;
 
     @Column(length = 2000)
     private String bio;
@@ -102,6 +103,14 @@ public class Bio {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public Integer getYearsOfExperience() {
+        return yearsOfExperience;
+    }
+
+    public void setYearsOfExperience(Integer yearsOfExperience) {
+        this.yearsOfExperience = yearsOfExperience;
     }
 
     public String getBio() {

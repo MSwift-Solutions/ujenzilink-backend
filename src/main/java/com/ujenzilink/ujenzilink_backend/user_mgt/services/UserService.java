@@ -301,6 +301,7 @@ public class UserService {
                 user.getUserHandle(),
                 bio.getBio(),
                 bio.getTitle(),
+                bio.getYearsOfExperience(),
                 user.getDateOfBirth(),
                 user.getLocation(),
                 user.getGeoLocation(),
@@ -363,6 +364,9 @@ public class UserService {
         }
         if (request.title() != null) {
             bio.setTitle(request.title());
+        }
+        if (request.yearsOfExperience() != null) {
+            bio.setYearsOfExperience(request.yearsOfExperience());
         }
 
         // Update social links

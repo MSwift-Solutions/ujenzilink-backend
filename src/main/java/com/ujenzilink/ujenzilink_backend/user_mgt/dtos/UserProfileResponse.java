@@ -14,6 +14,7 @@ public record UserProfileResponse(
         String username,
         String bio,
         String title,
+        Integer yearsOfExperience,
         LocalDate dateOfBirth,
         String location,
         String geoLocation,

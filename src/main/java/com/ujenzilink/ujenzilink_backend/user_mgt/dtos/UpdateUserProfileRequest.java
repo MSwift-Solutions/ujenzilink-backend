@@ -20,6 +20,8 @@ public record UpdateUserProfileRequest(
                 @Size(max = 2000, message = "Bio cannot exceed 2000 characters") String bio,
 
                 @Size(max = 100, message = "Title cannot exceed 100 characters") String title,
+                
+                Integer yearsOfExperience,
 
                 LocalDate dateOfBirth,
 
