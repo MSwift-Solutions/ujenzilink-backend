@@ -1,8 +1,10 @@
 package com.ujenzilink.ujenzilink_backend.auth.contollers;
 
+import com.ujenzilink.ujenzilink_backend.auth.dtos.GoogleAuthRequest;
 import com.ujenzilink.ujenzilink_backend.auth.dtos.SignInRequest;
 import com.ujenzilink.ujenzilink_backend.auth.dtos.SignInResponse;
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
+import com.ujenzilink.ujenzilink_backend.auth.services.GoogleAuthService;
 import com.ujenzilink.ujenzilink_backend.auth.services.SignInService;
 import com.ujenzilink.ujenzilink_backend.auth.utils.JWTUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
@@ -19,11 +21,14 @@ import org.springframework.web.bind.annotation.*;
 public class SignIn {
 
     private final SignInService signInService;
+    private final GoogleAuthService googleAuthService;
     private final AuthenticationManager authenticationManager;
     private final JWTUtil jwtUtil;
 
-    public SignIn(SignInService signInService, AuthenticationManager authenticationManager, JWTUtil jwtUtil) {
+    public SignIn(SignInService signInService, GoogleAuthService googleAuthService,
+            AuthenticationManager authenticationManager, JWTUtil jwtUtil) {
         this.signInService = signInService;
+        this.googleAuthService = googleAuthService;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
     }
@@ -50,11 +55,18 @@ public class SignIn {
         // Track successful login
         signInService.trackSuccessfulLogin(signInRequest.email());
 
-        SignInResponse signInData = new SignInResponse(jwt, user.getFirstName(), user.getLastName(), user.getEmail(), user.getUserHandle());
+        SignInResponse signInData = new SignInResponse(jwt, user.getFirstName(), user.getLastName(), user.getEmail(),
+                user.getUserHandle());
 
         return ResponseEntity.ok(new ApiCustomResponse<>(
                 signInData,
                 "Login successful.",
                 200));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<ApiCustomResponse<SignInResponse>> googleAuth(@RequestBody @Valid GoogleAuthRequest request) {
+        ApiCustomResponse<SignInResponse> response = googleAuthService.authenticateWithGoogle(request.idToken());
+        return ResponseEntity.status(response.statusCode()).body(response);
     }
 }
