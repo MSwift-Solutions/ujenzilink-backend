@@ -306,7 +306,12 @@ public class UserService {
                 user.getLocation(),
                 user.getGeoLocation(),
                 user.getGender(),
-                socialLinks);
+                socialLinks,
+                user.getLicense(),
+                user.getSkills(),
+                user.getVerificationStatus(),
+                user.getProfileVisibility(),
+                user.getSignupMethod());
 
         return new ApiCustomResponse<>(
                 response,
@@ -350,6 +355,18 @@ public class UserService {
         }
         if (request.gender() != null) {
             user.setGender(request.gender());
+        }
+        if (request.license() != null) {
+            user.setLicense(request.license());
+        }
+        if (request.skills() != null) {
+            user.setSkills(request.skills());
+        }
+        if (request.verificationStatus() != null) {
+            user.setVerificationStatus(request.verificationStatus());
+        }
+        if (request.profileVisibility() != null) {
+            user.setProfileVisibility(request.profileVisibility());
         }
 
         // Save user

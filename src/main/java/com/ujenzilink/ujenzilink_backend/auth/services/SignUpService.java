@@ -4,6 +4,7 @@ import com.ujenzilink.ujenzilink_backend.auth.dtos.SignInResponse;
 import com.ujenzilink.ujenzilink_backend.auth.dtos.SignUpRequest;
 import com.ujenzilink.ujenzilink_backend.auth.dtos.EmailDetails;
 import com.ujenzilink.ujenzilink_backend.auth.enums.Roles;
+import com.ujenzilink.ujenzilink_backend.auth.enums.SignupMethod;
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.models.VerificationToken;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
@@ -104,6 +105,7 @@ public class SignUpService {
         user.setRole(Roles.ROLE_USER);
         user.setHasAgreedToTerms(true);
         user.setTermsVersion("1.0");
+        user.setSignupMethod(SignupMethod.DEFAULT);
 
         userRepository.save(user);
 

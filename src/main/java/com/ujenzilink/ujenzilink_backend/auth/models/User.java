@@ -2,7 +2,10 @@ package com.ujenzilink.ujenzilink_backend.auth.models;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.ujenzilink.ujenzilink_backend.auth.enums.Gender;
+import com.ujenzilink.ujenzilink_backend.auth.enums.ProfileVisibility;
 import com.ujenzilink.ujenzilink_backend.auth.enums.Roles;
+import com.ujenzilink.ujenzilink_backend.auth.enums.SignupMethod;
+import com.ujenzilink.ujenzilink_backend.auth.enums.VerificationStatus;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -88,6 +91,23 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     private Gender gender;
+
+    private String license;
+
+    @Column(length = 1000)
+    private String skills;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private VerificationStatus verificationStatus = VerificationStatus.UNVERIFIED;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ProfileVisibility profileVisibility = ProfileVisibility.PUBLIC;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SignupMethod signupMethod = SignupMethod.DEFAULT;
 
     public User() {
     }
@@ -380,5 +400,45 @@ public class User implements UserDetails {
 
     public void setGender(Gender gender) {
         this.gender = gender;
+    }
+
+    public String getLicense() {
+        return license;
+    }
+
+    public void setLicense(String license) {
+        this.license = license;
+    }
+
+    public String getSkills() {
+        return skills;
+    }
+
+    public void setSkills(String skills) {
+        this.skills = skills;
+    }
+
+    public VerificationStatus getVerificationStatus() {
+        return verificationStatus;
+    }
+
+    public void setVerificationStatus(VerificationStatus verificationStatus) {
+        this.verificationStatus = verificationStatus;
+    }
+
+    public ProfileVisibility getProfileVisibility() {
+        return profileVisibility;
+    }
+
+    public void setProfileVisibility(ProfileVisibility profileVisibility) {
+        this.profileVisibility = profileVisibility;
+    }
+
+    public SignupMethod getSignupMethod() {
+        return signupMethod;
+    }
+
+    public void setSignupMethod(SignupMethod signupMethod) {
+        this.signupMethod = signupMethod;
     }
 }
