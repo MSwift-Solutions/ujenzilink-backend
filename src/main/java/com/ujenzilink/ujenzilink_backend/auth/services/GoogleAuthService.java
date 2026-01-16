@@ -8,6 +8,8 @@ import com.ujenzilink.ujenzilink_backend.auth.enums.VerificationStatus;
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.JWTUtil;
+import com.ujenzilink.ujenzilink_backend.images.models.Image;
+import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -37,6 +39,9 @@ public class GoogleAuthService {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    private ImageRepository imageRepository;
+
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional
@@ -48,6 +53,7 @@ public class GoogleAuthService {
             String firstName = (String) payload.get("given_name");
             String lastName = (String) payload.get("family_name");
             String fullName = (String) payload.get("name");
+            String pictureUrl = (String) payload.get("picture");
 
             if (firstName == null && fullName != null) {
                 String[] nameParts = fullName.split(" ", 2);
@@ -58,7 +64,7 @@ public class GoogleAuthService {
             User user = userRepository.findFirstByEmail(email.toLowerCase());
 
             if (user == null) {
-                user = createGoogleUser(email, firstName, lastName);
+                user = createGoogleUser(email, firstName, lastName, pictureUrl);
             } else {
                 if (user.getIsDeleted()) {
                     return new ApiCustomResponse<>(
@@ -104,7 +110,7 @@ public class GoogleAuthService {
         }
     }
 
-    private User createGoogleUser(String email, String firstName, String lastName) {
+    private User createGoogleUser(String email, String firstName, String lastName, String pictureUrl) {
         User user = new User();
         user.setEmail(email.toLowerCase());
         user.setFirstName(firstName != null ? firstName : "");
@@ -124,7 +130,22 @@ public class GoogleAuthService {
         user.setHasAgreedToTerms(true);
         user.setTermsVersion("1.0");
 
-        return userRepository.save(user);
+        user = userRepository.save(user);
+
+        if (pictureUrl != null && !pictureUrl.isEmpty()) {
+            Image image = new Image();
+            image.setUrl(pictureUrl);
+            image.setFilename("google_profile_pic");
+            image.setFileType("image/jpeg");
+            image.setUploadedAt(Instant.now());
+            image.setUser(user);
+            image = imageRepository.save(image);
+
+            user.setProfilePicture(image);
+            user = userRepository.save(user);
+        }
+
+        return user;
     }
 
     private String generateUsernameFromEmail(String email) {
