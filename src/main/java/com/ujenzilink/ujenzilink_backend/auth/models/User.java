@@ -47,6 +47,7 @@ public class User implements UserDetails {
     private String password;
 
     @CreationTimestamp
+    @Column(updatable = false)
     private Instant dateOfCreation;
 
     private Instant confirmedAt;
@@ -58,6 +59,7 @@ public class User implements UserDetails {
     private boolean hasAgreedToTerms = false;
 
     @CreationTimestamp
+    @Column(updatable = false)
     private Instant termsAgreedAt;
 
     private String termsVersion;

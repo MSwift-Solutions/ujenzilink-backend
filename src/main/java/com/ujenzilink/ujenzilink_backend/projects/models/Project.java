@@ -79,6 +79,15 @@ public class Project {
     @Column(nullable = false)
     private boolean isDeleted = false;
 
+    @Column(nullable = false)
+    private Integer impressions = 0;
+
+    @Column(nullable = false)
+    private Integer views = 0;
+
+    @Column(nullable = false)
+    private Integer bookmarks = 0;
+
     public Project() {
     }
 
@@ -240,5 +249,29 @@ public class Project {
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public Integer getImpressions() {
+        return impressions;
+    }
+
+    public void setImpressions(Integer impressions) {
+        this.impressions = impressions;
+    }
+
+    public Integer getViews() {
+        return views;
+    }
+
+    public void setViews(Integer views) {
+        this.views = views;
+    }
+
+    public Integer getBookmarks() {
+        return bookmarks;
+    }
+
+    public void setBookmarks(Integer bookmarks) {
+        this.bookmarks = bookmarks;
     }
 }
