@@ -1,7 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.projects.models;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
-import com.ujenzilink.ujenzilink_backend.projects.enums.StageStatus;
+import com.ujenzilink.ujenzilink_backend.projects.enums.ConstructionStage;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -35,7 +35,7 @@ public class ProjectStage {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private StageStatus status = StageStatus.NOT_STARTED;
+    private ConstructionStage status = ConstructionStage.NOT_STARTED;
 
     private LocalDate startDate;
 
@@ -94,11 +94,11 @@ public class ProjectStage {
         this.stageOrder = stageOrder;
     }
 
-    public StageStatus getStatus() {
+    public ConstructionStage getStatus() {
         return status;
     }
 
-    public void setStatus(StageStatus status) {
+    public void setStatus(ConstructionStage status) {
         this.status = status;
     }
 
