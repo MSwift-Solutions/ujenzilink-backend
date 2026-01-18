@@ -19,7 +19,7 @@ public class SignInService implements UserDetailsService {
     }
 
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findFirstByEmail(email);
+        User user = userRepository.findFirstByEmail(email.toLowerCase());
         if (user == null) {
             throw new UsernameNotFoundException("Account not found. Please register.");
         }
@@ -42,13 +42,13 @@ public class SignInService implements UserDetailsService {
     }
 
     public User findUserByEmail(String email) {
-        return userRepository.findFirstByEmail(email);
+        return userRepository.findFirstByEmail(email.toLowerCase());
     }
 
     // Track login attempt (both successful and failed)
     @Transactional
     public void trackLoginAttempt(String email) {
-        User user = userRepository.findFirstByEmail(email);
+        User user = userRepository.findFirstByEmail(email.toLowerCase());
         if (user != null) {
             user.setLastLoginAttempt(Instant.now());
             userRepository.save(user);
@@ -58,7 +58,7 @@ public class SignInService implements UserDetailsService {
     // Track successful login
     @Transactional
     public void trackSuccessfulLogin(String email) {
-        User user = userRepository.findFirstByEmail(email);
+        User user = userRepository.findFirstByEmail(email.toLowerCase());
         if (user != null) {
             user.setLastSuccessfulLogin(Instant.now());
             user.setFailedLoginAttempts(0);
@@ -70,7 +70,7 @@ public class SignInService implements UserDetailsService {
     // Track failed login attempt and lock account after 3 attempts
     @Transactional
     public void trackFailedLoginAttempt(String email) {
-        User user = userRepository.findFirstByEmail(email);
+        User user = userRepository.findFirstByEmail(email.toLowerCase());
         if (user != null) {
             int failedAttempts = user.getFailedLoginAttempts() + 1;
             user.setFailedLoginAttempts(failedAttempts);

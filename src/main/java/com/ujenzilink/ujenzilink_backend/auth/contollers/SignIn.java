@@ -36,24 +36,25 @@ public class SignIn {
     @PostMapping("/sign-in")
     public ResponseEntity<ApiCustomResponse<SignInResponse>> signIn(@RequestBody @Valid SignInRequest signInRequest) {
         // Track login attempt (for security auditing)
-        signInService.trackLoginAttempt(signInRequest.email());
+        String email = signInRequest.email().toLowerCase();
+        signInService.trackLoginAttempt(email);
 
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(signInRequest.email(), signInRequest.password()));
+                    new UsernamePasswordAuthenticationToken(email, signInRequest.password()));
         } catch (org.springframework.security.core.AuthenticationException e) {
             // Track failed login attempt
-            signInService.trackFailedLoginAttempt(signInRequest.email());
+            signInService.trackFailedLoginAttempt(email);
             throw e;
         }
 
-        UserDetails userDetails = signInService.loadUserByUsername(signInRequest.email());
-        User user = signInService.findUserByEmail(signInRequest.email());
+        UserDetails userDetails = signInService.loadUserByUsername(email);
+        User user = signInService.findUserByEmail(email);
 
         String jwt = jwtUtil.generateToken(userDetails);
 
         // Track successful login
-        signInService.trackSuccessfulLogin(signInRequest.email());
+        signInService.trackSuccessfulLogin(email);
 
         SignInResponse signInData = new SignInResponse(jwt, user.getFirstName(), user.getLastName(), user.getEmail(),
                 user.getUserHandle());
