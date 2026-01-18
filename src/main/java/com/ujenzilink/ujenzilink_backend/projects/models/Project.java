@@ -40,11 +40,7 @@ public class Project {
     private ProjectVisibility visibility = ProjectVisibility.PRIVATE;
 
     @Column(length = 500)
-    private String address;
-
-    private Double latitude;
-
-    private Double longitude;
+    private String location;
 
     private LocalDate startDate;
 
@@ -139,28 +135,12 @@ public class Project {
         this.visibility = visibility;
     }
 
-    public String getAddress() {
-        return address;
+    public String getLocation() {
+        return location;
     }
 
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    public Double getLatitude() {
-        return latitude;
-    }
-
-    public void setLatitude(Double latitude) {
-        this.latitude = latitude;
-    }
-
-    public Double getLongitude() {
-        return longitude;
-    }
-
-    public void setLongitude(Double longitude) {
-        this.longitude = longitude;
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     public LocalDate getStartDate() {
