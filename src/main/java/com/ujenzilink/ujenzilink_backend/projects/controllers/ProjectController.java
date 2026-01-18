@@ -8,6 +8,9 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectListResponse;
+import java.util.List;
+
 @RestController
 @RequestMapping("/v1/projects")
 public class ProjectController {
@@ -27,5 +30,11 @@ public class ProjectController {
         return ResponseEntity
                 .status(response.statusCode())
                 .body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiCustomResponse<List<ProjectListResponse>>> getAllProjects() {
+        ApiCustomResponse<List<ProjectListResponse>> response = projectService.getAllProjects();
+        return ResponseEntity.status(response.statusCode()).body(response);
     }
 }

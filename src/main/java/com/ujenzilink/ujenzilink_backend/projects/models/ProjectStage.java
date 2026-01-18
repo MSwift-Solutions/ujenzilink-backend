@@ -35,7 +35,7 @@ public class ProjectStage {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ConstructionStage status = ConstructionStage.NOT_STARTED;
+    private ConstructionStage status = ConstructionStage.PLANNING_PERMITS;
 
     private LocalDate startDate;
 
