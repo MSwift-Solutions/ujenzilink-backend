@@ -17,8 +17,8 @@ public class PostComment {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
-    private Post post;
+    @JoinColumn(name = "stage_id")
+    private ProjectStage stage;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -26,6 +26,10 @@ public class PostComment {
 
     @Column(nullable = false, length = 1000)
     private String content;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_comment_id")
+    private PostComment parentComment;
 
     @CreationTimestamp
     private Instant createdAt;
@@ -47,12 +51,12 @@ public class PostComment {
         this.id = id;
     }
 
-    public Post getPost() {
-        return post;
+    public ProjectStage getStage() {
+        return stage;
     }
 
-    public void setPost(Post post) {
-        this.post = post;
+    public void setStage(ProjectStage stage) {
+        this.stage = stage;
     }
 
     public User getCommenter() {
@@ -69,6 +73,14 @@ public class PostComment {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public PostComment getParentComment() {
+        return parentComment;
+    }
+
+    public void setParentComment(PostComment parentComment) {
+        this.parentComment = parentComment;
     }
 
     public Instant getCreatedAt() {

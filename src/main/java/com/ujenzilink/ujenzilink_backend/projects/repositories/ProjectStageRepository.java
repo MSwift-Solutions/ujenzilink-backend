@@ -10,9 +10,9 @@ import java.util.UUID;
 
 @Repository
 public interface ProjectStageRepository extends JpaRepository<ProjectStage, UUID> {
-    List<ProjectStage> findByProjectOrderByStageOrder(Project project);
+    List<ProjectStage> findByProjectOrderByCreatedAtAsc(Project project);
 
-    List<ProjectStage> findByProject_IdOrderByStageOrder(UUID projectId);
+    List<ProjectStage> findByProject_IdOrderByCreatedAtAsc(UUID projectId);
 
     List<ProjectStage> findByProject(Project project);
 }

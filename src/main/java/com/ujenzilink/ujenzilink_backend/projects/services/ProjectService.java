@@ -14,13 +14,13 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectListResponse;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ConstructionStage;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectStatus;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectVisibility;
-import com.ujenzilink.ujenzilink_backend.projects.models.Post;
+
 import com.ujenzilink.ujenzilink_backend.projects.models.PostPhoto;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectStage;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.PostCommentRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.PostPhotoRepository;
-import com.ujenzilink.ujenzilink_backend.projects.repositories.PostRepository;
+// import com.ujenzilink.ujenzilink_backend.projects.repositories.PostRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectStageRepository;
@@ -45,9 +45,6 @@ public class ProjectService {
 
         @Autowired
         private ProjectMemberRepository projectMemberRepository;
-
-        @Autowired
-        private PostRepository postRepository;
 
         @Autowired
         private PostPhotoRepository postPhotoRepository;
@@ -132,10 +129,11 @@ public class ProjectService {
                 // Create default PLANNING_PERMITS stage
                 ProjectStage defaultStage = new ProjectStage();
                 defaultStage.setProject(savedProject);
-                defaultStage.setStageName("Planning & Permits");
+                // defaultStage.setStageName(null); // Removed field
                 defaultStage.setDescription("Design, blueprints, and legal approvals");
-                defaultStage.setStageOrder(1);
+                // defaultStage.setStageOrder(1); // Removed field
                 defaultStage.setStatus(ConstructionStage.PLANNING_PERMITS);
+                defaultStage.setPostedBy(user);
                 projectStageRepository.save(defaultStage);
 
                 CreateProjectResponse response = new CreateProjectResponse(
@@ -169,31 +167,31 @@ public class ProjectService {
                         // Get member count
                         int memberCount = projectMemberRepository.findByProject(project).size();
 
-                        // Get project images from all posts
-                        List<String> projectImages = new ArrayList<>();
-                        List<Post> posts = postRepository.findByProjectAndIsDeletedFalseOrderByCreatedAtDesc(project);
-                        for (Post post : posts) {
-                                List<PostPhoto> postPhotos = postPhotoRepository.findByPostOrderByPhotoOrder(post);
-                                for (PostPhoto postPhoto : postPhotos) {
-                                        if (postPhoto.getImage() != null && !postPhoto.getImage().getIsDeleted()) {
-                                                projectImages.add(postPhoto.getImage().getUrl());
-                                        }
-                                }
-                        }
-
-                        // Get comments count (aggregate from all posts)
-                        int commentsCount = posts.stream()
-                                        .mapToInt(post -> (int) postCommentRepository
-                                                        .countByPostAndIsDeletedFalse(post))
-                                        .sum();
-
-                        // Get likes count (currently 0 - placeholder for when likes are implemented)
-                        int likesCount = 0;
-
                         // Get current stage
                         String currentStage = null;
                         List<ProjectStage> stages = projectStageRepository
-                                        .findByProjectOrderByStageOrder(project);
+                                        .findByProjectOrderByCreatedAtAsc(project);
+
+                        int commentsCount = 0;
+                        int likesCount = 0;
+                        List<String> projectImages = new ArrayList<>();
+
+                        // Aggregate data from all stages
+                        for (ProjectStage stage : stages) {
+                                // Add comments count from each stage
+                                commentsCount += stage.getCommentsCount() != null ? stage.getCommentsCount() : 0;
+
+                                // Add likes count from each stage
+                                likesCount += stage.getLikesCount() != null ? stage.getLikesCount() : 0;
+
+                                // Fetch photos directly linked to the stage
+                                List<PostPhoto> stagePhotos = postPhotoRepository.findByStageOrderByPhotoOrder(stage);
+                                for (PostPhoto photo : stagePhotos) {
+                                        if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
+                                                projectImages.add(photo.getImage().getUrl());
+                                        }
+                                }
+                        }
                         if (!stages.isEmpty()) {
                                 // Find first IN_PROGRESS stage or default to last stage
                                 ProjectStage activeStage = stages.stream()
@@ -201,7 +199,23 @@ public class ProjectService {
                                                                 || s.getStatus().name().equals("PLANNING_PERMITS"))
                                                 .findFirst()
                                                 .orElse(stages.get(stages.size() - 1));
-                                currentStage = activeStage.getStageName();
+                                String stageEnumName = activeStage.getStatus().name();
+                                // Convert enum to Title Case (e.g., PLANNING_PERMITS -> Planning Permits)
+                                currentStage = stageEnumName.replace("_", " ").toLowerCase();
+                                currentStage = Character.toUpperCase(currentStage.charAt(0))
+                                                + currentStage.substring(1);
+                                // Optional: Special cases or WordUtils/StringUtils if library available.
+                                // Simple manual impl to avoid dependency if not exists:
+                                String[] words = currentStage.split(" ");
+                                StringBuilder stagedNameBuilder = new StringBuilder();
+                                for (String word : words) {
+                                        if (word.length() > 0) {
+                                                stagedNameBuilder.append(Character.toUpperCase(word.charAt(0)))
+                                                                .append(word.substring(1))
+                                                                .append(" ");
+                                        }
+                                }
+                                currentStage = stagedNameBuilder.toString().trim();
                         }
 
                         // Build response

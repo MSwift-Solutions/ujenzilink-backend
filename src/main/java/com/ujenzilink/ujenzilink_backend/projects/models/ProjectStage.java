@@ -7,10 +7,10 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import com.ujenzilink.ujenzilink_backend.projects.enums.PostType;
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 @Table(name = "project_stages")
@@ -24,32 +24,50 @@ public class ProjectStage {
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
-    @Column(nullable = false, length = 255)
-    private String stageName;
-
     @Column(length = 1000)
     private String description;
 
-    @Column(nullable = false)
-    private Integer stageOrder = 0;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ConstructionStage status = ConstructionStage.PLANNING_PERMITS;
+    private ConstructionStage constructionStage = ConstructionStage.PLANNING_PERMITS;
+
+    @Enumerated(EnumType.STRING)
+    private PostType postType;
+
+    @Column(length = 50)
+    private String visibility = "ALL_MEMBERS";
+
+    @Column(precision = 15, scale = 2)
+    private BigDecimal stageCost;
+
+    private Integer totalWorkers;
+
+    @Column(length = 1000)
+    private String materialsUsed;
 
     private LocalDate startDate;
 
     private LocalDate endDate;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "stage_assigned_members", joinColumns = @JoinColumn(name = "stage_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
-    private Set<User> assignedMembers = new HashSet<>();
+    @Column(nullable = false)
+    private boolean isDeleted = false;
 
     @CreationTimestamp
     private Instant createdAt;
 
     @UpdateTimestamp
     private Instant updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "posted_by_id")
+    private User postedBy;
+
+    @OneToMany(mappedBy = "stage", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostPhoto> photos = new ArrayList<>();
+
+    private Integer commentsCount = 0;
+
+    private Integer likesCount = 0;
 
     public ProjectStage() {
     }
@@ -70,14 +88,6 @@ public class ProjectStage {
         this.project = project;
     }
 
-    public String getStageName() {
-        return stageName;
-    }
-
-    public void setStageName(String stageName) {
-        this.stageName = stageName;
-    }
-
     public String getDescription() {
         return description;
     }
@@ -86,20 +96,20 @@ public class ProjectStage {
         this.description = description;
     }
 
-    public Integer getStageOrder() {
-        return stageOrder;
-    }
-
-    public void setStageOrder(Integer stageOrder) {
-        this.stageOrder = stageOrder;
-    }
-
     public ConstructionStage getStatus() {
-        return status;
+        return constructionStage;
     }
 
     public void setStatus(ConstructionStage status) {
-        this.status = status;
+        this.constructionStage = status;
+    }
+
+    public ConstructionStage getConstructionStage() {
+        return constructionStage;
+    }
+
+    public void setConstructionStage(ConstructionStage constructionStage) {
+        this.constructionStage = constructionStage;
     }
 
     public LocalDate getStartDate() {
@@ -118,12 +128,52 @@ public class ProjectStage {
         this.endDate = endDate;
     }
 
-    public Set<User> getAssignedMembers() {
-        return assignedMembers;
+    public PostType getPostType() {
+        return postType;
     }
 
-    public void setAssignedMembers(Set<User> assignedMembers) {
-        this.assignedMembers = assignedMembers;
+    public void setPostType(PostType postType) {
+        this.postType = postType;
+    }
+
+    public String getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(String visibility) {
+        this.visibility = visibility;
+    }
+
+    public BigDecimal getStageCost() {
+        return stageCost;
+    }
+
+    public void setStageCost(BigDecimal stageCost) {
+        this.stageCost = stageCost;
+    }
+
+    public Integer getTotalWorkers() {
+        return totalWorkers;
+    }
+
+    public void setTotalWorkers(Integer totalWorkers) {
+        this.totalWorkers = totalWorkers;
+    }
+
+    public String getMaterialsUsed() {
+        return materialsUsed;
+    }
+
+    public void setMaterialsUsed(String materialsUsed) {
+        this.materialsUsed = materialsUsed;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
     }
 
     public Instant getCreatedAt() {
@@ -140,5 +190,37 @@ public class ProjectStage {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public User getPostedBy() {
+        return postedBy;
+    }
+
+    public void setPostedBy(User postedBy) {
+        this.postedBy = postedBy;
+    }
+
+    public List<PostPhoto> getPhotos() {
+        return photos;
+    }
+
+    public void setPhotos(List<PostPhoto> photos) {
+        this.photos = photos;
+    }
+
+    public Integer getCommentsCount() {
+        return commentsCount;
+    }
+
+    public void setCommentsCount(Integer commentsCount) {
+        this.commentsCount = commentsCount;
+    }
+
+    public Integer getLikesCount() {
+        return likesCount;
+    }
+
+    public void setLikesCount(Integer likesCount) {
+        this.likesCount = likesCount;
     }
 }

@@ -16,8 +16,8 @@ public class PostPhoto {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
-    private Post post;
+    @JoinColumn(name = "stage_id")
+    private ProjectStage stage;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "image_id", nullable = false)
@@ -43,12 +43,12 @@ public class PostPhoto {
         this.id = id;
     }
 
-    public Post getPost() {
-        return post;
+    public ProjectStage getStage() {
+        return stage;
     }
 
-    public void setPost(Post post) {
-        this.post = post;
+    public void setStage(ProjectStage stage) {
+        this.stage = stage;
     }
 
     public Image getImage() {

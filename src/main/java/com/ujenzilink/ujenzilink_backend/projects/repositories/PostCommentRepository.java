@@ -1,7 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.projects.repositories;
 
-import com.ujenzilink.ujenzilink_backend.projects.models.Post;
 import com.ujenzilink.ujenzilink_backend.projects.models.PostComment;
+import com.ujenzilink.ujenzilink_backend.projects.models.ProjectStage;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,9 +10,8 @@ import java.util.UUID;
 
 @Repository
 public interface PostCommentRepository extends JpaRepository<PostComment, UUID> {
-    List<PostComment> findByPostAndIsDeletedFalseOrderByCreatedAtAsc(Post post);
 
-    List<PostComment> findByPost_IdAndIsDeletedFalseOrderByCreatedAtAsc(UUID postId);
+    List<PostComment> findByStageAndIsDeletedFalseAndParentCommentIsNullOrderByCreatedAtAsc(ProjectStage stage);
 
-    long countByPostAndIsDeletedFalse(Post post);
+    long countByStageAndIsDeletedFalse(ProjectStage stage);
 }
