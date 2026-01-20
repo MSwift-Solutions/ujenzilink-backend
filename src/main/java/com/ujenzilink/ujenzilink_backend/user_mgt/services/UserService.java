@@ -4,9 +4,15 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.SocialLink;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.TestimonialItemDto;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UpdateUserProfileRequest;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserCountResponseDto;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserInfoDto;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserProfileResponse;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserSummaryResponse;
+import com.ujenzilink.ujenzilink_backend.user_mgt.models.Bio;
+import com.ujenzilink.ujenzilink_backend.user_mgt.repositories.BioRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -20,10 +26,12 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final BioRepository bioRepository;
     private final SecurityUtil securityUtil;
 
-    public UserService(UserRepository userRepository, SecurityUtil securityUtil) {
+    public UserService(UserRepository userRepository, BioRepository bioRepository, SecurityUtil securityUtil) {
         this.userRepository = userRepository;
+        this.bioRepository = bioRepository;
         this.securityUtil = securityUtil;
     }
 
@@ -128,5 +136,276 @@ public class UserService {
                 testimonials,
                 "Testimonials retrieved successfully",
                 HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<UserSummaryResponse> getMySummary() {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not authenticated or not found.",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userOpt.get();
+
+        // Build profile image URL
+        String name = user.getFullName();
+        String profileUrl = (user.getProfilePicture() != null)
+                ? user.getProfilePicture().getUrl()
+                : "https://ui-avatars.com/api/?name=" + name.replace(" ", "+") + "&background=random";
+
+        // Get bio and build social links
+        List<SocialLink> socialLinks = new ArrayList<>();
+        Optional<Bio> bioOpt = bioRepository.findByUser(user);
+
+        if (bioOpt.isPresent()) {
+            Bio bio = bioOpt.get();
+
+            if (bio.getTiktok() != null && !bio.getTiktok().isEmpty()) {
+                socialLinks.add(new SocialLink("tiktok", bio.getTiktok()));
+            }
+            if (bio.getWhatsapp() != null && !bio.getWhatsapp().isEmpty()) {
+                socialLinks.add(new SocialLink("whatsapp", bio.getWhatsapp()));
+            }
+            if (bio.getTwitter() != null && !bio.getTwitter().isEmpty()) {
+                socialLinks.add(new SocialLink("twitter", bio.getTwitter()));
+            }
+            if (bio.getFacebook() != null && !bio.getFacebook().isEmpty()) {
+                socialLinks.add(new SocialLink("facebook", bio.getFacebook()));
+            }
+            if (bio.getLinkedin() != null && !bio.getLinkedin().isEmpty()) {
+                socialLinks.add(new SocialLink("linkedin", bio.getLinkedin()));
+            }
+            if (bio.getWebsite() != null && !bio.getWebsite().isEmpty()) {
+                socialLinks.add(new SocialLink("website", bio.getWebsite()));
+            }
+        }
+
+        // Build the response
+        UserSummaryResponse response = new UserSummaryResponse(
+                user.getFullName(),
+                user.getUserHandle(),
+                user.getLocation(),
+                user.getEmail(),
+                user.getPhoneNumber(),
+                profileUrl,
+                socialLinks);
+
+        return new ApiCustomResponse<>(
+                response,
+                "User summary retrieved successfully",
+                HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<UserSummaryResponse> getUserSummary(String username) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not authenticated or not found.",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User targetUser = userRepository.findFirstByUsername(username);
+
+        if (targetUser == null || targetUser.getIsDeleted()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not found.",
+                    HttpStatus.NOT_FOUND.value());
+        }
+
+        // Build profile image URL
+        String name = targetUser.getFullName();
+        String profileUrl = (targetUser.getProfilePicture() != null)
+                ? targetUser.getProfilePicture().getUrl()
+                : "https://ui-avatars.com/api/?name=" + name.replace(" ", "+") + "&background=random";
+
+        // Get bio and build social links
+        List<SocialLink> socialLinks = new ArrayList<>();
+        Optional<Bio> bioOpt = bioRepository.findByUser(targetUser);
+
+        if (bioOpt.isPresent()) {
+            Bio bio = bioOpt.get();
+
+            if (bio.getTiktok() != null && !bio.getTiktok().isEmpty()) {
+                socialLinks.add(new SocialLink("tiktok", bio.getTiktok()));
+            }
+            if (bio.getWhatsapp() != null && !bio.getWhatsapp().isEmpty()) {
+                socialLinks.add(new SocialLink("whatsapp", bio.getWhatsapp()));
+            }
+            if (bio.getTwitter() != null && !bio.getTwitter().isEmpty()) {
+                socialLinks.add(new SocialLink("twitter", bio.getTwitter()));
+            }
+            if (bio.getFacebook() != null && !bio.getFacebook().isEmpty()) {
+                socialLinks.add(new SocialLink("facebook", bio.getFacebook()));
+            }
+            if (bio.getLinkedin() != null && !bio.getLinkedin().isEmpty()) {
+                socialLinks.add(new SocialLink("linkedin", bio.getLinkedin()));
+            }
+            if (bio.getWebsite() != null && !bio.getWebsite().isEmpty()) {
+                socialLinks.add(new SocialLink("website", bio.getWebsite()));
+            }
+        }
+
+        // Build the response
+        UserSummaryResponse response = new UserSummaryResponse(
+                targetUser.getFullName(),
+                targetUser.getUserHandle(),
+                targetUser.getLocation(),
+                targetUser.getEmail(),
+                targetUser.getPhoneNumber(),
+                profileUrl,
+                socialLinks);
+
+        return new ApiCustomResponse<>(
+                response,
+                "User summary retrieved successfully",
+                HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<UserProfileResponse> getMyProfile() {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not authenticated or not found.",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userOpt.get();
+
+        // Get bio (or empty default) and build social links
+        Bio bio = bioRepository.findByUser(user).orElse(new Bio());
+        List<SocialLink> socialLinks = new ArrayList<>();
+
+        // Always add all supported platforms for the edit form
+        socialLinks.add(new SocialLink("tiktok", bio.getTiktok()));
+        socialLinks.add(new SocialLink("whatsapp", bio.getWhatsapp()));
+        socialLinks.add(new SocialLink("twitter", bio.getTwitter()));
+        socialLinks.add(new SocialLink("facebook", bio.getFacebook()));
+        socialLinks.add(new SocialLink("linkedin", bio.getLinkedin()));
+        socialLinks.add(new SocialLink("website", bio.getWebsite()));
+
+        // Build the response (excluding password and image)
+        UserProfileResponse response = new UserProfileResponse(
+                user.getFirstName(),
+                user.getMiddleName(),
+                user.getLastName(),
+                user.getPhoneNumber(),
+                user.getEmail(),
+                user.getUserHandle(),
+                bio.getBio(),
+                bio.getTitle(),
+                bio.getYearsOfExperience(),
+                user.getDateOfBirth(),
+                user.getLocation(),
+                user.getGeoLocation(),
+                user.getGender(),
+                socialLinks,
+                user.getLicense(),
+                user.getSkills(),
+                user.getVerificationStatus(),
+                user.getProfileVisibility(),
+                user.getSignupMethod());
+
+        return new ApiCustomResponse<>(
+                response,
+                "User profile retrieved successfully",
+                HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<UserProfileResponse> updateMyProfile(UpdateUserProfileRequest request) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not authenticated or not found.",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userOpt.get();
+
+        // Update user fields
+        if (request.firstName() != null) {
+            user.setFirstName(request.firstName());
+        }
+        if (request.middleName() != null) {
+            user.setMiddleName(request.middleName());
+        }
+        if (request.lastName() != null) {
+            user.setLastName(request.lastName());
+        }
+        if (request.phoneNumber() != null) {
+            user.setPhoneNumber(request.phoneNumber());
+        }
+        if (request.dateOfBirth() != null) {
+            user.setDateOfBirth(request.dateOfBirth());
+        }
+        if (request.location() != null) {
+            user.setLocation(request.location());
+        }
+        if (request.geoLocation() != null) {
+            user.setGeoLocation(request.geoLocation());
+        }
+        if (request.gender() != null) {
+            user.setGender(request.gender());
+        }
+        if (request.license() != null) {
+            user.setLicense(request.license());
+        }
+        if (request.skills() != null) {
+            user.setSkills(request.skills());
+        }
+        if (request.verificationStatus() != null) {
+            user.setVerificationStatus(request.verificationStatus());
+        }
+        if (request.profileVisibility() != null) {
+            user.setProfileVisibility(request.profileVisibility());
+        }
+
+        // Save user
+        userRepository.save(user);
+
+        // Update or create bio
+        Bio bio = bioRepository.findByUser(user).orElse(new Bio());
+        bio.setUser(user);
+
+        if (request.bio() != null) {
+            bio.setBio(request.bio());
+        }
+        if (request.title() != null) {
+            bio.setTitle(request.title());
+        }
+        if (request.yearsOfExperience() != null) {
+            bio.setYearsOfExperience(request.yearsOfExperience());
+        }
+
+        // Update social links
+        if (request.socialLinks() != null) {
+            for (SocialLink link : request.socialLinks()) {
+                if (link.platform() != null) {
+                    switch (link.platform().toLowerCase()) {
+                        case "tiktok" -> bio.setTiktok(link.url());
+                        case "whatsapp" -> bio.setWhatsapp(link.url());
+                        case "twitter" -> bio.setTwitter(link.url());
+                        case "facebook" -> bio.setFacebook(link.url());
+                        case "linkedin" -> bio.setLinkedin(link.url());
+                        case "website" -> bio.setWebsite(link.url());
+                    }
+                }
+            }
+        }
+
+        // Save bio
+        bioRepository.save(bio);
+
+        // Return updated profile
+        return getMyProfile();
     }
 }

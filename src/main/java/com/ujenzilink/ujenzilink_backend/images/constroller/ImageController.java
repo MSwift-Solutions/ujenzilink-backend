@@ -42,8 +42,8 @@ public class ImageController {
     }
 
     @GetMapping("/profile-picture/me")
-    public ResponseEntity<ApiCustomResponse<ProfileImageResponse>> getMyProfilePicture() {
-        ApiCustomResponse<ProfileImageResponse> response = imageService.getMyProfileImage();
+    public ResponseEntity<ApiCustomResponse<ProfileImageResponse>> getMyProfile() {
+        ApiCustomResponse<ProfileImageResponse> response = imageService.getMyProfile();
 
         return ResponseEntity
                 .status(response.statusCode())
@@ -51,7 +51,7 @@ public class ImageController {
     }
 
     @GetMapping("/profile-picture/{username}")
-    public ResponseEntity<ApiCustomResponse<ProfileImageResponse>> getProfilePicture(
+    public ResponseEntity<ApiCustomResponse<ProfileImageResponse>> getProfileImage(
             @PathVariable String username) {
         ApiCustomResponse<ProfileImageResponse> response = imageService.getProfileImage(username);
 

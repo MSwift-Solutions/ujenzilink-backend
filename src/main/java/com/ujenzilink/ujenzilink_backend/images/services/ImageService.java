@@ -127,7 +127,7 @@ public class ImageService {
                                 HttpStatus.OK.value());
         }
 
-        public ApiCustomResponse<ProfileImageResponse> getMyProfileImage() {
+        public ApiCustomResponse<ProfileImageResponse> getMyProfile() {
                 Optional<User> userOpt = securityUtil.getAuthenticatedUser();
 
                 if (userOpt.isEmpty()) {
@@ -141,10 +141,22 @@ public class ImageService {
                 Image profilePicture = user.getProfilePicture();
 
                 if (profilePicture == null || profilePicture.getIsDeleted()) {
-                        return new ApiCustomResponse<>(
+                        String name = user.getFullName();
+                        String profileUrl = "https://ui-avatars.com/api/?name=" + name.replace(" ", "+")
+                                        + "&background=random";
+                        ProfileImageResponse response = new ProfileImageResponse(
                                         null,
-                                        "No profile picture found.",
-                                        HttpStatus.NOT_FOUND.value());
+                                        profileUrl,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null);
+                        return new ApiCustomResponse<>(
+                                        response,
+                                        "Default profile picture returned.",
+                                        HttpStatus.OK.value());
                 }
 
                 ProfileImageResponse response = new ProfileImageResponse(
@@ -185,10 +197,22 @@ public class ImageService {
                 Image profilePicture = targetUser.getProfilePicture();
 
                 if (profilePicture == null || profilePicture.getIsDeleted()) {
-                        return new ApiCustomResponse<>(
+                        String name = targetUser.getFullName();
+                        String profileUrl = "https://ui-avatars.com/api/?name=" + name.replace(" ", "+")
+                                        + "&background=random";
+                        ProfileImageResponse response = new ProfileImageResponse(
                                         null,
-                                        "No profile picture found.",
-                                        HttpStatus.NOT_FOUND.value());
+                                        profileUrl,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null);
+                        return new ApiCustomResponse<>(
+                                        response,
+                                        "Default profile picture returned.",
+                                        HttpStatus.OK.value());
                 }
 
                 ProfileImageResponse response = new ProfileImageResponse(
