@@ -36,6 +36,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectStatsDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ConstructionStageDTO;
 import java.util.UUID;
 import java.util.Arrays;
+import com.ujenzilink.ujenzilink_backend.projects.utils.ProjectUtils;
 
 @Service
 public class ProjectService {
@@ -90,7 +91,8 @@ public class ProjectService {
                 ConstructionStage[] allStages = ConstructionStage.values();
                 int currentStageIndex = currentStage.ordinal();
                 int totalStagesCount = allStages.length;
-                int progress = (currentStageIndex * 100) / totalStagesCount;
+                int progress = ProjectUtils.calculateRandomizedProgress(currentStageIndex, totalStagesCount,
+                                projectId.getMostSignificantBits());
 
                 ProjectStatsDTO stats = new ProjectStatsDTO(totalWorkers, progress, impressions, postsCount);
 
@@ -130,8 +132,8 @@ public class ProjectService {
         public ApiCustomResponse<CreateProjectResponse> createProject(CreateProjectRequest request) {
                 // Get the authenticated user from security context
                 Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            assert authentication != null;
-            String userEmail = authentication.getName();
+                assert authentication != null;
+                String userEmail = authentication.getName();
 
                 User user = userRepository.findFirstByEmail(userEmail);
                 if (user == null) {
