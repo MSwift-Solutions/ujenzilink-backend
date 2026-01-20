@@ -8,8 +8,10 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDetailsResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectListResponse;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/v1/projects")
@@ -35,6 +37,13 @@ public class ProjectController {
     @GetMapping
     public ResponseEntity<ApiCustomResponse<List<ProjectListResponse>>> getAllProjects() {
         ApiCustomResponse<List<ProjectListResponse>> response = projectService.getAllProjects();
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/{projectId}")
+    public ResponseEntity<ApiCustomResponse<ProjectDetailsResponse>> getProjectDetails(
+            @PathVariable UUID projectId) {
+        ApiCustomResponse<ProjectDetailsResponse> response = projectService.getProjectDetails(projectId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }

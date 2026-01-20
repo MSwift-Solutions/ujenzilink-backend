@@ -31,6 +31,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDetailsResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectStatsDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ConstructionStageDTO;
+import java.util.UUID;
+import java.util.Arrays;
+
 @Service
 public class ProjectService {
 
@@ -52,11 +58,80 @@ public class ProjectService {
         @Autowired
         private PostCommentRepository postCommentRepository;
 
+        public ApiCustomResponse<ProjectDetailsResponse> getProjectDetails(UUID projectId) {
+                Project project = projectRepository.findById(projectId).orElse(null);
+                if (project == null || project.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                List<ProjectStage> stages = projectStageRepository.findByProjectOrderByCreatedAtAsc(project);
+
+                // Determine current stage (the one with the highest ordinal)
+                ConstructionStage currentStage = ConstructionStage.PLANNING_PERMITS;
+                int maxOrdinal = -1;
+                for (ProjectStage stage : stages) {
+                        if (stage.getConstructionStage() != null
+                                        && stage.getConstructionStage().ordinal() > maxOrdinal) {
+                                maxOrdinal = stage.getConstructionStage().ordinal();
+                                currentStage = stage.getConstructionStage();
+                        }
+                }
+
+                // Stats calculation
+                int totalWorkers = stages.stream()
+                                .filter(s -> s.getTotalWorkers() != null)
+                                .mapToInt(ProjectStage::getTotalWorkers)
+                                .sum();
+
+                int postsCount = stages.size();
+                int impressions = project.getImpressions() != null ? project.getImpressions() : 0;
+
+                // Progress calculation
+                ConstructionStage[] allStages = ConstructionStage.values();
+                int currentStageIndex = currentStage.ordinal();
+                int totalStagesCount = allStages.length;
+                int progress = (currentStageIndex * 100) / totalStagesCount;
+
+                ProjectStatsDTO stats = new ProjectStatsDTO(totalWorkers, progress, impressions, postsCount);
+
+                // Construction stages list
+                ConstructionStage finalCurrentStage = currentStage;
+                List<ConstructionStageDTO> stageDTOs = Arrays.stream(allStages).map(s -> {
+                        String name = s.name().replace("_", " ").toLowerCase();
+                        name = Character.toUpperCase(name.charAt(0)) + name.substring(1);
+                        // Simple title case
+                        String[] words = name.split(" ");
+                        StringBuilder sb = new StringBuilder();
+                        for (String word : words) {
+                                if (!word.isEmpty()) {
+                                        sb.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1))
+                                                        .append(" ");
+                                }
+                        }
+                        name = sb.toString().trim();
+
+                        boolean completed = s.ordinal() < finalCurrentStage.ordinal();
+                        boolean active = s.ordinal() == finalCurrentStage.ordinal();
+                        boolean upcoming = s.ordinal() > finalCurrentStage.ordinal();
+
+                        return new ConstructionStageDTO(name, completed, active, upcoming);
+                }).collect(Collectors.toList());
+
+                ProjectDetailsResponse response = new ProjectDetailsResponse(
+                                project.getDescription(),
+                                stats,
+                                stageDTOs);
+
+                return new ApiCustomResponse<>(response, "Project details retrieved successfully",
+                                HttpStatus.OK.value());
+        }
+
         @Transactional(rollbackFor = Exception.class)
         public ApiCustomResponse<CreateProjectResponse> createProject(CreateProjectRequest request) {
                 // Get the authenticated user from security context
                 Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-                String userEmail = authentication.getName();
+            assert authentication != null;
+            String userEmail = authentication.getName();
 
                 User user = userRepository.findFirstByEmail(userEmail);
                 if (user == null) {
@@ -151,7 +226,7 @@ public class ProjectService {
                 // Fetch all non-deleted projects
                 List<Project> projects = projectRepository.findAll().stream()
                                 .filter(p -> !p.isDeleted())
-                                .collect(Collectors.toList());
+                                .toList();
 
                 List<ProjectListResponse> projectResponses = new ArrayList<>();
 
@@ -198,7 +273,7 @@ public class ProjectService {
                                                 .filter(s -> s.getStatus().name().contains("IN_PROGRESS")
                                                                 || s.getStatus().name().equals("PLANNING_PERMITS"))
                                                 .findFirst()
-                                                .orElse(stages.get(stages.size() - 1));
+                                                .orElse(stages.getLast());
                                 String stageEnumName = activeStage.getStatus().name();
                                 // Convert enum to Title Case (e.g., PLANNING_PERMITS -> Planning Permits)
                                 currentStage = stageEnumName.replace("_", " ").toLowerCase();
@@ -209,7 +284,7 @@ public class ProjectService {
                                 String[] words = currentStage.split(" ");
                                 StringBuilder stagedNameBuilder = new StringBuilder();
                                 for (String word : words) {
-                                        if (word.length() > 0) {
+                                        if (!word.isEmpty()) {
                                                 stagedNameBuilder.append(Character.toUpperCase(word.charAt(0)))
                                                                 .append(word.substring(1))
                                                                 .append(" ");
