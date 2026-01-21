@@ -23,14 +23,13 @@ public class PostPhoto {
     @JoinColumn(name = "image_id", nullable = false)
     private Image image;
 
-    @Column(nullable = false)
-    private Integer photoOrder = 0;
-
     @Column(length = 500)
     private String caption;
 
     @CreationTimestamp
     private Instant uploadedAt;
+
+    private Integer photoOrder = 0;
 
     public PostPhoto() {
     }
@@ -59,14 +58,6 @@ public class PostPhoto {
         this.image = image;
     }
 
-    public Integer getPhotoOrder() {
-        return photoOrder;
-    }
-
-    public void setPhotoOrder(Integer photoOrder) {
-        this.photoOrder = photoOrder;
-    }
-
     public String getCaption() {
         return caption;
     }
@@ -81,5 +72,13 @@ public class PostPhoto {
 
     public void setUploadedAt(Instant uploadedAt) {
         this.uploadedAt = uploadedAt;
+    }
+
+    public Integer getPhotoOrder() {
+        return photoOrder;
+    }
+
+    public void setPhotoOrder(Integer photoOrder) {
+        this.photoOrder = photoOrder;
     }
 }

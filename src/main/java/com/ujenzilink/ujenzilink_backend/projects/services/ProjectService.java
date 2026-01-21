@@ -4,6 +4,7 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -210,6 +211,7 @@ public class ProjectService {
                 defaultStage.setDescription("Design, blueprints, and legal approvals");
                 // defaultStage.setStageOrder(1); // Removed field
                 defaultStage.setStatus(ConstructionStage.PLANNING_PERMITS);
+                defaultStage.setStartDate(LocalDate.now());
                 defaultStage.setPostedBy(user);
                 projectStageRepository.save(defaultStage);
 
