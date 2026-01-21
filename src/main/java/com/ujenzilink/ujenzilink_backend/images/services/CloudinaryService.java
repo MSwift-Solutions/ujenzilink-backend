@@ -18,11 +18,12 @@ public class CloudinaryService {
         this.cloudinary = cloudinary;
     }
 
-    public com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse uploadImage(MultipartFile file) {
+    public com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse uploadImage(MultipartFile file,
+            String folder) {
         try {
             Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap(
-                            "folder", "ujenzilink/profile-pictures",
+                            "folder", folder,
                             "resource_type", "image",
                             "use_filename", true,
                             "unique_filename", true,
@@ -38,5 +39,10 @@ public class CloudinaryService {
         } catch (IOException e) {
             throw new RuntimeException("Cloudinary upload failed: " + e.getMessage());
         }
+    }
+
+    // Default upload to profile-pictures for backward compatibility
+    public com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse uploadImage(MultipartFile file) {
+        return uploadImage(file, "ujenzilink/profile-pictures");
     }
 }

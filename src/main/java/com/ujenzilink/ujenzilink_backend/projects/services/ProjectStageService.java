@@ -102,8 +102,9 @@ public class ProjectStageService {
                 // Validate and Extract Metadata
                 ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
 
-                // Upload to Cloudinary
-                CloudinaryUploadResponse uploadResponse = cloudinaryService.uploadImage(file);
+                // Upload to Cloudinary in project-images folder
+                CloudinaryUploadResponse uploadResponse = cloudinaryService.uploadImage(file,
+                        "ujenzilink/project-images");
 
                 // Create and Save Image Entity
                 Image image = new Image();
