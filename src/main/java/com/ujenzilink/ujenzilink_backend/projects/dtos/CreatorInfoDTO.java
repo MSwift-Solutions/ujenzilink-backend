@@ -1,6 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.projects.dtos;
 
 public record CreatorInfoDTO(
-        String name,
-        String profilePictureUrl) {
+                String name,
+                String username,
+                String profilePictureUrl) {
 }

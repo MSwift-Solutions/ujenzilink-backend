@@ -63,6 +63,7 @@ public class ProjectStage {
     private User postedBy;
 
     @OneToMany(mappedBy = "stage", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("photoOrder ASC")
     private List<PostPhoto> photos = new ArrayList<>();
 
     private Integer commentsCount = 0;

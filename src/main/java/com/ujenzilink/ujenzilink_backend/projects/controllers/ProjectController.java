@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDetailsResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectListResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPostResponse;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,6 +45,13 @@ public class ProjectController {
     public ResponseEntity<ApiCustomResponse<ProjectDetailsResponse>> getProjectDetails(
             @PathVariable UUID projectId) {
         ApiCustomResponse<ProjectDetailsResponse> response = projectService.getProjectDetails(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/{projectId}/posts")
+    public ResponseEntity<ApiCustomResponse<List<ProjectPostResponse>>> getProjectPosts(
+            @PathVariable UUID projectId) {
+        ApiCustomResponse<List<ProjectPostResponse>> response = projectService.getProjectPosts(projectId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }

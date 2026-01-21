@@ -38,6 +38,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.ConstructionStageDTO;
 import java.util.UUID;
 import java.util.Arrays;
 import com.ujenzilink.ujenzilink_backend.projects.utils.ProjectUtils;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPostResponse;
 
 @Service
 public class ProjectService {
@@ -126,6 +127,72 @@ public class ProjectService {
                                 stageDTOs);
 
                 return new ApiCustomResponse<>(response, "Project details retrieved successfully",
+                                HttpStatus.OK.value());
+        }
+
+        public ApiCustomResponse<List<ProjectPostResponse>> getProjectPosts(UUID projectId) {
+                Project project = projectRepository.findById(projectId).orElse(null);
+                if (project == null || project.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                List<ProjectStage> stages = projectStageRepository.findByProject_IdOrderByCreatedAtAsc(project.getId());
+
+                List<ProjectPostResponse> postResponses = stages.stream().map(stage -> {
+                        // Get poster info
+                        User poster = stage.getPostedBy();
+                        CreatorInfoDTO postedBy = null;
+                        if (poster != null) {
+                                String posterName = poster.getFullName();
+                                String profilePictureUrl = (poster.getProfilePicture() != null)
+                                                ? poster.getProfilePicture().getUrl()
+                                                : "https://ui-avatars.com/api/?name=" + posterName.replace(" ", "+")
+                                                                + "&background=random";
+                                String username = (poster.getUserHandle() != null && !poster.getUserHandle().isEmpty())
+                                                ? poster.getUserHandle()
+                                                : poster.getEmail();
+                                postedBy = new CreatorInfoDTO(posterName, username, profilePictureUrl);
+                        }
+
+                        // Get images
+                        List<String> images = new ArrayList<>();
+                        for (PostPhoto photo : stage.getPhotos()) {
+                                if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
+                                        images.add(photo.getImage().getUrl());
+                                }
+                        }
+
+                        // Format stage name
+                        String stageName = stage.getConstructionStage().name().replace("_", " ").toLowerCase();
+                        String[] words = stageName.split(" ");
+                        StringBuilder sb = new StringBuilder();
+                        for (String word : words) {
+                                if (!word.isEmpty()) {
+                                        sb.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1))
+                                                        .append(" ");
+                                }
+                        }
+                        stageName = sb.toString().trim();
+
+                        return new ProjectPostResponse(
+                                        stage.getId(),
+                                        stage.getDescription(),
+                                        stageName,
+                                        stage.getPostType() != null ? stage.getPostType().name() : null,
+                                        stage.getVisibility(),
+                                        stage.getStageCost(),
+                                        stage.getTotalWorkers(),
+                                        stage.getMaterialsUsed(),
+                                        stage.getStartDate(),
+                                        stage.getEndDate(),
+                                        stage.getCreatedAt(),
+                                        postedBy,
+                                        images,
+                                        stage.getCommentsCount() != null ? stage.getCommentsCount() : 0,
+                                        stage.getLikesCount() != null ? stage.getLikesCount() : 0);
+                }).collect(Collectors.toList());
+
+                return new ApiCustomResponse<>(postResponses, "Project posts retrieved successfully",
                                 HttpStatus.OK.value());
         }
 
@@ -237,11 +304,15 @@ public class ProjectService {
                 for (Project project : projects) {
                         // Get creator information
                         User creator = project.getCreatedBy();
-                        String creatorName = creator.getFirstName() + " " + creator.getLastName();
-                        String profilePictureUrl = creator.getProfilePicture() != null
+                        String creatorName = creator.getFullName();
+                        String profilePictureUrl = (creator.getProfilePicture() != null)
                                         ? creator.getProfilePicture().getUrl()
-                                        : null;
-                        CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creatorName, profilePictureUrl);
+                                        : "https://ui-avatars.com/api/?name=" + creatorName.replace(" ", "+")
+                                                        + "&background=random";
+                        String username = (creator.getUserHandle() != null && !creator.getUserHandle().isEmpty())
+                                        ? creator.getUserHandle()
+                                        : creator.getEmail();
+                        CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creatorName, username, profilePictureUrl);
 
                         // Get member count
                         int memberCount = projectMemberRepository.findByProject(project).size();
