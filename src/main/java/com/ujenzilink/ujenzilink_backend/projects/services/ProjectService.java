@@ -274,7 +274,7 @@ public class ProjectService {
                 defaultStage.setDescription("Design, blueprints, and legal approvals");
                 // defaultStage.setStageOrder(1); // Removed field
                 defaultStage.setStatus(ConstructionStage.PLANNING_PERMITS);
-                defaultStage.setStartDate(LocalDate.now());
+                defaultStage.setStartDate(request.startDate() != null ? request.startDate() : LocalDate.now());
                 defaultStage.setPostedBy(user);
                 projectStageRepository.save(defaultStage);
 
