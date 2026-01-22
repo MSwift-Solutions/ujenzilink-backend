@@ -104,4 +104,26 @@ public class UserMgtService {
 
         return new ApiCustomResponse<>(dtos, "Project follows retrieved successfully", HttpStatus.OK.value());
     }
+
+    public ApiCustomResponse<Boolean> checkFollowStatus(UUID projectId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return new ApiCustomResponse<>(false, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userRepository.findFirstByEmail(authentication.getName());
+        if (user == null) {
+            return new ApiCustomResponse<>(false, "User not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        Project project = projectRepository.findById(projectId).orElse(null);
+        if (project == null || project.isDeleted()) {
+            return new ApiCustomResponse<>(false, "Project not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        Optional<ProjectFollow> follow = projectFollowRepository.findByProjectAndUser(project, user);
+        boolean isFollowing = follow.isPresent() && follow.get().isActive();
+
+        return new ApiCustomResponse<>(isFollowing, "Follow status checked successfully", HttpStatus.OK.value());
+    }
 }

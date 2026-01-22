@@ -30,4 +30,10 @@ public class UserMgt {
         ApiCustomResponse<List<ProjectFollowDTO>> response = projectUserMgtService.getProjectFollows(projectId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
+
+    @GetMapping("/{projectId}/follow-status")
+    public ResponseEntity<ApiCustomResponse<Boolean>> checkFollowStatus(@PathVariable UUID projectId) {
+        ApiCustomResponse<Boolean> response = projectUserMgtService.checkFollowStatus(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
 }
