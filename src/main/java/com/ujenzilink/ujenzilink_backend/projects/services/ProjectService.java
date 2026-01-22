@@ -65,6 +65,9 @@ public class ProjectService {
         @Autowired
         private PostCommentRepository postCommentRepository;
 
+        @Autowired
+        private com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectFollowRepository projectFollowRepository;
+
         public ApiCustomResponse<ProjectDetailsResponse> getProjectDetails(UUID projectId) {
                 Project project = projectRepository.findById(projectId).orElse(null);
                 if (project == null || project.isDeleted()) {
@@ -342,6 +345,9 @@ public class ProjectService {
                                 currentStage = ProjectUtils.formatEnumName(ConstructionStage.PLANNING_PERMITS.name());
                         }
 
+                        // Get follow count
+                        int followCount = (int) projectFollowRepository.countByProject(project);
+
                         // Build response
                         ProjectListResponse response = new ProjectListResponse(
                                         project.getId(),
@@ -357,6 +363,7 @@ public class ProjectService {
                                         project.getCurrency(),
                                         likesCount,
                                         commentsCount,
+                                        followCount,
                                         currentStage);
 
                         projectResponses.add(response);

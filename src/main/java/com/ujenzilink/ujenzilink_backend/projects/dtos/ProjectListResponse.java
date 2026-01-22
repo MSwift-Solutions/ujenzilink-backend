@@ -9,18 +9,19 @@ import java.util.List;
 import java.util.UUID;
 
 public record ProjectListResponse(
-        UUID projectId,
-        String projectName,
-        ProjectType projectType,
-        ProjectStatus projectStatus,
-        String location,
-        Instant createdAt,
-        CreatorInfoDTO creator,
-        Integer memberCount,
-        List<String> projectImages,
-        BigDecimal estimatedBudget,
-        String currency,
-        Integer likesCount,
-        Integer commentsCount,
-        String currentStage) {
+                UUID projectId,
+                String projectName,
+                ProjectType projectType,
+                ProjectStatus projectStatus,
+                String location,
+                Instant createdAt,
+                CreatorInfoDTO creator,
+                Integer memberCount,
+                List<String> projectImages,
+                BigDecimal estimatedBudget,
+                String currency,
+                Integer likesCount,
+                Integer commentsCount,
+                Integer followCount,
+                String currentStage) {
 }
