@@ -17,11 +17,11 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/v1/projects")
-public class ProjectController {
+public class Project {
 
     private final ProjectService projectService;
 
-    public ProjectController(ProjectService projectService) {
+    public Project(ProjectService projectService) {
         this.projectService = projectService;
     }
 

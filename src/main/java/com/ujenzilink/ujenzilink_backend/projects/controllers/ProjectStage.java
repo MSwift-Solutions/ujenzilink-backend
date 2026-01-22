@@ -22,13 +22,13 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/v1/projects/stages")
-public class ProjectStageController {
+public class ProjectStage {
 
     private final ProjectStageService projectStageService;
     private final ObjectMapper objectMapper;
     private final Validator validator;
 
-    public ProjectStageController(ProjectStageService projectStageService, ObjectMapper objectMapper) {
+    public ProjectStage(ProjectStageService projectStageService, ObjectMapper objectMapper) {
         this.projectStageService = projectStageService;
         this.objectMapper = objectMapper;
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
