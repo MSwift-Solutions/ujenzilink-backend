@@ -1,8 +1,10 @@
 package com.ujenzilink.ujenzilink_backend.projects.controllers;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.CommentDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
+import com.ujenzilink.ujenzilink_backend.projects.services.PostCommentService;
 import com.ujenzilink.ujenzilink_backend.projects.services.UserMgtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,9 +17,11 @@ import java.util.UUID;
 public class UserMgt {
 
     private final UserMgtService projectUserMgtService;
+    private final PostCommentService postCommentService;
 
-    public UserMgt(UserMgtService projectUserMgtService) {
+    public UserMgt(UserMgtService projectUserMgtService, PostCommentService postCommentService) {
         this.projectUserMgtService = projectUserMgtService;
+        this.postCommentService = postCommentService;
     }
 
     @PostMapping("/{projectId}/follow")
@@ -53,6 +57,12 @@ public class UserMgt {
     @GetMapping("/{projectId}/likes")
     public ResponseEntity<ApiCustomResponse<List<ProjectLikeDTO>>> getProjectLikes(@PathVariable UUID projectId) {
         ApiCustomResponse<List<ProjectLikeDTO>> response = projectUserMgtService.getProjectLikes(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/posts/{postId}/comments")
+    public ResponseEntity<ApiCustomResponse<List<CommentDTO>>> getPostComments(@PathVariable UUID postId) {
+        ApiCustomResponse<List<CommentDTO>> response = postCommentService.getStageComments(postId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }

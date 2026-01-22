@@ -13,5 +13,7 @@ public interface PostCommentRepository extends JpaRepository<PostComment, UUID> 
 
     List<PostComment> findByStageAndIsDeletedFalseAndParentCommentIsNullOrderByCreatedAtAsc(ProjectStage stage);
 
+    List<PostComment> findByStageAndIsDeletedFalseOrderByCreatedAtAsc(ProjectStage stage);
+
     long countByStageAndIsDeletedFalse(ProjectStage stage);
 }
