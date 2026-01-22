@@ -41,6 +41,7 @@ import java.util.Arrays;
 import com.ujenzilink.ujenzilink_backend.projects.utils.ProjectUtils;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPostResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.DropdownResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDropdownsResponse;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectType;
 
 @Service
@@ -374,24 +375,34 @@ public class ProjectService {
                                 HttpStatus.OK.value());
         }
 
-        public ApiCustomResponse<List<DropdownResponse>> getProjectTypeDropdown() {
+        public ApiCustomResponse<ProjectDropdownsResponse> getProjectDropdowns() {
                 List<DropdownResponse> types = Arrays.stream(ProjectType.values())
-                                .map(type -> new DropdownResponse(
-                                                type.name(),
+                                .map(type -> new DropdownResponse(type.name(),
                                                 ProjectUtils.formatEnumName(type.name())))
                                 .toList();
 
-                return new ApiCustomResponse<>(types, "Project types retrieved successfully", HttpStatus.OK.value());
-        }
-
-        public ApiCustomResponse<List<DropdownResponse>> getProjectStatusDropdown() {
                 List<DropdownResponse> statuses = Arrays.stream(ProjectStatus.values())
-                                .map(status -> new DropdownResponse(
-                                                status.name(),
+                                .map(status -> new DropdownResponse(status.name(),
                                                 ProjectUtils.formatEnumName(status.name())))
                                 .toList();
 
-                return new ApiCustomResponse<>(statuses, "Project statuses retrieved successfully",
+                List<DropdownResponse> visibilities = Arrays.stream(ProjectVisibility.values())
+                                .map(visibility -> new DropdownResponse(visibility.name(),
+                                                ProjectUtils.formatEnumName(visibility.name())))
+                                .toList();
+
+                List<DropdownResponse> budgetVisibilities = Arrays.stream(BudgetVisibility.values())
+                                .map(budget -> new DropdownResponse(budget.name(),
+                                                ProjectUtils.formatEnumName(budget.name())))
+                                .toList();
+
+                ProjectDropdownsResponse response = new ProjectDropdownsResponse(
+                                types,
+                                statuses,
+                                visibilities,
+                                budgetVisibilities);
+
+                return new ApiCustomResponse<>(response, "Project dropdowns retrieved successfully",
                                 HttpStatus.OK.value());
         }
 }

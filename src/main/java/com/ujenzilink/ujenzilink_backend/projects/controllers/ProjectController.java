@@ -12,6 +12,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDetailsResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectListResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPostResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.DropdownResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDropdownsResponse;
 import java.util.List;
 import java.util.UUID;
 
@@ -56,15 +57,9 @@ public class ProjectController {
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
-    @GetMapping("/types")
-    public ResponseEntity<ApiCustomResponse<List<DropdownResponse>>> getProjectTypes() {
-        ApiCustomResponse<List<DropdownResponse>> response = projectService.getProjectTypeDropdown();
-        return ResponseEntity.status(response.statusCode()).body(response);
-    }
-
-    @GetMapping("/statuses")
-    public ResponseEntity<ApiCustomResponse<List<DropdownResponse>>> getProjectStatuses() {
-        ApiCustomResponse<List<DropdownResponse>> response = projectService.getProjectStatusDropdown();
+    @GetMapping("/dropdowns")
+    public ResponseEntity<ApiCustomResponse<ProjectDropdownsResponse>> getProjectDropdowns() {
+        ApiCustomResponse<ProjectDropdownsResponse> response = projectService.getProjectDropdowns();
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }
