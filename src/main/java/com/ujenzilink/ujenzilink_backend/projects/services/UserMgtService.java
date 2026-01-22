@@ -5,6 +5,7 @@ import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectFollow;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectLike;
@@ -95,7 +96,8 @@ public class UserMgtService {
                     ? follower.getUserHandle()
                     : follower.getEmail();
 
-            CreatorInfoDTO followerInfo = new CreatorInfoDTO(followerName, username, profilePictureUrl);
+            CreatorInfoDTO followerInfo = new CreatorInfoDTO(follower.getId(), followerName, username,
+                    profilePictureUrl);
 
             return new ProjectFollowDTO(
                     follow.getId(),
@@ -182,7 +184,7 @@ public class UserMgtService {
         return new ApiCustomResponse<>(isLiked, "Like status checked successfully", HttpStatus.OK.value());
     }
 
-    public ApiCustomResponse<List<CreatorInfoDTO>> getProjectLikes(UUID projectId) {
+    public ApiCustomResponse<List<ProjectLikeDTO>> getProjectLikes(UUID projectId) {
         Project project = projectRepository.findById(projectId).orElse(null);
         if (project == null || project.isDeleted()) {
             return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
@@ -190,7 +192,7 @@ public class UserMgtService {
 
         List<ProjectLike> likes = projectLikeRepository.findByProject(project);
 
-        List<CreatorInfoDTO> dtos = likes.stream().map(like -> {
+        List<ProjectLikeDTO> dtos = likes.stream().map(like -> {
             User liker = like.getUser();
             String likerName = liker.getFullName();
             String profilePictureUrl = (liker.getProfilePicture() != null)
@@ -201,7 +203,8 @@ public class UserMgtService {
                     ? liker.getUserHandle()
                     : liker.getEmail();
 
-            return new CreatorInfoDTO(likerName, username, profilePictureUrl);
+            CreatorInfoDTO userInfo = new CreatorInfoDTO(liker.getId(), likerName, username, profilePictureUrl);
+            return new ProjectLikeDTO(userInfo, like.getCreatedAt());
         }).toList();
 
         return new ApiCustomResponse<>(dtos, "Project likes retrieved successfully", HttpStatus.OK.value());

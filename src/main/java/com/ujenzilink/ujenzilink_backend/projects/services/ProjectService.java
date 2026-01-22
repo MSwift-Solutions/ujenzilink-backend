@@ -149,7 +149,7 @@ public class ProjectService {
                                 String username = (poster.getUserHandle() != null && !poster.getUserHandle().isEmpty())
                                                 ? poster.getUserHandle()
                                                 : poster.getEmail();
-                                postedBy = new CreatorInfoDTO(posterName, username, profilePictureUrl);
+                                postedBy = new CreatorInfoDTO(poster.getId(), posterName, username, profilePictureUrl);
                         }
 
                         // Get images
@@ -302,7 +302,8 @@ public class ProjectService {
                         String username = (creator.getUserHandle() != null && !creator.getUserHandle().isEmpty())
                                         ? creator.getUserHandle()
                                         : creator.getEmail();
-                        CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creatorName, username, profilePictureUrl);
+                        CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creator.getId(), creatorName, username,
+                                        profilePictureUrl);
 
                         // Get member count
                         int memberCount = projectMemberRepository.findByProject(project).size() + 1; // Include project

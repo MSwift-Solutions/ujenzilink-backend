@@ -1,8 +1,8 @@
 package com.ujenzilink.ujenzilink_backend.projects.controllers;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
 import com.ujenzilink.ujenzilink_backend.projects.services.UserMgtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -51,8 +51,8 @@ public class UserMgt {
     }
 
     @GetMapping("/{projectId}/likes")
-    public ResponseEntity<ApiCustomResponse<List<CreatorInfoDTO>>> getProjectLikes(@PathVariable UUID projectId) {
-        ApiCustomResponse<List<CreatorInfoDTO>> response = projectUserMgtService.getProjectLikes(projectId);
+    public ResponseEntity<ApiCustomResponse<List<ProjectLikeDTO>>> getProjectLikes(@PathVariable UUID projectId) {
+        ApiCustomResponse<List<ProjectLikeDTO>> response = projectUserMgtService.getProjectLikes(projectId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }
