@@ -2,6 +2,7 @@ package com.ujenzilink.ujenzilink_backend.projects.controllers;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CommentDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateCommentRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
 import com.ujenzilink.ujenzilink_backend.projects.services.PostCommentService;
@@ -63,6 +64,14 @@ public class UserMgt {
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<ApiCustomResponse<List<CommentDTO>>> getPostComments(@PathVariable UUID postId) {
         ApiCustomResponse<List<CommentDTO>> response = postCommentService.getStageComments(postId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @PostMapping("/posts/{postId}/comments")
+    public ResponseEntity<ApiCustomResponse<CommentDTO>> createPostComment(
+            @PathVariable UUID postId,
+            @RequestBody CreateCommentRequest request) {
+        ApiCustomResponse<CommentDTO> response = postCommentService.createComment(postId, request);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }

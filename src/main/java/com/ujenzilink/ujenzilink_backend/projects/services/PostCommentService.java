@@ -4,6 +4,7 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CommentDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateCommentRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ReplyDTO;
 import com.ujenzilink.ujenzilink_backend.projects.models.PostComment;
@@ -73,6 +74,44 @@ public class PostCommentService {
         }).collect(Collectors.toList());
 
         return new ApiCustomResponse<>(commentDTOs, "Comments retrieved successfully", HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<CommentDTO> createComment(UUID stageId, CreateCommentRequest request) {
+        ProjectStage stage = projectStageRepository.findById(stageId).orElse(null);
+        if (stage == null || stage.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getPrincipal().equals("anonymousUser")) {
+            return new ApiCustomResponse<>(null, "You must be logged in to comment", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User currentUser = userRepository.findFirstByEmail(authentication.getName());
+        if (currentUser == null) {
+            return new ApiCustomResponse<>(null, "User not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        PostComment comment = new PostComment();
+        comment.setStage(stage);
+        comment.setCommenter(currentUser);
+        comment.setContent(request.text());
+
+        if (request.parentId() != null) {
+            PostComment parent = postCommentRepository.findById(request.parentId()).orElse(null);
+            if (parent == null || parent.isDeleted()) {
+                return new ApiCustomResponse<>(null, "Parent comment not found", HttpStatus.NOT_FOUND.value());
+            }
+            comment.setParentComment(parent);
+        }
+
+        PostComment savedComment = postCommentRepository.save(comment);
+
+        // Map to DTO for response (newly created comment has no replies)
+        CommentDTO responseDTO = mapToCommentDTO(savedComment, new ArrayList<>(), currentUser);
+
+        return new ApiCustomResponse<>(responseDTO, "Comment created successfully", HttpStatus.CREATED.value());
     }
 
     private void collectDescendants(UUID parentId, Map<UUID, List<PostComment>> parentToChildren,
