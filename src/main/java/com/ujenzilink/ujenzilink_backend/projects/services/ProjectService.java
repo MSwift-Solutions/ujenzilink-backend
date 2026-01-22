@@ -88,7 +88,7 @@ public class ProjectService {
                 int totalWorkers = stages.stream()
                                 .filter(s -> s.getTotalWorkers() != null)
                                 .mapToInt(ProjectStage::getTotalWorkers)
-                                .sum();
+                                .sum() + 1; // Include project creator
 
                 int postsCount = stages.size();
                 int impressions = project.getImpressions() != null ? project.getImpressions() : 0;
@@ -267,17 +267,6 @@ public class ProjectService {
                 // Save project
                 Project savedProject = projectRepository.save(project);
 
-                // Create default PLANNING_PERMITS stage
-                ProjectStage defaultStage = new ProjectStage();
-                defaultStage.setProject(savedProject);
-                // defaultStage.setStageName(null); // Removed field
-                defaultStage.setDescription("Design, blueprints, and legal approvals");
-                // defaultStage.setStageOrder(1); // Removed field
-                defaultStage.setStatus(ConstructionStage.PLANNING_PERMITS);
-                defaultStage.setStartDate(request.startDate() != null ? request.startDate() : LocalDate.now());
-                defaultStage.setPostedBy(user);
-                projectStageRepository.save(defaultStage);
-
                 CreateProjectResponse response = new CreateProjectResponse(
                                 savedProject.getId(),
                                 savedProject.getTitle(),
@@ -311,7 +300,8 @@ public class ProjectService {
                         CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creatorName, username, profilePictureUrl);
 
                         // Get member count
-                        int memberCount = projectMemberRepository.findByProject(project).size();
+                        int memberCount = projectMemberRepository.findByProject(project).size() + 1; // Include project
+                                                                                                     // creator
 
                         // Get current stage
                         String currentStage = null;
