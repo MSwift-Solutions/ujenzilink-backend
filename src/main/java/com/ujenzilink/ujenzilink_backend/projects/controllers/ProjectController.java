@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDetailsResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectListResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPostResponse;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.DropdownResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDropdownsResponse;
 import java.util.List;
 import java.util.UUID;
