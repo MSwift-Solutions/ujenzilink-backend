@@ -7,6 +7,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectFollow;
+import com.ujenzilink.ujenzilink_backend.projects.models.ProjectLike;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectFollowRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectLikeRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
@@ -147,16 +148,14 @@ public class UserMgtService {
             return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
         }
 
-        Optional<com.ujenzilink.ujenzilink_backend.projects.models.ProjectLike> existingLike = projectLikeRepository
-                .findByProjectAndUser(project, user);
+        Optional<ProjectLike> existingLike = projectLikeRepository.findByProjectAndUser(project, user);
 
         if (existingLike.isPresent()) {
             projectLikeRepository.delete(existingLike.get());
             return new ApiCustomResponse<>("Unliked", "Project unliked successfully", HttpStatus.OK.value());
         }
 
-        com.ujenzilink.ujenzilink_backend.projects.models.ProjectLike newLike = new com.ujenzilink.ujenzilink_backend.projects.models.ProjectLike(
-                project, user);
+        ProjectLike newLike = new ProjectLike(project, user);
         projectLikeRepository.save(newLike);
 
         return new ApiCustomResponse<>("Liked", "Project liked successfully", HttpStatus.CREATED.value());
@@ -181,5 +180,30 @@ public class UserMgtService {
         boolean isLiked = projectLikeRepository.existsByProjectAndUser(project, user);
 
         return new ApiCustomResponse<>(isLiked, "Like status checked successfully", HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<List<CreatorInfoDTO>> getProjectLikes(UUID projectId) {
+        Project project = projectRepository.findById(projectId).orElse(null);
+        if (project == null || project.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        List<ProjectLike> likes = projectLikeRepository.findByProject(project);
+
+        List<CreatorInfoDTO> dtos = likes.stream().map(like -> {
+            User liker = like.getUser();
+            String likerName = liker.getFullName();
+            String profilePictureUrl = (liker.getProfilePicture() != null)
+                    ? liker.getProfilePicture().getUrl()
+                    : "https://ui-avatars.com/api/?name=" + likerName.replace(" ", "+")
+                            + "&background=random";
+            String username = (liker.getUserHandle() != null && !liker.getUserHandle().isEmpty())
+                    ? liker.getUserHandle()
+                    : liker.getEmail();
+
+            return new CreatorInfoDTO(likerName, username, profilePictureUrl);
+        }).toList();
+
+        return new ApiCustomResponse<>(dtos, "Project likes retrieved successfully", HttpStatus.OK.value());
     }
 }

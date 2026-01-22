@@ -6,6 +6,7 @@ import com.ujenzilink.ujenzilink_backend.projects.models.ProjectLike;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,6 +14,8 @@ import java.util.UUID;
 public interface ProjectLikeRepository extends JpaRepository<ProjectLike, UUID> {
 
     Optional<ProjectLike> findByProjectAndUser(Project project, User user);
+
+    List<ProjectLike> findByProject(Project project);
 
     boolean existsByProjectAndUser(Project project, User user);
 

@@ -1,6 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.projects.controllers;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
 import com.ujenzilink.ujenzilink_backend.projects.services.UserMgtService;
 import org.springframework.http.ResponseEntity;
@@ -46,6 +47,12 @@ public class UserMgt {
     @GetMapping("/{projectId}/like-status")
     public ResponseEntity<ApiCustomResponse<Boolean>> checkLikeStatus(@PathVariable UUID projectId) {
         ApiCustomResponse<Boolean> response = projectUserMgtService.checkLikeStatus(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/{projectId}/likes")
+    public ResponseEntity<ApiCustomResponse<List<CreatorInfoDTO>>> getProjectLikes(@PathVariable UUID projectId) {
+        ApiCustomResponse<List<CreatorInfoDTO>> response = projectUserMgtService.getProjectLikes(projectId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }
