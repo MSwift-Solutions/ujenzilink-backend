@@ -4,7 +4,6 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -346,7 +345,7 @@ public class ProjectService {
                         }
 
                         // Get follow count
-                        int followCount = (int) projectFollowRepository.countByProject(project);
+                        int followCount = (int) projectFollowRepository.countByProjectAndIsActiveTrue(project);
 
                         // Build response
                         ProjectListResponse response = new ProjectListResponse(

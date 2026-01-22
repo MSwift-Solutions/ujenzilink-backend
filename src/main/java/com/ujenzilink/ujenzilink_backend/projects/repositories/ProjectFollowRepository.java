@@ -23,6 +23,8 @@ public interface ProjectFollowRepository extends JpaRepository<ProjectFollow, UU
 
     long countByProject(Project project);
 
+    long countByProjectAndIsActiveTrue(Project project);
+
     List<ProjectFollow> findByProjectAndIsActiveTrue(Project project);
 
     List<ProjectFollow> findByUserAndIsActiveTrue(User user);
