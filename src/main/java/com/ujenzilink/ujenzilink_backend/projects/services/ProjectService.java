@@ -67,6 +67,9 @@ public class ProjectService {
         @Autowired
         private com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectFollowRepository projectFollowRepository;
 
+        @Autowired
+        private com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectLikeRepository projectLikeRepository;
+
         public ApiCustomResponse<ProjectDetailsResponse> getProjectDetails(UUID projectId) {
                 Project project = projectRepository.findById(projectId).orElse(null);
                 if (project == null || project.isDeleted()) {
@@ -319,9 +322,6 @@ public class ProjectService {
                                 // Add comments count from each stage
                                 commentsCount += stage.getCommentsCount() != null ? stage.getCommentsCount() : 0;
 
-                                // Add likes count from each stage
-                                likesCount += stage.getLikesCount() != null ? stage.getLikesCount() : 0;
-
                                 // Fetch photos directly linked to the stage
                                 List<PostPhoto> stagePhotos = postPhotoRepository.findByStageOrderByPhotoOrder(stage);
                                 for (PostPhoto photo : stagePhotos) {
@@ -346,6 +346,9 @@ public class ProjectService {
 
                         // Get follow count
                         int followCount = (int) projectFollowRepository.countByProjectAndIsActiveTrue(project);
+
+                        // Get project likes count
+                        likesCount = (int) projectLikeRepository.countByProject(project);
 
                         // Build response
                         ProjectListResponse response = new ProjectListResponse(

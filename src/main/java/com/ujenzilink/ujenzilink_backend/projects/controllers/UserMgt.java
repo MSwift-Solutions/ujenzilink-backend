@@ -36,4 +36,16 @@ public class UserMgt {
         ApiCustomResponse<Boolean> response = projectUserMgtService.checkFollowStatus(projectId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
+
+    @PostMapping("/{projectId}/like")
+    public ResponseEntity<ApiCustomResponse<String>> likeProject(@PathVariable UUID projectId) {
+        ApiCustomResponse<String> response = projectUserMgtService.likeProject(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/{projectId}/like-status")
+    public ResponseEntity<ApiCustomResponse<Boolean>> checkLikeStatus(@PathVariable UUID projectId) {
+        ApiCustomResponse<Boolean> response = projectUserMgtService.checkLikeStatus(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
 }

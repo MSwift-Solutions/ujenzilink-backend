@@ -8,6 +8,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectFollow;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectFollowRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectLikeRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,9 @@ public class UserMgtService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ProjectLikeRepository projectLikeRepository;
 
     public ApiCustomResponse<String> followProject(UUID projectId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -125,5 +129,57 @@ public class UserMgtService {
         boolean isFollowing = follow.isPresent() && follow.get().isActive();
 
         return new ApiCustomResponse<>(isFollowing, "Follow status checked successfully", HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<String> likeProject(UUID projectId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userRepository.findFirstByEmail(authentication.getName());
+        if (user == null) {
+            return new ApiCustomResponse<>(null, "User not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        Project project = projectRepository.findById(projectId).orElse(null);
+        if (project == null || project.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        Optional<com.ujenzilink.ujenzilink_backend.projects.models.ProjectLike> existingLike = projectLikeRepository
+                .findByProjectAndUser(project, user);
+
+        if (existingLike.isPresent()) {
+            projectLikeRepository.delete(existingLike.get());
+            return new ApiCustomResponse<>("Unliked", "Project unliked successfully", HttpStatus.OK.value());
+        }
+
+        com.ujenzilink.ujenzilink_backend.projects.models.ProjectLike newLike = new com.ujenzilink.ujenzilink_backend.projects.models.ProjectLike(
+                project, user);
+        projectLikeRepository.save(newLike);
+
+        return new ApiCustomResponse<>("Liked", "Project liked successfully", HttpStatus.CREATED.value());
+    }
+
+    public ApiCustomResponse<Boolean> checkLikeStatus(UUID projectId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return new ApiCustomResponse<>(false, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userRepository.findFirstByEmail(authentication.getName());
+        if (user == null) {
+            return new ApiCustomResponse<>(false, "User not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        Project project = projectRepository.findById(projectId).orElse(null);
+        if (project == null || project.isDeleted()) {
+            return new ApiCustomResponse<>(false, "Project not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        boolean isLiked = projectLikeRepository.existsByProjectAndUser(project, user);
+
+        return new ApiCustomResponse<>(isLiked, "Like status checked successfully", HttpStatus.OK.value());
     }
 }
