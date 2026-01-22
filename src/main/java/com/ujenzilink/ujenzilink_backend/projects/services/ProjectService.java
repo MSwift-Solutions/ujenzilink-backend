@@ -320,9 +320,6 @@ public class ProjectService {
 
                         // Aggregate data from all stages
                         for (ProjectStage stage : stages) {
-                                // Add comments count from each stage
-                                commentsCount += stage.getCommentsCount() != null ? stage.getCommentsCount() : 0;
-
                                 // Fetch photos directly linked to the stage
                                 List<PostPhoto> stagePhotos = postPhotoRepository.findByStageOrderByPhotoOrder(stage);
                                 for (PostPhoto photo : stagePhotos) {
@@ -350,6 +347,9 @@ public class ProjectService {
 
                         // Get project likes count
                         likesCount = (int) projectLikeRepository.countByProject(project);
+
+                        // Get project comments count
+                        commentsCount = (int) postCommentRepository.countByProjectAndIsDeletedFalse(project);
 
                         // Build response
                         ProjectListResponse response = new ProjectListResponse(

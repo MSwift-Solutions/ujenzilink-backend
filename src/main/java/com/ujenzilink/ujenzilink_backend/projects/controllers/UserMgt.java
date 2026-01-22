@@ -61,17 +61,17 @@ public class UserMgt {
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
-    @GetMapping("/posts/{postId}/comments")
-    public ResponseEntity<ApiCustomResponse<List<CommentDTO>>> getPostComments(@PathVariable UUID postId) {
-        ApiCustomResponse<List<CommentDTO>> response = postCommentService.getStageComments(postId);
+    @GetMapping("/{projectId}/comments")
+    public ResponseEntity<ApiCustomResponse<List<CommentDTO>>> getProjectComments(@PathVariable UUID projectId) {
+        ApiCustomResponse<List<CommentDTO>> response = postCommentService.getProjectComments(projectId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
-    @PostMapping("/posts/{postId}/comments")
-    public ResponseEntity<ApiCustomResponse<CommentDTO>> createPostComment(
-            @PathVariable UUID postId,
+    @PostMapping("/{projectId}/comments")
+    public ResponseEntity<ApiCustomResponse<CommentDTO>> createProjectComment(
+            @PathVariable UUID projectId,
             @RequestBody CreateCommentRequest request) {
-        ApiCustomResponse<CommentDTO> response = postCommentService.createComment(postId, request);
+        ApiCustomResponse<CommentDTO> response = postCommentService.createComment(projectId, request);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }

@@ -8,10 +8,10 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateCommentRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ReplyDTO;
 import com.ujenzilink.ujenzilink_backend.projects.models.PostComment;
-import com.ujenzilink.ujenzilink_backend.projects.models.ProjectStage;
+import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.CommentLikeRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.PostCommentRepository;
-import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectStageRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -28,7 +28,7 @@ public class PostCommentService {
     private PostCommentRepository postCommentRepository;
 
     @Autowired
-    private ProjectStageRepository projectStageRepository;
+    private ProjectRepository projectRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -36,10 +36,10 @@ public class PostCommentService {
     @Autowired
     private CommentLikeRepository commentLikeRepository;
 
-    public ApiCustomResponse<List<CommentDTO>> getStageComments(UUID stageId) {
-        ProjectStage stage = projectStageRepository.findById(stageId).orElse(null);
-        if (stage == null || stage.isDeleted()) {
-            return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
+    public ApiCustomResponse<List<CommentDTO>> getProjectComments(UUID projectId) {
+        Project project = projectRepository.findById(projectId).orElse(null);
+        if (project == null || project.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
         }
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -49,8 +49,9 @@ public class PostCommentService {
             currentUser = userRepository.findFirstByEmail(authentication.getName());
         }
 
-        // Fetch all non-deleted comments for this stage
-        List<PostComment> allComments = postCommentRepository.findByStageAndIsDeletedFalseOrderByCreatedAtAsc(stage);
+        // Fetch all non-deleted comments for this project
+        List<PostComment> allComments = postCommentRepository
+                .findByProjectAndIsDeletedFalseOrderByCreatedAtAsc(project);
 
         // Map to hold children for each parent
         Map<UUID, List<PostComment>> parentToChildren = new HashMap<>();
@@ -76,10 +77,10 @@ public class PostCommentService {
         return new ApiCustomResponse<>(commentDTOs, "Comments retrieved successfully", HttpStatus.OK.value());
     }
 
-    public ApiCustomResponse<CommentDTO> createComment(UUID stageId, CreateCommentRequest request) {
-        ProjectStage stage = projectStageRepository.findById(stageId).orElse(null);
-        if (stage == null || stage.isDeleted()) {
-            return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
+    public ApiCustomResponse<CommentDTO> createComment(UUID projectId, CreateCommentRequest request) {
+        Project project = projectRepository.findById(projectId).orElse(null);
+        if (project == null || project.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
         }
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -94,7 +95,7 @@ public class PostCommentService {
         }
 
         PostComment comment = new PostComment();
-        comment.setStage(stage);
+        comment.setProject(project);
         comment.setCommenter(currentUser);
         comment.setContent(request.text());
 

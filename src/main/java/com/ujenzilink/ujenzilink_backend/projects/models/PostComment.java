@@ -17,8 +17,8 @@ public class PostComment {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "stage_id")
-    private ProjectStage stage;
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -51,12 +51,12 @@ public class PostComment {
         this.id = id;
     }
 
-    public ProjectStage getStage() {
-        return stage;
+    public Project getProject() {
+        return project;
     }
 
-    public void setStage(ProjectStage stage) {
-        this.stage = stage;
+    public void setProject(Project project) {
+        this.project = project;
     }
 
     public User getCommenter() {
