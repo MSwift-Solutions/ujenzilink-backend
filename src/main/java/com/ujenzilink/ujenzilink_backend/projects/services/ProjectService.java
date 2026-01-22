@@ -334,9 +334,12 @@ public class ProjectService {
                                                 .filter(s -> s.getStatus().name().contains("IN_PROGRESS")
                                                                 || s.getStatus().name().equals("PLANNING_PERMITS"))
                                                 .findFirst()
-                                                .orElse(stages.getLast());
+                                                .orElse(stages.get(stages.size() - 1));
                                 String stageEnumName = activeStage.getStatus().name();
                                 currentStage = ProjectUtils.formatEnumName(stageEnumName);
+                        } else {
+                                // Default to initial stage if no stages exist
+                                currentStage = ProjectUtils.formatEnumName(ConstructionStage.PLANNING_PERMITS.name());
                         }
 
                         // Build response
