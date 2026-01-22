@@ -15,6 +15,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectListResponse;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ConstructionStage;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectStatus;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectVisibility;
+import com.ujenzilink.ujenzilink_backend.projects.enums.BudgetVisibility;
 
 import com.ujenzilink.ujenzilink_backend.projects.models.PostPhoto;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
@@ -39,6 +40,8 @@ import java.util.UUID;
 import java.util.Arrays;
 import com.ujenzilink.ujenzilink_backend.projects.utils.ProjectUtils;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPostResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.DropdownResponse;
+import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectType;
 
 @Service
 public class ProjectService {
@@ -101,18 +104,7 @@ public class ProjectService {
                 // Construction stages list
                 ConstructionStage finalCurrentStage = currentStage;
                 List<ConstructionStageDTO> stageDTOs = Arrays.stream(allStages).map(s -> {
-                        String name = s.name().replace("_", " ").toLowerCase();
-                        name = Character.toUpperCase(name.charAt(0)) + name.substring(1);
-                        // Simple title case
-                        String[] words = name.split(" ");
-                        StringBuilder sb = new StringBuilder();
-                        for (String word : words) {
-                                if (!word.isEmpty()) {
-                                        sb.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1))
-                                                        .append(" ");
-                                }
-                        }
-                        name = sb.toString().trim();
+                        String name = ProjectUtils.formatEnumName(s.name());
 
                         boolean completed = s.ordinal() < finalCurrentStage.ordinal();
                         boolean active = s.ordinal() == finalCurrentStage.ordinal();
@@ -163,16 +155,7 @@ public class ProjectService {
                         }
 
                         // Format stage name
-                        String stageName = stage.getConstructionStage().name().replace("_", " ").toLowerCase();
-                        String[] words = stageName.split(" ");
-                        StringBuilder sb = new StringBuilder();
-                        for (String word : words) {
-                                if (!word.isEmpty()) {
-                                        sb.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1))
-                                                        .append(" ");
-                                }
-                        }
-                        stageName = sb.toString().trim();
+                        String stageName = ProjectUtils.formatEnumName(stage.getConstructionStage().name());
 
                         return new ProjectPostResponse(
                                         stage.getId(),
@@ -233,6 +216,18 @@ public class ProjectService {
                         return new ApiCustomResponse<>(
                                         null,
                                         "Contract value cannot be negative.",
+                                        HttpStatus.BAD_REQUEST.value());
+                }
+
+                // Ensure if project is set to private, budget can't be public
+                ProjectVisibility visibility = request.visibility() != null ? request.visibility()
+                                : ProjectVisibility.PRIVATE;
+                BudgetVisibility budgetVisibility = request.budgetVisibility();
+
+                if (visibility == ProjectVisibility.PRIVATE && budgetVisibility == BudgetVisibility.PUBLIC) {
+                        return new ApiCustomResponse<>(
+                                        null,
+                                        "Budget cannot be public if project is private.",
                                         HttpStatus.BAD_REQUEST.value());
                 }
 
@@ -350,22 +345,7 @@ public class ProjectService {
                                                 .findFirst()
                                                 .orElse(stages.getLast());
                                 String stageEnumName = activeStage.getStatus().name();
-                                // Convert enum to Title Case (e.g., PLANNING_PERMITS -> Planning Permits)
-                                currentStage = stageEnumName.replace("_", " ").toLowerCase();
-                                currentStage = Character.toUpperCase(currentStage.charAt(0))
-                                                + currentStage.substring(1);
-                                // Optional: Special cases or WordUtils/StringUtils if library available.
-                                // Simple manual impl to avoid dependency if not exists:
-                                String[] words = currentStage.split(" ");
-                                StringBuilder stagedNameBuilder = new StringBuilder();
-                                for (String word : words) {
-                                        if (!word.isEmpty()) {
-                                                stagedNameBuilder.append(Character.toUpperCase(word.charAt(0)))
-                                                                .append(word.substring(1))
-                                                                .append(" ");
-                                        }
-                                }
-                                currentStage = stagedNameBuilder.toString().trim();
+                                currentStage = ProjectUtils.formatEnumName(stageEnumName);
                         }
 
                         // Build response
@@ -391,6 +371,27 @@ public class ProjectService {
                 return new ApiCustomResponse<>(
                                 projectResponses,
                                 "Projects retrieved successfully",
+                                HttpStatus.OK.value());
+        }
+
+        public ApiCustomResponse<List<DropdownResponse>> getProjectTypeDropdown() {
+                List<DropdownResponse> types = Arrays.stream(ProjectType.values())
+                                .map(type -> new DropdownResponse(
+                                                type.name(),
+                                                ProjectUtils.formatEnumName(type.name())))
+                                .toList();
+
+                return new ApiCustomResponse<>(types, "Project types retrieved successfully", HttpStatus.OK.value());
+        }
+
+        public ApiCustomResponse<List<DropdownResponse>> getProjectStatusDropdown() {
+                List<DropdownResponse> statuses = Arrays.stream(ProjectStatus.values())
+                                .map(status -> new DropdownResponse(
+                                                status.name(),
+                                                ProjectUtils.formatEnumName(status.name())))
+                                .toList();
+
+                return new ApiCustomResponse<>(statuses, "Project statuses retrieved successfully",
                                 HttpStatus.OK.value());
         }
 }

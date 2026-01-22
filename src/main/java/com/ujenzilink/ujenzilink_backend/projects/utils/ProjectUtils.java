@@ -49,4 +49,19 @@ public class ProjectUtils {
 
         return Math.min(randomizedProgress, 100);
     }
+
+    public static String formatEnumName(String enumName) {
+        if (enumName == null || enumName.isEmpty()) {
+            return "";
+        }
+        String name = enumName.replace("_", " ").toLowerCase();
+        String[] words = name.split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                sb.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1)).append(" ");
+            }
+        }
+        return sb.toString().trim();
+    }
 }

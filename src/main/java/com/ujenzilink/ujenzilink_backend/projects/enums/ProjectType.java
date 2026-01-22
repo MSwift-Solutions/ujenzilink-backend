@@ -4,5 +4,6 @@ public enum ProjectType {
     RESIDENTIAL,
     COMMERCIAL,
     INFRASTRUCTURE,
-    RENOVATION
+    RENOVATION,
+    OTHER
 }
