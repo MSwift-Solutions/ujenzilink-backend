@@ -7,6 +7,7 @@ import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectMemberDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.TeamMemberSearchDTO;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectFollow;
@@ -299,6 +300,44 @@ public class UserMgtService {
 
         return new ApiCustomResponse<>("Member Added", "Member added to project successfully",
                 HttpStatus.CREATED.value());
+    }
+
+    public ApiCustomResponse<List<ProjectMemberDTO>> getProjectMembers(UUID projectId) {
+        Project project = projectRepository.findById(projectId).orElse(null);
+        if (project == null || project.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        List<ProjectMember> members = projectMemberRepository.findByProject(project);
+
+        List<ProjectMemberDTO> memberDTOs = members.stream().map(member -> {
+            User user = member.getUser();
+            String name = user.getFullName();
+            String username = (user.getUserHandle() != null && !user.getUserHandle().isEmpty())
+                    ? user.getUserHandle()
+                    : user.getEmail();
+            String profilePictureUrl = (user.getProfilePicture() != null)
+                    ? user.getProfilePicture().getUrl()
+                    : "https://ui-avatars.com/api/?name=" + name.replace(" ", "+") + "&background=random";
+
+            CreatorInfoDTO creatorInfo = new CreatorInfoDTO(user.getId(), name, username, profilePictureUrl);
+
+            String lastActivity = user.getLastSuccessfulLogin() != null
+                    ? formatLastActivity(user.getLastSuccessfulLogin())
+                    : "Never logged in";
+
+            return new ProjectMemberDTO(
+                    member.getId(),
+                    creatorInfo,
+                    member.getRole(),
+                    lastActivity,
+                    member.isCanManageStages(),
+                    member.isCanCreatePosts(),
+                    member.isCanUploadDocuments(),
+                    member.isCanManageMembers());
+        }).toList();
+
+        return new ApiCustomResponse<>(memberDTOs, "Project members retrieved successfully", HttpStatus.OK.value());
     }
 
     private String formatLastActivity(Instant lastLogin) {

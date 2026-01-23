@@ -6,6 +6,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateCommentRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.AddMemberRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectMemberDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.TeamMemberSearchDTO;
 import com.ujenzilink.ujenzilink_backend.projects.services.PostCommentService;
 import com.ujenzilink.ujenzilink_backend.projects.services.UserMgtService;
@@ -98,5 +99,12 @@ public class UserMgt {
             @RequestBody AddMemberRequest request) {
         ApiCustomResponse<String> response = projectUserMgtService.addMember(projectId, request.userId());
         return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/{projectId}/members")
+    public ResponseEntity<ApiCustomResponse<List<ProjectMemberDTO>>> getProjectMembers(@PathVariable UUID projectId) {
+        ApiCustomResponse<List<ProjectMemberDTO>> response = projectUserMgtService.getProjectMembers(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+
     }
 }
