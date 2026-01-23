@@ -74,4 +74,12 @@ public class UserMgt {
         ApiCustomResponse<CommentDTO> response = postCommentService.createComment(projectId, request);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
+
+    @PostMapping("/{projectId}/comments/{commentId}/like")
+    public ResponseEntity<ApiCustomResponse<String>> likePostComment(
+            @PathVariable UUID projectId,
+            @PathVariable UUID commentId) {
+        ApiCustomResponse<String> response = postCommentService.likeComment(commentId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
 }

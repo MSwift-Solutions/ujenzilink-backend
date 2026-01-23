@@ -7,6 +7,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.CommentDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateCommentRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ReplyDTO;
+import com.ujenzilink.ujenzilink_backend.projects.models.CommentLike;
 import com.ujenzilink.ujenzilink_backend.projects.models.PostComment;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.CommentLikeRepository;
@@ -113,6 +114,36 @@ public class PostCommentService {
         CommentDTO responseDTO = mapToCommentDTO(savedComment, new ArrayList<>(), currentUser);
 
         return new ApiCustomResponse<>(responseDTO, "Comment created successfully", HttpStatus.CREATED.value());
+    }
+
+    public ApiCustomResponse<String> likeComment(UUID commentId) {
+        PostComment comment = postCommentRepository.findById(commentId).orElse(null);
+        if (comment == null || comment.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Comment not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getPrincipal().equals("anonymousUser")) {
+            return new ApiCustomResponse<>(null, "You must be logged in to like a comment",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User currentUser = userRepository.findFirstByEmail(authentication.getName());
+        if (currentUser == null) {
+            return new ApiCustomResponse<>(null, "User not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        Optional<CommentLike> existingLike = commentLikeRepository.findByCommentAndUser(comment, currentUser);
+
+        if (existingLike.isPresent()) {
+            commentLikeRepository.delete(existingLike.get());
+            return new ApiCustomResponse<>(null, "Comment unliked successfully", HttpStatus.OK.value());
+        } else {
+            CommentLike commentLike = new CommentLike(comment, currentUser);
+            commentLikeRepository.save(commentLike);
+            return new ApiCustomResponse<>(null, "Comment liked successfully", HttpStatus.CREATED.value());
+        }
     }
 
     private void collectDescendants(UUID parentId, Map<UUID, List<PostComment>> parentToChildren,
