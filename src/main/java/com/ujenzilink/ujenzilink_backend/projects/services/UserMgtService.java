@@ -10,8 +10,11 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.TeamMemberSearchDTO;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectFollow;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectLike;
+import com.ujenzilink.ujenzilink_backend.projects.models.ProjectMember;
+import com.ujenzilink.ujenzilink_backend.projects.enums.MemberRole;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectFollowRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectLikeRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -41,6 +44,9 @@ public class UserMgtService {
 
     @Autowired
     private ProjectLikeRepository projectLikeRepository;
+
+    @Autowired
+    private ProjectMemberRepository projectMemberRepository;
 
     public ApiCustomResponse<String> followProject(UUID projectId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -263,6 +269,49 @@ public class UserMgtService {
         }).toList();
 
         return new ApiCustomResponse<>(results, "Team members retrieved successfully", HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<String> addMember(UUID projectId, UUID userId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User currentUser = userRepository.findFirstByEmail(authentication.getName());
+        if (currentUser == null) {
+            return new ApiCustomResponse<>(null, "User not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        Project project = projectRepository.findById(projectId).orElse(null);
+        if (project == null || project.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        User memberToAdd = userRepository.findById(userId).orElse(null);
+        if (memberToAdd == null) {
+            return new ApiCustomResponse<>(null, "Member user not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        if (projectMemberRepository.existsByProjectAndUser(project, memberToAdd)) {
+            return new ApiCustomResponse<>(null, "User is already a member of this project",
+                    HttpStatus.CONFLICT.value());
+        }
+
+        ProjectMember member = new ProjectMember();
+        member.setProject(project);
+        member.setUser(memberToAdd);
+        member.setAddedBy(currentUser);
+        member.setRole(MemberRole.OWNER);
+        member.setCanViewProject(true);
+        member.setCanManageStages(true);
+        member.setCanCreatePosts(true);
+        member.setCanUploadDocuments(true);
+        member.setCanManageMembers(true);
+
+        projectMemberRepository.save(member);
+
+        return new ApiCustomResponse<>("Member Added", "Member added to project successfully",
+                HttpStatus.CREATED.value());
     }
 
     private String formatLastActivity(Instant lastLogin) {
