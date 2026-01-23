@@ -2,6 +2,7 @@ package com.ujenzilink.ujenzilink_backend.projects.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
+import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -21,14 +22,11 @@ import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectStage;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.PostCommentRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.PostPhotoRepository;
-// import com.ujenzilink.ujenzilink_backend.projects.repositories.PostRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectStageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,6 +67,9 @@ public class ProjectService {
 
         @Autowired
         private com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectLikeRepository projectLikeRepository;
+
+        @Autowired
+        private SecurityUtil securityUtil;
 
         public ApiCustomResponse<ProjectDetailsResponse> getProjectDetails(UUID projectId) {
                 Project project = projectRepository.findById(projectId).orElse(null);
@@ -191,18 +192,16 @@ public class ProjectService {
 
         @Transactional(rollbackFor = Exception.class)
         public ApiCustomResponse<CreateProjectResponse> createProject(CreateProjectRequest request) {
-                // Get the authenticated user from security context
-                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-                assert authentication != null;
-                String userEmail = authentication.getName();
-
-                User user = userRepository.findFirstByEmail(userEmail);
-                if (user == null) {
+                // Get the authenticated user from SecurityUtil
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+                if (userOpt.isEmpty()) {
                         return new ApiCustomResponse<>(
                                         null,
                                         "User not found. Please log in again.",
                                         HttpStatus.UNAUTHORIZED.value());
                 }
+
+                User user = userOpt.get();
 
                 // Validate dates if both are provided
                 if (request.startDate() != null && request.expectedEndDate() != null) {

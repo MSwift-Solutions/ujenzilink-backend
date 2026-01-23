@@ -2,6 +2,7 @@ package com.ujenzilink.ujenzilink_backend.projects.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
+import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
@@ -19,8 +20,6 @@ import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -48,16 +47,16 @@ public class UserMgtService {
     @Autowired
     private ProjectMemberRepository projectMemberRepository;
 
+    @Autowired
+    private SecurityUtil securityUtil;
+
     public ApiCustomResponse<String> followProject(UUID projectId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
         }
 
-        User user = userRepository.findFirstByEmail(authentication.getName());
-        if (user == null) {
-            return new ApiCustomResponse<>(null, "User not found", HttpStatus.NOT_FOUND.value());
-        }
+        User user = userOpt.get();
 
         Project project = projectRepository.findById(projectId).orElse(null);
         if (project == null || project.isDeleted()) {
@@ -123,15 +122,12 @@ public class UserMgtService {
     }
 
     public ApiCustomResponse<Boolean> checkFollowStatus(UUID projectId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(false, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
         }
 
-        User user = userRepository.findFirstByEmail(authentication.getName());
-        if (user == null) {
-            return new ApiCustomResponse<>(false, "User not found", HttpStatus.NOT_FOUND.value());
-        }
+        User user = userOpt.get();
 
         Project project = projectRepository.findById(projectId).orElse(null);
         if (project == null || project.isDeleted()) {
@@ -145,15 +141,12 @@ public class UserMgtService {
     }
 
     public ApiCustomResponse<String> likeProject(UUID projectId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
         }
 
-        User user = userRepository.findFirstByEmail(authentication.getName());
-        if (user == null) {
-            return new ApiCustomResponse<>(null, "User not found", HttpStatus.NOT_FOUND.value());
-        }
+        User user = userOpt.get();
 
         Project project = projectRepository.findById(projectId).orElse(null);
         if (project == null || project.isDeleted()) {
@@ -174,15 +167,12 @@ public class UserMgtService {
     }
 
     public ApiCustomResponse<Boolean> checkLikeStatus(UUID projectId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(false, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
         }
 
-        User user = userRepository.findFirstByEmail(authentication.getName());
-        if (user == null) {
-            return new ApiCustomResponse<>(false, "User not found", HttpStatus.NOT_FOUND.value());
-        }
+        User user = userOpt.get();
 
         Project project = projectRepository.findById(projectId).orElse(null);
         if (project == null || project.isDeleted()) {
@@ -272,15 +262,12 @@ public class UserMgtService {
     }
 
     public ApiCustomResponse<String> addMember(UUID projectId, UUID userId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
         }
 
-        User currentUser = userRepository.findFirstByEmail(authentication.getName());
-        if (currentUser == null) {
-            return new ApiCustomResponse<>(null, "User not found", HttpStatus.NOT_FOUND.value());
-        }
+        User currentUser = userOpt.get();
 
         Project project = projectRepository.findById(projectId).orElse(null);
         if (project == null || project.isDeleted()) {

@@ -2,6 +2,7 @@ package com.ujenzilink.ujenzilink_backend.projects.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
+import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.ImageMetadata;
@@ -19,8 +20,6 @@ import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectStageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -52,19 +51,19 @@ public class ProjectStageService {
     @Autowired
     private CloudinaryService cloudinaryService;
 
+    @Autowired
+    private SecurityUtil securityUtil;
+
     @Transactional(rollbackFor = Exception.class)
     public ApiCustomResponse<CreateProjectStageResponse> createProjectStage(CreateProjectStageRequest request,
             List<MultipartFile> images) {
         // Get the authenticated user
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
+        java.util.Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
         }
-        String userEmail = authentication.getName();
-        User user = userRepository.findFirstByEmail(userEmail);
-        if (user == null) {
-            return new ApiCustomResponse<>(null, "User not found", HttpStatus.UNAUTHORIZED.value());
-        }
+
+        User user = userOpt.get();
 
         // Find the project
         Project project = projectRepository.findById(request.projectId()).orElse(null);

@@ -2,6 +2,7 @@ package com.ujenzilink.ujenzilink_backend.projects.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
+import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CommentDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateCommentRequest;
@@ -15,8 +16,6 @@ import com.ujenzilink.ujenzilink_backend.projects.repositories.PostCommentReposi
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -37,18 +36,16 @@ public class PostCommentService {
     @Autowired
     private CommentLikeRepository commentLikeRepository;
 
+    @Autowired
+    private SecurityUtil securityUtil;
+
     public ApiCustomResponse<List<CommentDTO>> getProjectComments(UUID projectId) {
         Project project = projectRepository.findById(projectId).orElse(null);
         if (project == null || project.isDeleted()) {
             return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
         }
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = null;
-        if (authentication != null && authentication.isAuthenticated()
-                && !authentication.getPrincipal().equals("anonymousUser")) {
-            currentUser = userRepository.findFirstByEmail(authentication.getName());
-        }
+        User currentUser = securityUtil.getAuthenticatedUser().orElse(null);
 
         // Fetch all non-deleted comments for this project
         List<PostComment> allComments = postCommentRepository
@@ -84,16 +81,12 @@ public class PostCommentService {
             return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
         }
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()
-                || authentication.getPrincipal().equals("anonymousUser")) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(null, "You must be logged in to comment", HttpStatus.UNAUTHORIZED.value());
         }
 
-        User currentUser = userRepository.findFirstByEmail(authentication.getName());
-        if (currentUser == null) {
-            return new ApiCustomResponse<>(null, "User not found", HttpStatus.NOT_FOUND.value());
-        }
+        User currentUser = userOpt.get();
 
         PostComment comment = new PostComment();
         comment.setProject(project);
@@ -122,17 +115,13 @@ public class PostCommentService {
             return new ApiCustomResponse<>(null, "Comment not found", HttpStatus.NOT_FOUND.value());
         }
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()
-                || authentication.getPrincipal().equals("anonymousUser")) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(null, "You must be logged in to like a comment",
                     HttpStatus.UNAUTHORIZED.value());
         }
 
-        User currentUser = userRepository.findFirstByEmail(authentication.getName());
-        if (currentUser == null) {
-            return new ApiCustomResponse<>(null, "User not found", HttpStatus.NOT_FOUND.value());
-        }
+        User currentUser = userOpt.get();
 
         Optional<CommentLike> existingLike = commentLikeRepository.findByCommentAndUser(comment, currentUser);
 
