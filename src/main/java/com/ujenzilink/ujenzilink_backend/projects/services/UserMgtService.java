@@ -6,6 +6,7 @@ import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.TeamMemberSearchDTO;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectFollow;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectLike;
@@ -13,14 +14,17 @@ import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectFollowRepo
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectLikeRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -208,5 +212,85 @@ public class UserMgtService {
         }).toList();
 
         return new ApiCustomResponse<>(dtos, "Project likes retrieved successfully", HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<List<TeamMemberSearchDTO>> searchTeamMembers(String searchTerm) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return new ApiCustomResponse<>(List.of(), "Search term is required", HttpStatus.BAD_REQUEST.value());
+        }
+
+        // Search users with limit of 10
+        List<User> users = userRepository.searchUsers(searchTerm.trim(), PageRequest.of(0, 10));
+
+        Random random = new Random();
+        List<TeamMemberSearchDTO> results = users.stream().map(user -> {
+            // Get user name
+            String name = user.getFullName();
+
+            // Get profile picture URL
+            String profilePictureUrl = (user.getProfilePicture() != null)
+                    ? user.getProfilePicture().getUrl()
+                    : "https://ui-avatars.com/api/?name=" + name.replace(" ", "+") + "&background=random";
+
+            // Get username with fallback priority: username -> email
+            String username;
+            if (user.getUserHandle() != null && !user.getUserHandle().isEmpty()) {
+                username = user.getUserHandle();
+            } else {
+                username = user.getEmail();
+            }
+
+            // Randomize online/offline status (70% online, 30% offline)
+            String status = random.nextInt(100) < 70 ? "online" : "offline";
+
+            // Format last activity from lastSuccessfulLogin
+            String lastActivity;
+            Instant lastLogin = user.getLastSuccessfulLogin();
+
+            if (lastLogin == null) {
+                lastActivity = "Never logged in";
+            } else {
+                lastActivity = formatLastActivity(lastLogin);
+            }
+
+            return new TeamMemberSearchDTO(
+                    user.getId(),
+                    name,
+                    username,
+                    profilePictureUrl,
+                    status,
+                    lastActivity);
+        }).toList();
+
+        return new ApiCustomResponse<>(results, "Team members retrieved successfully", HttpStatus.OK.value());
+    }
+
+    private String formatLastActivity(Instant lastLogin) {
+        Instant now = Instant.now();
+        Duration duration = Duration.between(lastLogin, now);
+
+        long seconds = duration.getSeconds();
+        long minutes = duration.toMinutes();
+        long hours = duration.toHours();
+        long days = duration.toDays();
+
+        if (seconds < 60) {
+            return "Just now";
+        } else if (minutes < 60) {
+            return minutes + (minutes == 1 ? " minute ago" : " minutes ago");
+        } else if (hours < 24) {
+            return hours + (hours == 1 ? " hour ago" : " hours ago");
+        } else if (days < 7) {
+            return days + (days == 1 ? " day ago" : " days ago");
+        } else if (days < 30) {
+            long weeks = days / 7;
+            return weeks + (weeks == 1 ? " week ago" : " weeks ago");
+        } else if (days < 365) {
+            long months = days / 30;
+            return months + (months == 1 ? " month ago" : " months ago");
+        } else {
+            long years = days / 365;
+            return years + (years == 1 ? " year ago" : " years ago");
+        }
     }
 }

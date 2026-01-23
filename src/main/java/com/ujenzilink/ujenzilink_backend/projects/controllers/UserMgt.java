@@ -5,6 +5,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.CommentDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateCommentRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.TeamMemberSearchDTO;
 import com.ujenzilink.ujenzilink_backend.projects.services.PostCommentService;
 import com.ujenzilink.ujenzilink_backend.projects.services.UserMgtService;
 import org.springframework.http.ResponseEntity;
@@ -80,6 +81,13 @@ public class UserMgt {
             @PathVariable UUID projectId,
             @PathVariable UUID commentId) {
         ApiCustomResponse<String> response = postCommentService.likeComment(commentId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/search-members")
+    public ResponseEntity<ApiCustomResponse<List<TeamMemberSearchDTO>>> searchTeamMembers(
+            @RequestParam String query) {
+        ApiCustomResponse<List<TeamMemberSearchDTO>> response = projectUserMgtService.searchTeamMembers(query);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }
