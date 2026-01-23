@@ -306,8 +306,9 @@ public class ProjectService {
                                         profilePictureUrl);
 
                         // Get member count
-                        int memberCount = projectMemberRepository.findByProject(project).size() + 1; // Include project
-                                                                                                     // creator
+                        int memberCount = projectMemberRepository.findByProjectAndIsDeletedFalse(project).size() + 1; // Include
+                                                                                                                      // project
+                        // creator
 
                         // Get current stage
                         String currentStage = null;

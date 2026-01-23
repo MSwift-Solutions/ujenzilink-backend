@@ -50,6 +50,11 @@ public class ProjectMember {
     @JoinColumn(name = "added_by_id")
     private User addedBy;
 
+    @Column(nullable = false)
+    private boolean isDeleted = false;
+
+    private Instant deletedAt;
+
     public ProjectMember() {
     }
 
@@ -139,5 +144,21 @@ public class ProjectMember {
 
     public void setAddedBy(User addedBy) {
         this.addedBy = addedBy;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Instant deletedAt) {
+        this.deletedAt = deletedAt;
     }
 }

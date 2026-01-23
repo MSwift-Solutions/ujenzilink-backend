@@ -107,4 +107,12 @@ public class UserMgt {
         return ResponseEntity.status(response.statusCode()).body(response);
 
     }
+
+    @DeleteMapping("/{projectId}/members/{userId}")
+    public ResponseEntity<ApiCustomResponse<String>> removeMember(
+            @PathVariable UUID projectId,
+            @PathVariable UUID userId) {
+        ApiCustomResponse<String> response = projectUserMgtService.removeMember(projectId, userId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
 }

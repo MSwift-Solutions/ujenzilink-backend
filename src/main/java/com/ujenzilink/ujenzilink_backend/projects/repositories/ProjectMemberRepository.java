@@ -12,15 +12,15 @@ import java.util.UUID;
 
 @Repository
 public interface ProjectMemberRepository extends JpaRepository<ProjectMember, UUID> {
-    List<ProjectMember> findByProject(Project project);
+    List<ProjectMember> findByProjectAndIsDeletedFalse(Project project);
 
-    List<ProjectMember> findByProject_Id(UUID projectId);
+    List<ProjectMember> findByProject_IdAndIsDeletedFalse(UUID projectId);
 
-    Optional<ProjectMember> findByProjectAndUser(Project project, User user);
+    Optional<ProjectMember> findByProjectAndUserAndIsDeletedFalse(Project project, User user);
 
-    List<ProjectMember> findByUser(User user);
+    List<ProjectMember> findByUserAndIsDeletedFalse(User user);
 
-    List<ProjectMember> findByUser_Id(UUID userId);
+    List<ProjectMember> findByUser_IdAndIsDeletedFalse(UUID userId);
 
-    boolean existsByProjectAndUser(Project project, User user);
+    boolean existsByProjectAndUserAndIsDeletedFalse(Project project, User user);
 }

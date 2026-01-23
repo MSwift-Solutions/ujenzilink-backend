@@ -280,7 +280,7 @@ public class UserMgtService {
             return new ApiCustomResponse<>(null, "Member user not found", HttpStatus.NOT_FOUND.value());
         }
 
-        if (projectMemberRepository.existsByProjectAndUser(project, memberToAdd)) {
+        if (projectMemberRepository.existsByProjectAndUserAndIsDeletedFalse(project, memberToAdd)) {
             return new ApiCustomResponse<>(null, "User is already a member of this project",
                     HttpStatus.CONFLICT.value());
         }
@@ -308,7 +308,7 @@ public class UserMgtService {
             return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
         }
 
-        List<ProjectMember> members = projectMemberRepository.findByProject(project);
+        List<ProjectMember> members = projectMemberRepository.findByProjectAndIsDeletedFalse(project);
 
         List<ProjectMemberDTO> memberDTOs = members.stream().map(member -> {
             User user = member.getUser();
@@ -338,6 +338,36 @@ public class UserMgtService {
         }).toList();
 
         return new ApiCustomResponse<>(memberDTOs, "Project members retrieved successfully", HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<String> removeMember(UUID projectId, UUID userId) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        Project project = projectRepository.findById(projectId).orElse(null);
+        if (project == null || project.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        User userToRemove = userRepository.findById(userId).orElse(null);
+        if (userToRemove == null) {
+            return new ApiCustomResponse<>(null, "Member user not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        ProjectMember member = projectMemberRepository.findByProjectAndUserAndIsDeletedFalse(project, userToRemove)
+                .orElse(null);
+        if (member == null) {
+            return new ApiCustomResponse<>(null, "Member not found in this project", HttpStatus.NOT_FOUND.value());
+        }
+
+        member.setDeleted(true);
+        member.setDeletedAt(Instant.now());
+        projectMemberRepository.save(member);
+
+        return new ApiCustomResponse<>("Member Removed", "Member removed from project successfully",
+                HttpStatus.OK.value());
     }
 
     private String formatLastActivity(Instant lastLogin) {
