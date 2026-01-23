@@ -15,9 +15,11 @@ import com.ujenzilink.ujenzilink_backend.projects.enums.ConstructionStage;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectStatus;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectVisibility;
 import com.ujenzilink.ujenzilink_backend.projects.enums.BudgetVisibility;
+import com.ujenzilink.ujenzilink_backend.projects.enums.MemberRole;
 
 import com.ujenzilink.ujenzilink_backend.projects.models.PostPhoto;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
+import com.ujenzilink.ujenzilink_backend.projects.models.ProjectMember;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectStage;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.PostCommentRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.PostPhotoRepository;
@@ -272,6 +274,19 @@ public class ProjectService {
                 // Save project
                 Project savedProject = projectRepository.save(project);
 
+                // Automatically add creator as an OWNER member of the project
+                ProjectMember member = new ProjectMember();
+                member.setProject(savedProject);
+                member.setUser(user);
+                member.setAddedBy(user);
+                member.setRole(MemberRole.OWNER);
+                member.setCanViewProject(true);
+                member.setCanManageStages(true);
+                member.setCanCreatePosts(true);
+                member.setCanUploadDocuments(true);
+                member.setCanManageMembers(true);
+                projectMemberRepository.save(member);
+
                 CreateProjectResponse response = new CreateProjectResponse(
                                 savedProject.getId(),
                                 savedProject.getTitle(),
@@ -305,10 +320,8 @@ public class ProjectService {
                         CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creator.getId(), creatorName, username,
                                         profilePictureUrl);
 
-                        // Get member count
-                        int memberCount = projectMemberRepository.findByProjectAndIsDeletedFalse(project).size() + 1; // Include
-                                                                                                                      // project
-                        // creator
+                        // Get member count (now accurately reflects project_members table)
+                        int memberCount = projectMemberRepository.findByProjectAndIsDeletedFalse(project).size();
 
                         // Get current stage
                         String currentStage = null;
