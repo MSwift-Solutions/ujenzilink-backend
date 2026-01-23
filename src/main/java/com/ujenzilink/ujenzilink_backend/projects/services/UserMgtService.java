@@ -324,7 +324,7 @@ public class UserMgtService {
 
             String lastActivity = user.getLastSuccessfulLogin() != null
                     ? formatLastActivity(user.getLastSuccessfulLogin())
-                    : "Never logged in";
+                    : "Unknown";
 
             return new ProjectMemberDTO(
                     member.getId(),

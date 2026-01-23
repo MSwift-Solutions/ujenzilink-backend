@@ -73,10 +73,9 @@ public class GoogleAuthService {
                             HttpStatus.FORBIDDEN.value());
                 }
 
-                // Existing user: Do not update or save to prevent modifying immutable fields
-                // timestamp issues
-                // user.setLastSuccessfulLogin(Instant.now());
-                // userRepository.save(user);
+                // Track successful login for Google users
+                user.setLastSuccessfulLogin(Instant.now());
+                userRepository.save(user);
             }
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
@@ -131,6 +130,7 @@ public class GoogleAuthService {
         user.setVerificationStatus(VerificationStatus.VERIFIED);
         user.setHasAgreedToTerms(true);
         user.setTermsVersion("1.0");
+        user.setLastSuccessfulLogin(Instant.now());
 
         user = userRepository.save(user);
 
