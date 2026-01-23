@@ -1,9 +1,27 @@
 package com.ujenzilink.ujenzilink_backend.projects.utils;
 
+import com.ujenzilink.ujenzilink_backend.projects.models.Project;
+
 import java.util.Random;
 
 public class ProjectUtils {
     private static final Random random = new Random();
+
+    /**
+     * Increments the impressions count for a project.
+     * This should be called when a project is fetched/viewed.
+     * 
+     * @param project The project to increment impressions for
+     */
+    public static void incrementImpressions(Project project) {
+        if (project != null) {
+            Integer currentImpressions = project.getImpressions();
+            if (currentImpressions == null) {
+                currentImpressions = 0;
+            }
+            project.setImpressions(currentImpressions + 1);
+        }
+    }
 
     /**
      * Calculates a randomized progress percentage based on the current stage and

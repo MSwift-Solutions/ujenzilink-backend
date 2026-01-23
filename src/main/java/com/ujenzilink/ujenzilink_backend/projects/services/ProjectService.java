@@ -76,6 +76,10 @@ public class ProjectService {
                         return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
                 }
 
+                // Increment impressions when project is fetched
+                ProjectUtils.incrementImpressions(project);
+                projectRepository.save(project);
+
                 List<ProjectStage> stages = projectStageRepository.findByProjectOrderByCreatedAtAsc(project);
 
                 // Determine current stage (the one with the highest ordinal)
