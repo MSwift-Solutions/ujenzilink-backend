@@ -16,6 +16,7 @@ import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectStatus;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectVisibility;
 import com.ujenzilink.ujenzilink_backend.projects.enums.BudgetVisibility;
 import com.ujenzilink.ujenzilink_backend.projects.enums.MemberRole;
+import com.ujenzilink.ujenzilink_backend.projects.enums.PostType;
 
 import com.ujenzilink.ujenzilink_backend.projects.models.PostPhoto;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
@@ -413,11 +414,23 @@ public class ProjectService {
                                                 ProjectUtils.formatEnumName(budget.name())))
                                 .toList();
 
+                List<DropdownResponse> constructionStages = Arrays.stream(ConstructionStage.values())
+                                .map(stage -> new DropdownResponse(stage.name(),
+                                                ProjectUtils.formatEnumName(stage.name())))
+                                .toList();
+
+                List<DropdownResponse> postTypes = Arrays.stream(PostType.values())
+                                .map(postType -> new DropdownResponse(postType.name(),
+                                                ProjectUtils.formatEnumName(postType.name())))
+                                .toList();
+
                 ProjectDropdownsResponse response = new ProjectDropdownsResponse(
                                 types,
                                 statuses,
                                 visibilities,
-                                budgetVisibilities);
+                                budgetVisibilities,
+                                constructionStages,
+                                postTypes);
 
                 return new ApiCustomResponse<>(response, "Project dropdowns retrieved successfully",
                                 HttpStatus.OK.value());
