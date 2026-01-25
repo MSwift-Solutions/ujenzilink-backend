@@ -467,6 +467,117 @@ public class ProjectService {
                                 HttpStatus.OK.value());
         }
 
+        public ApiCustomResponse<List<ProjectListResponse>> getMyProjects() {
+                // Get the authenticated user
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+                if (userOpt.isEmpty()) {
+                        return new ApiCustomResponse<>(
+                                        null,
+                                        "User not found. Please log in again.",
+                                        HttpStatus.UNAUTHORIZED.value());
+                }
+
+                User currentUser = userOpt.get();
+
+                // Fetch all non-deleted projects created by the authenticated user
+                List<Project> projects = projectRepository.findAll().stream()
+                                .filter(p -> !p.isDeleted() && p.getCreatedBy().getId().equals(currentUser.getId()))
+                                .toList();
+
+                List<ProjectListResponse> projectResponses = new ArrayList<>();
+
+                for (Project project : projects) {
+                        // Get creator information
+                        User creator = project.getCreatedBy();
+                        String creatorName = creator.getFullName();
+                        String profilePictureUrl = (creator.getProfilePicture() != null)
+                                        ? creator.getProfilePicture().getUrl()
+                                        : "https://ui-avatars.com/api/?name=" + creatorName.replace(" ", "+")
+                                                        + "&background=random";
+                        String username = (creator.getUserHandle() != null && !creator.getUserHandle().isEmpty())
+                                        ? creator.getUserHandle()
+                                        : creator.getEmail();
+                        CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creator.getId(), creatorName, username,
+                                        profilePictureUrl);
+
+                        // Get member count (now accurately reflects project_members table)
+                        int memberCount = projectMemberRepository.findByProjectAndIsDeletedFalse(project).size();
+
+                        // Get current stage
+                        String currentStage = null;
+                        List<ProjectStage> stages = projectStageRepository
+                                        .findByProjectOrderByCreatedAtAsc(project);
+
+                        int commentsCount = 0;
+                        int likesCount = 0;
+                        List<String> projectImages = new ArrayList<>();
+
+                        // Aggregate data from all stages (collect top 3 latest images)
+                        List<ProjectStage> reversedStages = new ArrayList<>(stages);
+                        Collections.reverse(reversedStages);
+
+                        for (ProjectStage stage : reversedStages) {
+                                if (projectImages.size() >= 3)
+                                        break;
+                                List<PostPhoto> stagePhotos = stagePhotoRepository.findByStageOrderByPhotoOrder(stage);
+                                for (PostPhoto photo : stagePhotos) {
+                                        if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
+                                                projectImages.add(photo.getImage().getUrl());
+                                                if (projectImages.size() >= 3)
+                                                        break;
+                                        }
+                                }
+                        }
+                        if (!stages.isEmpty()) {
+                                // Find first IN_PROGRESS stage or default to last stage
+                                ProjectStage activeStage = stages.stream()
+                                                .filter(s -> s.getStatus().name().contains("IN_PROGRESS")
+                                                                || s.getStatus().name().equals("PLANNING_PERMITS"))
+                                                .findFirst()
+                                                .orElse(stages.get(stages.size() - 1));
+                                String stageEnumName = activeStage.getStatus().name();
+                                currentStage = ProjectUtils.formatEnumName(stageEnumName);
+                        } else {
+                                // Default to initial stage if no stages exist
+                                currentStage = ProjectUtils.formatEnumName(ConstructionStage.PLANNING_PERMITS.name());
+                        }
+
+                        // Get follow count
+                        int followCount = (int) projectFollowRepository.countByProjectAndIsActiveTrue(project);
+
+                        // Get project likes count
+                        likesCount = (int) projectLikeRepository.countByProject(project);
+
+                        // Get project comments count
+                        commentsCount = (int) postCommentRepository.countByProjectAndIsDeletedFalse(project);
+
+                        // Build response
+                        ProjectListResponse response = new ProjectListResponse(
+                                        project.getId(),
+                                        project.getTitle(),
+                                        project.getProjectType(),
+                                        project.getProjectStatus(),
+                                        project.getLocation(),
+                                        project.getCreatedAt(),
+                                        creatorInfo,
+                                        memberCount,
+                                        projectImages,
+                                        project.getEstimatedBudget(),
+                                        project.getCurrency(),
+                                        likesCount,
+                                        commentsCount,
+                                        followCount,
+                                        currentStage);
+
+                        projectResponses.add(response);
+                }
+
+                return new ApiCustomResponse<>(
+                                projectResponses,
+                                "My projects retrieved successfully",
+                                HttpStatus.OK.value());
+        }
+
         public ApiCustomResponse<ProjectDropdownsResponse> getProjectDropdowns() {
                 List<DropdownResponse> types = Arrays.stream(ProjectType.values())
                                 .map(type -> new DropdownResponse(type.name(),

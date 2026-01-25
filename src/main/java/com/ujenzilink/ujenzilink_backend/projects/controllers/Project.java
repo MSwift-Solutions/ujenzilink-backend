@@ -43,6 +43,12 @@ public class Project {
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
+    @GetMapping("/my-projects")
+    public ResponseEntity<ApiCustomResponse<List<ProjectListResponse>>> getMyProjects() {
+        ApiCustomResponse<List<ProjectListResponse>> response = projectService.getMyProjects();
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
     @GetMapping("/{projectId}")
     public ResponseEntity<ApiCustomResponse<ProjectDetailsResponse>> getProjectDetails(
             @PathVariable UUID projectId) {
