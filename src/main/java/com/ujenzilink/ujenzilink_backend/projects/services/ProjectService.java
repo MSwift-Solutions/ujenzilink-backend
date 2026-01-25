@@ -366,13 +366,19 @@ public class ProjectService {
                         int likesCount = 0;
                         List<String> projectImages = new ArrayList<>();
 
-                        // Aggregate data from all stages
-                        for (ProjectStage stage : stages) {
-                                // Fetch photos directly linked to the stage
+                        // Aggregate data from all stages (collect top 3 latest images)
+                        List<ProjectStage> reversedStages = new ArrayList<>(stages);
+                        Collections.reverse(reversedStages);
+
+                        for (ProjectStage stage : reversedStages) {
+                                if (projectImages.size() >= 3)
+                                        break;
                                 List<PostPhoto> stagePhotos = postPhotoRepository.findByStageOrderByPhotoOrder(stage);
                                 for (PostPhoto photo : stagePhotos) {
                                         if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
                                                 projectImages.add(photo.getImage().getUrl());
+                                                if (projectImages.size() >= 3)
+                                                        break;
                                         }
                                 }
                         }
