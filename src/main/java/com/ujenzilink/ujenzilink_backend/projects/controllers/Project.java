@@ -12,6 +12,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDetailsResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectListResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPostResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDropdownsResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectImageResponse;
 import java.util.List;
 import java.util.UUID;
 
@@ -74,6 +75,13 @@ public class Project {
     public ResponseEntity<ApiCustomResponse<Long>> getProjectImagesCount(
             @PathVariable UUID projectId) {
         ApiCustomResponse<Long> response = projectService.getProjectImagesCount(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/{projectId}/images")
+    public ResponseEntity<ApiCustomResponse<List<ProjectImageResponse>>> getProjectImages(
+            @PathVariable UUID projectId) {
+        ApiCustomResponse<List<ProjectImageResponse>> response = projectService.getProjectImages(projectId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 

@@ -19,4 +19,6 @@ public interface StagePhotoRepository extends JpaRepository<PostPhoto, UUID> {
     long countByStage_Id(UUID stageId);
 
     long countByStage_Project_Id(UUID projectId);
+
+    List<PostPhoto> findByStage_Project_IdOrderByUploadedAtDesc(UUID projectId);
 }

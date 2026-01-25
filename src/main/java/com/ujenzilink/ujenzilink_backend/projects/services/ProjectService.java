@@ -40,6 +40,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPostResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.DropdownResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDropdownsResponse;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectType;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectImageResponse;
 
 @Service
 public class ProjectService {
@@ -232,6 +233,28 @@ public class ProjectService {
                 long count = stagePhotoRepository.countByStage_Project_Id(projectId);
 
                 return new ApiCustomResponse<>(count, "Project images count retrieved successfully",
+                                HttpStatus.OK.value());
+        }
+
+        public ApiCustomResponse<List<ProjectImageResponse>> getProjectImages(UUID projectId) {
+                Project project = projectRepository.findById(projectId).orElse(null);
+                if (project == null || project.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                List<PostPhoto> photos = stagePhotoRepository.findByStage_Project_IdOrderByUploadedAtDesc(projectId);
+
+                List<ProjectImageResponse> imageResponses = photos.stream()
+                                .map(photo -> new ProjectImageResponse(
+                                                photo.getImage() != null ? photo.getImage().getUrl() : null,
+                                                photo.getUploadedAt(),
+                                                photo.getStage() != null
+                                                                ? ProjectUtils.formatEnumName(photo.getStage()
+                                                                                .getConstructionStage().name())
+                                                                : "General"))
+                                .collect(Collectors.toList());
+
+                return new ApiCustomResponse<>(imageResponses, "Project images retrieved successfully",
                                 HttpStatus.OK.value());
         }
 
