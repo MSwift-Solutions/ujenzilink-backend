@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface PostPhotoRepository extends JpaRepository<PostPhoto, UUID> {
+public interface StagePhotoRepository extends JpaRepository<PostPhoto, UUID> {
     List<PostPhoto> findByStageOrderByPhotoOrder(ProjectStage stage);
 
     List<PostPhoto> findByStage_IdOrderByPhotoOrder(UUID stageId);

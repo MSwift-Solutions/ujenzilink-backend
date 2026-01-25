@@ -15,7 +15,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateProjectStageRespons
 import com.ujenzilink.ujenzilink_backend.projects.models.PostPhoto;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectStage;
-import com.ujenzilink.ujenzilink_backend.projects.repositories.PostPhotoRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.StagePhotoRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectStageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +43,7 @@ public class ProjectStageService {
     private ImageRepository imageRepository;
 
     @Autowired
-    private PostPhotoRepository postPhotoRepository;
+    private StagePhotoRepository stagePhotoRepository;
 
     @Autowired
     private ImageValidationService imageValidationService;
@@ -121,7 +121,7 @@ public class ProjectStageService {
                 postPhoto.setStage(savedStage);
                 postPhoto.setImage(image);
                 postPhoto.setPhotoOrder(order++);
-                postPhotoRepository.save(postPhoto);
+                stagePhotoRepository.save(postPhoto);
             }
         }
 

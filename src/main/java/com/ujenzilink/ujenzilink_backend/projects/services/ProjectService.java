@@ -23,7 +23,7 @@ import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectMember;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectStage;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.PostCommentRepository;
-import com.ujenzilink.ujenzilink_backend.projects.repositories.PostPhotoRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.StagePhotoRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectStageRepository;
@@ -57,7 +57,7 @@ public class ProjectService {
         private ProjectMemberRepository projectMemberRepository;
 
         @Autowired
-        private PostPhotoRepository postPhotoRepository;
+        private StagePhotoRepository stagePhotoRepository;
 
         @Autowired
         private PostCommentRepository postCommentRepository;
@@ -223,6 +223,18 @@ public class ProjectService {
                                 HttpStatus.OK.value());
         }
 
+        public ApiCustomResponse<Long> getProjectImagesCount(UUID projectId) {
+                Project project = projectRepository.findById(projectId).orElse(null);
+                if (project == null || project.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                long count = stagePhotoRepository.countByStage_Project_Id(projectId);
+
+                return new ApiCustomResponse<>(count, "Project images count retrieved successfully",
+                                HttpStatus.OK.value());
+        }
+
         @Transactional(rollbackFor = Exception.class)
         public ApiCustomResponse<CreateProjectResponse> createProject(CreateProjectRequest request) {
                 // Get the authenticated user from SecurityUtil
@@ -373,7 +385,7 @@ public class ProjectService {
                         for (ProjectStage stage : reversedStages) {
                                 if (projectImages.size() >= 3)
                                         break;
-                                List<PostPhoto> stagePhotos = postPhotoRepository.findByStageOrderByPhotoOrder(stage);
+                                List<PostPhoto> stagePhotos = stagePhotoRepository.findByStageOrderByPhotoOrder(stage);
                                 for (PostPhoto photo : stagePhotos) {
                                         if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
                                                 projectImages.add(photo.getImage().getUrl());
