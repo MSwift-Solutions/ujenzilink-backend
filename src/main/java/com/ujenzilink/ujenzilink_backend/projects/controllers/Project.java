@@ -63,6 +63,13 @@ public class Project {
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
+    @GetMapping("/{projectId}/posts-count")
+    public ResponseEntity<ApiCustomResponse<Long>> getProjectPostsCount(
+            @PathVariable UUID projectId) {
+        ApiCustomResponse<Long> response = projectService.getProjectPostsCount(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
     @GetMapping("/dropdowns")
     public ResponseEntity<ApiCustomResponse<ProjectDropdownsResponse>> getProjectDropdowns() {
         ApiCustomResponse<ProjectDropdownsResponse> response = projectService.getProjectDropdowns();

@@ -211,6 +211,18 @@ public class ProjectService {
                                 stage.getLikesCount() != null ? stage.getLikesCount() : 0);
         }
 
+        public ApiCustomResponse<Long> getProjectPostsCount(UUID projectId) {
+                Project project = projectRepository.findById(projectId).orElse(null);
+                if (project == null || project.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                long count = projectStageRepository.countByProject_Id(projectId);
+
+                return new ApiCustomResponse<>(count, "Project posts count retrieved successfully",
+                                HttpStatus.OK.value());
+        }
+
         @Transactional(rollbackFor = Exception.class)
         public ApiCustomResponse<CreateProjectResponse> createProject(CreateProjectRequest request) {
                 // Get the authenticated user from SecurityUtil
