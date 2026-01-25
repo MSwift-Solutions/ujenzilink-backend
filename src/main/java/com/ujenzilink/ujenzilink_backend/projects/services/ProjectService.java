@@ -141,53 +141,74 @@ public class ProjectService {
 
                 List<ProjectStage> stages = projectStageRepository.findByProject_IdOrderByCreatedAtAsc(project.getId());
 
-                List<ProjectPostResponse> postResponses = stages.stream().map(stage -> {
-                        // Get poster info
-                        User poster = stage.getPostedBy();
-                        CreatorInfoDTO postedBy = null;
-                        if (poster != null) {
-                                String posterName = poster.getFullName();
-                                String profilePictureUrl = (poster.getProfilePicture() != null)
-                                                ? poster.getProfilePicture().getUrl()
-                                                : "https://ui-avatars.com/api/?name=" + posterName.replace(" ", "+")
-                                                                + "&background=random";
-                                String username = (poster.getUserHandle() != null && !poster.getUserHandle().isEmpty())
-                                                ? poster.getUserHandle()
-                                                : poster.getEmail();
-                                postedBy = new CreatorInfoDTO(poster.getId(), posterName, username, profilePictureUrl);
-                        }
-
-                        // Get images
-                        List<String> images = new ArrayList<>();
-                        for (PostPhoto photo : stage.getPhotos()) {
-                                if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
-                                        images.add(photo.getImage().getUrl());
-                                }
-                        }
-
-                        // Format stage name
-                        String stageName = ProjectUtils.formatEnumName(stage.getConstructionStage().name());
-
-                        return new ProjectPostResponse(
-                                        stage.getId(),
-                                        stage.getDescription(),
-                                        stageName,
-                                        stage.getPostType() != null ? stage.getPostType().name() : null,
-                                        stage.getVisibility(),
-                                        stage.getStageCost(),
-                                        stage.getTotalWorkers(),
-                                        stage.getMaterialsUsed(),
-                                        stage.getStartDate(),
-                                        stage.getEndDate(),
-                                        stage.getCreatedAt(),
-                                        postedBy,
-                                        images,
-                                        stage.getCommentsCount() != null ? stage.getCommentsCount() : 0,
-                                        stage.getLikesCount() != null ? stage.getLikesCount() : 0);
-                }).collect(Collectors.toList());
+                List<ProjectPostResponse> postResponses = stages.stream()
+                                .map(this::mapToProjectPostResponse)
+                                .collect(Collectors.toList());
 
                 return new ApiCustomResponse<>(postResponses, "Project posts retrieved successfully",
                                 HttpStatus.OK.value());
+        }
+
+        public ApiCustomResponse<List<ProjectPostResponse>> getLatestProjectPosts(UUID projectId) {
+                Project project = projectRepository.findById(projectId).orElse(null);
+                if (project == null || project.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                List<ProjectStage> stages = projectStageRepository
+                                .findTop3ByProject_IdOrderByCreatedAtDesc(project.getId());
+
+                List<ProjectPostResponse> postResponses = stages.stream()
+                                .map(this::mapToProjectPostResponse)
+                                .collect(Collectors.toList());
+
+                return new ApiCustomResponse<>(postResponses, "Latest project posts retrieved successfully",
+                                HttpStatus.OK.value());
+        }
+
+        private ProjectPostResponse mapToProjectPostResponse(ProjectStage stage) {
+                // Get poster info
+                User poster = stage.getPostedBy();
+                CreatorInfoDTO postedBy = null;
+                if (poster != null) {
+                        String posterName = poster.getFullName();
+                        String profilePictureUrl = (poster.getProfilePicture() != null)
+                                        ? poster.getProfilePicture().getUrl()
+                                        : "https://ui-avatars.com/api/?name=" + posterName.replace(" ", "+")
+                                                        + "&background=random";
+                        String username = (poster.getUserHandle() != null && !poster.getUserHandle().isEmpty())
+                                        ? poster.getUserHandle()
+                                        : poster.getEmail();
+                        postedBy = new CreatorInfoDTO(poster.getId(), posterName, username, profilePictureUrl);
+                }
+
+                // Get images
+                List<String> images = new ArrayList<>();
+                for (PostPhoto photo : stage.getPhotos()) {
+                        if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
+                                images.add(photo.getImage().getUrl());
+                        }
+                }
+
+                // Format stage name
+                String stageName = ProjectUtils.formatEnumName(stage.getConstructionStage().name());
+
+                return new ProjectPostResponse(
+                                stage.getId(),
+                                stage.getDescription(),
+                                stageName,
+                                stage.getPostType() != null ? stage.getPostType().name() : null,
+                                stage.getVisibility(),
+                                stage.getStageCost(),
+                                stage.getTotalWorkers(),
+                                stage.getMaterialsUsed(),
+                                stage.getStartDate(),
+                                stage.getEndDate(),
+                                stage.getCreatedAt(),
+                                postedBy,
+                                images,
+                                stage.getCommentsCount() != null ? stage.getCommentsCount() : 0,
+                                stage.getLikesCount() != null ? stage.getLikesCount() : 0);
         }
 
         @Transactional(rollbackFor = Exception.class)

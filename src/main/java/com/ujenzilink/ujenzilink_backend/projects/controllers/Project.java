@@ -56,6 +56,13 @@ public class Project {
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
+    @GetMapping("/{projectId}/latest-posts")
+    public ResponseEntity<ApiCustomResponse<List<ProjectPostResponse>>> getLatestProjectPosts(
+            @PathVariable UUID projectId) {
+        ApiCustomResponse<List<ProjectPostResponse>> response = projectService.getLatestProjectPosts(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
     @GetMapping("/dropdowns")
     public ResponseEntity<ApiCustomResponse<ProjectDropdownsResponse>> getProjectDropdowns() {
         ApiCustomResponse<ProjectDropdownsResponse> response = projectService.getProjectDropdowns();

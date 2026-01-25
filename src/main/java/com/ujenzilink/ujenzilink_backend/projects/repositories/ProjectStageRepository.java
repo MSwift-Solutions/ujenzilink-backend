@@ -15,4 +15,6 @@ public interface ProjectStageRepository extends JpaRepository<ProjectStage, UUID
     List<ProjectStage> findByProject_IdOrderByCreatedAtAsc(UUID projectId);
 
     List<ProjectStage> findByProject(Project project);
+
+    List<ProjectStage> findTop3ByProject_IdOrderByCreatedAtDesc(UUID projectId);
 }
