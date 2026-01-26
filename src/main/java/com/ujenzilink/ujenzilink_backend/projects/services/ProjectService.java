@@ -41,6 +41,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.DropdownResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDropdownsResponse;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectType;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectImageResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.UpdateProjectVisibilityRequest;
 
 @Service
 public class ProjectService {
@@ -648,5 +649,43 @@ public class ProjectService {
                 projectRepository.save(project);
 
                 return new ApiCustomResponse<>(null, "Project deleted successfully", HttpStatus.OK.value());
+        }
+
+        public ApiCustomResponse<Void> updateProjectVisibility(UUID projectId, UpdateProjectVisibilityRequest request) {
+                // Get the authenticated user
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+                if (userOpt.isEmpty()) {
+                        return new ApiCustomResponse<>(
+                                        null,
+                                        "User not found. Please log in again.",
+                                        HttpStatus.UNAUTHORIZED.value());
+                }
+
+                User currentUser = userOpt.get();
+
+                Project project = projectRepository.findById(projectId).orElse(null);
+                if (project == null || project.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                // Check permission: only owner/creator can update visibility
+                if (!project.getOwner().getId().equals(currentUser.getId())) {
+                        return new ApiCustomResponse<>(null, "You do not have permission to update this project.",
+                                        HttpStatus.FORBIDDEN.value());
+                }
+
+                // Enforce budget visibility rule: if project is private, budget can't be public
+                if (request.visibility() == ProjectVisibility.PRIVATE
+                                && project.getBudgetVisibility() == BudgetVisibility.PUBLIC) {
+                        return new ApiCustomResponse<>(
+                                        null,
+                                        "Budget cannot remain public if project visibility is set to private. Please change budget visibility first or set project to public.",
+                                        HttpStatus.BAD_REQUEST.value());
+                }
+
+                project.setVisibility(request.visibility());
+                projectRepository.save(project);
+
+                return new ApiCustomResponse<>(null, "Project visibility updated successfully", HttpStatus.OK.value());
         }
 }

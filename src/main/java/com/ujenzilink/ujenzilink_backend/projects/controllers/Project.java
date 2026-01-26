@@ -13,6 +13,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectListResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPostResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDropdownsResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectImageResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.UpdateProjectVisibilityRequest;
 import java.util.List;
 import java.util.UUID;
 
@@ -100,6 +101,14 @@ public class Project {
     @DeleteMapping("/{projectId}/delete")
     public ResponseEntity<ApiCustomResponse<Void>> deleteProject(@PathVariable UUID projectId) {
         ApiCustomResponse<Void> response = projectService.deleteProject(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @PatchMapping("/{projectId}/visibility")
+    public ResponseEntity<ApiCustomResponse<Void>> updateProjectVisibility(
+            @PathVariable UUID projectId,
+            @RequestBody @Valid UpdateProjectVisibilityRequest request) {
+        ApiCustomResponse<Void> response = projectService.updateProjectVisibility(projectId, request);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }
