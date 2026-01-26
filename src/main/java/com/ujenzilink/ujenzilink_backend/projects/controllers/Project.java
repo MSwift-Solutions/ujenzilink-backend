@@ -15,6 +15,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDropdownsResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectImageResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.UpdateProjectVisibilityRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectVisibilityResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.EditProjectRequest;
 import java.util.List;
 import java.util.UUID;
 
@@ -117,6 +118,14 @@ public class Project {
     public ResponseEntity<ApiCustomResponse<ProjectVisibilityResponse>> getProjectVisibility(
             @PathVariable UUID projectId) {
         ApiCustomResponse<ProjectVisibilityResponse> response = projectService.getProjectVisibility(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @PutMapping("/{projectId}/edit")
+    public ResponseEntity<ApiCustomResponse<Void>> editProject(
+            @PathVariable UUID projectId,
+            @RequestBody @Valid EditProjectRequest request) {
+        ApiCustomResponse<Void> response = projectService.editProject(projectId, request);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }

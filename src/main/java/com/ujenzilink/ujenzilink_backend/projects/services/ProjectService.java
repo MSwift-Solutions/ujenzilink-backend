@@ -5,6 +5,7 @@ import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateProjectRequest;
@@ -43,6 +44,7 @@ import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectType;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectImageResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.UpdateProjectVisibilityRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectVisibilityResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.EditProjectRequest;
 
 @Service
 public class ProjectService {
@@ -703,5 +705,89 @@ public class ProjectService {
 
                 return new ApiCustomResponse<>(response, "Project visibility retrieved successfully",
                                 HttpStatus.OK.value());
+        }
+
+        @Transactional(rollbackFor = Exception.class)
+        public ApiCustomResponse<Void> editProject(UUID projectId, EditProjectRequest request) {
+                // Get the authenticated user
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+                if (userOpt.isEmpty()) {
+                        return new ApiCustomResponse<>(
+                                        null,
+                                        "User not found. Please log in again.",
+                                        HttpStatus.UNAUTHORIZED.value());
+                }
+
+                User currentUser = userOpt.get();
+
+                Project project = projectRepository.findById(projectId).orElse(null);
+                if (project == null || project.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                // Check permission: only owner/creator can edit
+                if (!project.getOwner().getId().equals(currentUser.getId())) {
+                        return new ApiCustomResponse<>(null, "You do not have permission to edit this project.",
+                                        HttpStatus.FORBIDDEN.value());
+                }
+
+                // Update fields if provided
+                if (request.title() != null && !request.title().isBlank()) {
+                        project.setTitle(request.title());
+                }
+                if (request.description() != null) {
+                        project.setDescription(request.description());
+                }
+                if (request.projectType() != null) {
+                        project.setProjectType(request.projectType());
+                }
+                if (request.projectStatus() != null) {
+                        project.setProjectStatus(request.projectStatus());
+                }
+                if (request.location() != null) {
+                        project.setLocation(request.location());
+                }
+
+                // Validate and update dates
+                LocalDate startDate = request.startDate() != null ? request.startDate() : project.getStartDate();
+                LocalDate endDate = request.expectedEndDate() != null ? request.expectedEndDate()
+                                : project.getExpectedEndDate();
+
+                if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
+                        return new ApiCustomResponse<>(
+                                        null,
+                                        "Expected end date cannot be before start date.",
+                                        HttpStatus.BAD_REQUEST.value());
+                }
+
+                if (request.startDate() != null) {
+                        project.setStartDate(request.startDate());
+                }
+                if (request.expectedEndDate() != null) {
+                        project.setExpectedEndDate(request.expectedEndDate());
+                }
+
+                // Update budget fields
+                if (request.estimatedBudget() != null) {
+                        if (request.estimatedBudget().compareTo(BigDecimal.ZERO) < 0) {
+                                return new ApiCustomResponse<>(null, "Estimated budget cannot be negative.",
+                                                HttpStatus.BAD_REQUEST.value());
+                        }
+                        project.setEstimatedBudget(request.estimatedBudget());
+                }
+                if (request.contractValue() != null) {
+                        if (request.contractValue().compareTo(BigDecimal.ZERO) < 0) {
+                                return new ApiCustomResponse<>(null, "Contract value cannot be negative.",
+                                                HttpStatus.BAD_REQUEST.value());
+                        }
+                        project.setContractValue(request.contractValue());
+                }
+                if (request.currency() != null) {
+                        project.setCurrency(request.currency());
+                }
+
+                projectRepository.save(project);
+
+                return new ApiCustomResponse<>(null, "Project updated successfully", HttpStatus.OK.value());
         }
 }
