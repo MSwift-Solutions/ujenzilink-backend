@@ -42,6 +42,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDropdownsResponse;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectType;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectImageResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.UpdateProjectVisibilityRequest;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectVisibilityResponse;
 
 @Service
 public class ProjectService {
@@ -687,5 +688,20 @@ public class ProjectService {
                 projectRepository.save(project);
 
                 return new ApiCustomResponse<>(null, "Project visibility updated successfully", HttpStatus.OK.value());
+        }
+
+        public ApiCustomResponse<ProjectVisibilityResponse> getProjectVisibility(UUID projectId) {
+                Project project = projectRepository.findById(projectId).orElse(null);
+                if (project == null || project.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                ProjectVisibility visibility = project.getVisibility();
+                ProjectVisibilityResponse response = new ProjectVisibilityResponse(
+                                visibility,
+                                ProjectUtils.formatEnumName(visibility.name()));
+
+                return new ApiCustomResponse<>(response, "Project visibility retrieved successfully",
+                                HttpStatus.OK.value());
         }
 }
