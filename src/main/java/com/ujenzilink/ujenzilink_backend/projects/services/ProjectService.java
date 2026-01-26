@@ -620,4 +620,33 @@ public class ProjectService {
                 return new ApiCustomResponse<>(response, "Project dropdowns retrieved successfully",
                                 HttpStatus.OK.value());
         }
+
+        public ApiCustomResponse<Void> deleteProject(UUID projectId) {
+                // Get the authenticated user
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+                if (userOpt.isEmpty()) {
+                        return new ApiCustomResponse<>(
+                                        null,
+                                        "User not found. Please log in again.",
+                                        HttpStatus.UNAUTHORIZED.value());
+                }
+
+                User currentUser = userOpt.get();
+
+                Project project = projectRepository.findById(projectId).orElse(null);
+                if (project == null || project.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                // Check permission: only owner/creator can delete
+                if (!project.getOwner().getId().equals(currentUser.getId())) {
+                        return new ApiCustomResponse<>(null, "You do not have permission to delete this project.",
+                                        HttpStatus.FORBIDDEN.value());
+                }
+
+                project.setDeleted(true);
+                projectRepository.save(project);
+
+                return new ApiCustomResponse<>(null, "Project deleted successfully", HttpStatus.OK.value());
+        }
 }

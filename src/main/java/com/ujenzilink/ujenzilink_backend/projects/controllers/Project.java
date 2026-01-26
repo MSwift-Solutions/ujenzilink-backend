@@ -96,4 +96,10 @@ public class Project {
         ApiCustomResponse<ProjectDropdownsResponse> response = projectService.getProjectDropdowns();
         return ResponseEntity.status(response.statusCode()).body(response);
     }
+
+    @DeleteMapping("/{projectId}/delete")
+    public ResponseEntity<ApiCustomResponse<Void>> deleteProject(@PathVariable UUID projectId) {
+        ApiCustomResponse<Void> response = projectService.deleteProject(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
 }
