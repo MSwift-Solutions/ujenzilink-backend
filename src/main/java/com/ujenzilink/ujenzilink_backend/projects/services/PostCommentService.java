@@ -17,6 +17,8 @@ import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import com.ujenzilink.ujenzilink_backend.user_mgt.enums.ActivityType;
+import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -38,6 +40,9 @@ public class PostCommentService {
 
     @Autowired
     private SecurityUtil securityUtil;
+
+    @Autowired
+    private ActivityService activityService;
 
     public ApiCustomResponse<List<CommentDTO>> getProjectComments(UUID projectId) {
         Project project = projectRepository.findById(projectId).orElse(null);
@@ -103,6 +108,9 @@ public class PostCommentService {
 
         PostComment savedComment = postCommentRepository.save(comment);
 
+        // Log comment creation activity
+        activityService.logActivity(currentUser, ActivityType.CREATE_COMMENT, savedComment.getId());
+
         // Map to DTO for response (newly created comment has no replies)
         CommentDTO responseDTO = mapToCommentDTO(savedComment, new ArrayList<>(), currentUser);
 
@@ -127,10 +135,12 @@ public class PostCommentService {
 
         if (existingLike.isPresent()) {
             commentLikeRepository.delete(existingLike.get());
+            activityService.logActivity(currentUser, ActivityType.UNLIKE_COMMENT, commentId);
             return new ApiCustomResponse<>(null, "Comment unliked successfully", HttpStatus.OK.value());
         } else {
             CommentLike commentLike = new CommentLike(comment, currentUser);
             commentLikeRepository.save(commentLike);
+            activityService.logActivity(currentUser, ActivityType.LIKE_COMMENT, commentId);
             return new ApiCustomResponse<>(null, "Comment liked successfully", HttpStatus.CREATED.value());
         }
     }

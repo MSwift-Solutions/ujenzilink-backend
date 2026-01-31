@@ -2,9 +2,11 @@ package com.ujenzilink.ujenzilink_backend.user_mgt.controllers;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UpdateUserProfileRequest;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserActivityStatsResponse;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserProfileResponse;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserStatsResponse;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserSummaryResponse;
+import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
 import com.ujenzilink.ujenzilink_backend.user_mgt.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -21,9 +23,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserService userService;
+    private final ActivityService activityService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, ActivityService activityService) {
         this.userService = userService;
+        this.activityService = activityService;
     }
 
     @GetMapping("/summary/me")
@@ -86,6 +90,25 @@ public class UserController {
     public ResponseEntity<ApiCustomResponse<UserStatsResponse>> getUserStats(
             @PathVariable String username) {
         ApiCustomResponse<UserStatsResponse> response = userService.getUserStats(username);
+
+        return ResponseEntity
+                .status(response.statusCode())
+                .body(response);
+    }
+
+    @GetMapping("/activity/me")
+    public ResponseEntity<ApiCustomResponse<UserActivityStatsResponse>> getMyActivityStats() {
+        ApiCustomResponse<UserActivityStatsResponse> response = activityService.getMyActivityStats();
+
+        return ResponseEntity
+                .status(response.statusCode())
+                .body(response);
+    }
+
+    @GetMapping("/activity/{username}")
+    public ResponseEntity<ApiCustomResponse<UserActivityStatsResponse>> getUserActivityStats(
+            @PathVariable String username) {
+        ApiCustomResponse<UserActivityStatsResponse> response = activityService.getUserActivityStats(username);
 
         return ResponseEntity
                 .status(response.statusCode())

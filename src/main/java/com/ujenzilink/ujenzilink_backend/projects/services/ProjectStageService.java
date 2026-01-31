@@ -18,6 +18,8 @@ import com.ujenzilink.ujenzilink_backend.projects.models.ProjectStage;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.StagePhotoRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectStageRepository;
+import com.ujenzilink.ujenzilink_backend.user_mgt.enums.ActivityType;
+import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -53,6 +55,9 @@ public class ProjectStageService {
 
     @Autowired
     private SecurityUtil securityUtil;
+
+    @Autowired
+    private ActivityService activityService;
 
     @Transactional(rollbackFor = Exception.class)
     public ApiCustomResponse<CreateProjectStageResponse> createProjectStage(CreateProjectStageRequest request,
@@ -128,6 +133,9 @@ public class ProjectStageService {
         CreateProjectStageResponse response = new CreateProjectStageResponse(
                 savedStage.getId(),
                 "Project stage created successfully");
+
+        // Log post creation activity
+        activityService.logActivity(user, ActivityType.CREATE_POST, savedStage.getId());
 
         return new ApiCustomResponse<>(response, "Project stage created successfully", HttpStatus.CREATED.value());
     }

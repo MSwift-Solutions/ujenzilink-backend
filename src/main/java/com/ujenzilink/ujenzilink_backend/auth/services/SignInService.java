@@ -2,6 +2,8 @@ package com.ujenzilink.ujenzilink_backend.auth.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
+import com.ujenzilink.ujenzilink_backend.user_mgt.enums.ActivityType;
+import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -13,9 +15,11 @@ import java.time.Instant;
 @Service
 public class SignInService implements UserDetailsService {
     private final UserRepository userRepository;
+    private final ActivityService activityService;
 
-    public SignInService(UserRepository userRepository) {
+    public SignInService(UserRepository userRepository, ActivityService activityService) {
         this.userRepository = userRepository;
+        this.activityService = activityService;
     }
 
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -64,6 +68,9 @@ public class SignInService implements UserDetailsService {
             user.setFailedLoginAttempts(0);
             user.setIsLocked(false);
             userRepository.save(user);
+
+            // Log login activity
+            activityService.logActivity(user, ActivityType.LOGIN, null);
         }
     }
 

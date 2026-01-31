@@ -45,6 +45,8 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectImageResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.UpdateProjectVisibilityRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectVisibilityResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.EditProjectRequest;
+import com.ujenzilink.ujenzilink_backend.user_mgt.enums.ActivityType;
+import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
 
 @Service
 public class ProjectService {
@@ -75,6 +77,9 @@ public class ProjectService {
 
         @Autowired
         private SecurityUtil securityUtil;
+
+        @Autowired
+        private ActivityService activityService;
 
         public ApiCustomResponse<ProjectDetailsResponse> getProjectDetails(UUID projectId) {
                 Project project = projectRepository.findById(projectId).orElse(null);
@@ -365,6 +370,9 @@ public class ProjectService {
                                 savedProject.getTitle(),
                                 "Project created successfully");
 
+                // Log project creation activity
+                activityService.logActivity(user, ActivityType.CREATE_PROJECT, savedProject.getId());
+
                 return new ApiCustomResponse<>(
                                 response,
                                 "Project created successfully.",
@@ -647,6 +655,9 @@ public class ProjectService {
                 project.setDeleted(true);
                 projectRepository.save(project);
 
+                // Log project deletion activity
+                activityService.logActivity(currentUser, ActivityType.DELETE_PROJECT, projectId);
+
                 return new ApiCustomResponse<>(null, "Project deleted successfully", HttpStatus.OK.value());
         }
 
@@ -785,6 +796,9 @@ public class ProjectService {
                 }
 
                 projectRepository.save(project);
+
+                // Log project update activity
+                activityService.logActivity(currentUser, ActivityType.UPDATE_PROJECT, projectId);
 
                 return new ApiCustomResponse<>(null, "Project updated successfully", HttpStatus.OK.value());
         }
