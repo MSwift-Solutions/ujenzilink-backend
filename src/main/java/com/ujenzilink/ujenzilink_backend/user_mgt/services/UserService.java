@@ -332,34 +332,34 @@ public class UserService {
         User user = userOpt.get();
 
         // Update user fields
-        if (request.firstName() != null) {
+        if (request.firstName() != null && !request.firstName().isBlank()) {
             user.setFirstName(request.firstName());
         }
-        if (request.middleName() != null) {
+        if (request.middleName() != null && !request.middleName().isBlank()) {
             user.setMiddleName(request.middleName());
         }
-        if (request.lastName() != null) {
+        if (request.lastName() != null && !request.lastName().isBlank()) {
             user.setLastName(request.lastName());
         }
-        if (request.phoneNumber() != null) {
+        if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
             user.setPhoneNumber(request.phoneNumber());
         }
         if (request.dateOfBirth() != null) {
             user.setDateOfBirth(request.dateOfBirth());
         }
-        if (request.location() != null) {
+        if (request.location() != null && !request.location().isBlank()) {
             user.setLocation(request.location());
         }
-        if (request.geoLocation() != null) {
+        if (request.geoLocation() != null && !request.geoLocation().isBlank()) {
             user.setGeoLocation(request.geoLocation());
         }
         if (request.gender() != null) {
             user.setGender(request.gender());
         }
-        if (request.license() != null) {
+        if (request.license() != null && !request.license().isBlank()) {
             user.setLicense(request.license());
         }
-        if (request.skills() != null) {
+        if (request.skills() != null && !request.skills().isBlank()) {
             user.setSkills(request.skills());
         }
         if (request.verificationStatus() != null) {
@@ -376,10 +376,10 @@ public class UserService {
         Bio bio = bioRepository.findByUser(user).orElse(new Bio());
         bio.setUser(user);
 
-        if (request.bio() != null) {
+        if (request.bio() != null && !request.bio().isBlank()) {
             bio.setBio(request.bio());
         }
-        if (request.title() != null) {
+        if (request.title() != null && !request.title().isBlank()) {
             bio.setTitle(request.title());
         }
         if (request.yearsOfExperience() != null) {
