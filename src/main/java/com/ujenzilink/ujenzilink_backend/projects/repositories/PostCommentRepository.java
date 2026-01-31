@@ -16,4 +16,6 @@ public interface PostCommentRepository extends JpaRepository<PostComment, UUID> 
     List<PostComment> findByProjectAndIsDeletedFalseOrderByCreatedAtAsc(Project project);
 
     long countByProjectAndIsDeletedFalse(Project project);
+
+    long countByCommenter_IdAndIsDeletedFalse(UUID commenterId);
 }

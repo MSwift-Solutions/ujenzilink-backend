@@ -20,4 +20,6 @@ public interface ProjectLikeRepository extends JpaRepository<ProjectLike, UUID> 
     boolean existsByProjectAndUser(Project project, User user);
 
     long countByProject(Project project);
+
+    long countByUser_Id(UUID userId);
 }
