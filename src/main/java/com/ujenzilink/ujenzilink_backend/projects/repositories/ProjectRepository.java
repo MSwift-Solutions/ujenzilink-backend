@@ -20,4 +20,6 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
     List<Project> findByVisibilityAndIsDeletedFalse(ProjectVisibility visibility);
 
     List<Project> findByCreatedByAndIsDeletedFalse(User createdBy);
+
+    long countByOwner_IdAndIsDeletedFalse(UUID ownerId);
 }

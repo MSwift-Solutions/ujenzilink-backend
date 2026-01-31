@@ -3,6 +3,7 @@ package com.ujenzilink.ujenzilink_backend.user_mgt.controllers;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UpdateUserProfileRequest;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserProfileResponse;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserStatsResponse;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserSummaryResponse;
 import com.ujenzilink.ujenzilink_backend.user_mgt.services.UserService;
 import jakarta.validation.Valid;
@@ -66,6 +67,25 @@ public class UserController {
     public ResponseEntity<ApiCustomResponse<UserProfileResponse>> updateProfile(
             @Valid @RequestBody UpdateUserProfileRequest request) {
         ApiCustomResponse<UserProfileResponse> response = userService.updateMyProfile(request);
+
+        return ResponseEntity
+                .status(response.statusCode())
+                .body(response);
+    }
+
+    @GetMapping("/stats/me")
+    public ResponseEntity<ApiCustomResponse<UserStatsResponse>> getMyStats() {
+        ApiCustomResponse<UserStatsResponse> response = userService.getMyStats();
+
+        return ResponseEntity
+                .status(response.statusCode())
+                .body(response);
+    }
+
+    @GetMapping("/stats/{username}")
+    public ResponseEntity<ApiCustomResponse<UserStatsResponse>> getUserStats(
+            @PathVariable String username) {
+        ApiCustomResponse<UserStatsResponse> response = userService.getUserStats(username);
 
         return ResponseEntity
                 .status(response.statusCode())

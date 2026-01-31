@@ -19,4 +19,6 @@ public interface ProjectStageRepository extends JpaRepository<ProjectStage, UUID
     List<ProjectStage> findTop3ByProject_IdOrderByCreatedAtDesc(UUID projectId);
 
     long countByProject_Id(UUID projectId);
+
+    long countByPostedBy_IdAndIsDeletedFalse(UUID postedById);
 }

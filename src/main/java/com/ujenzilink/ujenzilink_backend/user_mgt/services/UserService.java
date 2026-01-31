@@ -4,15 +4,12 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.SocialLink;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.TestimonialItemDto;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UpdateUserProfileRequest;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserCountResponseDto;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserInfoDto;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserProfileResponse;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserSummaryResponse;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectStageRepository;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.*;
 import com.ujenzilink.ujenzilink_backend.user_mgt.models.Bio;
 import com.ujenzilink.ujenzilink_backend.user_mgt.repositories.BioRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +25,12 @@ public class UserService {
     private final UserRepository userRepository;
     private final BioRepository bioRepository;
     private final SecurityUtil securityUtil;
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
+    private ProjectStageRepository projectStageRepository;
 
     public UserService(UserRepository userRepository, BioRepository bioRepository, SecurityUtil securityUtil) {
         this.userRepository = userRepository;
@@ -407,5 +410,44 @@ public class UserService {
 
         // Return updated profile
         return getMyProfile();
+    }
+
+    public ApiCustomResponse<UserStatsResponse> getMyStats() {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not authenticated or not found.",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userOpt.get();
+        return getUserStats(user);
+    }
+
+    public ApiCustomResponse<UserStatsResponse> getUserStats(String username) {
+        User user = userRepository.findFirstByUsername(username);
+
+        if (user == null || user.getIsDeleted()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not found.",
+                    HttpStatus.NOT_FOUND.value());
+        }
+
+        return getUserStats(user);
+    }
+
+    private ApiCustomResponse<UserStatsResponse> getUserStats(User user) {
+        long totalProjects = projectRepository.countByOwner_IdAndIsDeletedFalse(user.getId());
+        long totalPosts = projectStageRepository.countByPostedBy_IdAndIsDeletedFalse(user.getId());
+
+        UserStatsResponse stats = new UserStatsResponse(totalPosts, totalProjects);
+
+        return new ApiCustomResponse<>(
+                stats,
+                "User stats retrieved successfully",
+                HttpStatus.OK.value());
     }
 }
