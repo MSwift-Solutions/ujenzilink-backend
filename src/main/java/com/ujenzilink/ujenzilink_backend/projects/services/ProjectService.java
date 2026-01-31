@@ -788,4 +788,45 @@ public class ProjectService {
 
                 return new ApiCustomResponse<>(null, "Project updated successfully", HttpStatus.OK.value());
         }
+
+        @Transactional(readOnly = true)
+        public ApiCustomResponse<EditProjectRequest> getEditableProjectData(UUID projectId) {
+                // Get the authenticated user
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+                if (userOpt.isEmpty()) {
+                        return new ApiCustomResponse<>(
+                                        null,
+                                        "User not found. Please log in again.",
+                                        HttpStatus.UNAUTHORIZED.value());
+                }
+
+                User currentUser = userOpt.get();
+
+                Project project = projectRepository.findById(projectId).orElse(null);
+                if (project == null || project.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                // Check permission: only owner/creator can access editable data
+                if (!project.getOwner().getId().equals(currentUser.getId())) {
+                        return new ApiCustomResponse<>(null,
+                                        "You do not have permission to access this project's editable data.",
+                                        HttpStatus.FORBIDDEN.value());
+                }
+
+                EditProjectRequest response = new EditProjectRequest(
+                                project.getTitle(),
+                                project.getDescription(),
+                                project.getProjectType(),
+                                project.getProjectStatus(),
+                                project.getLocation(),
+                                project.getStartDate(),
+                                project.getExpectedEndDate(),
+                                project.getEstimatedBudget(),
+                                project.getContractValue(),
+                                project.getCurrency());
+
+                return new ApiCustomResponse<>(response, "Project editable data retrieved successfully",
+                                HttpStatus.OK.value());
+        }
 }

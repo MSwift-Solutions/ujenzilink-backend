@@ -128,4 +128,11 @@ public class Project {
         ApiCustomResponse<Void> response = projectService.editProject(projectId, request);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
+
+    @GetMapping("/{projectId}/editable-data")
+    public ResponseEntity<ApiCustomResponse<EditProjectRequest>> getEditableProjectData(
+            @PathVariable UUID projectId) {
+        ApiCustomResponse<EditProjectRequest> response = projectService.getEditableProjectData(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
 }
