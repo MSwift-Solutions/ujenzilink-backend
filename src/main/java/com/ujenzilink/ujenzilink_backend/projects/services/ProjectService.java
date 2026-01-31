@@ -372,10 +372,8 @@ public class ProjectService {
         }
 
         public ApiCustomResponse<List<ProjectListResponse>> getAllProjects() {
-                // Fetch all non-deleted projects
-                List<Project> projects = projectRepository.findAll().stream()
-                                .filter(p -> !p.isDeleted())
-                                .toList();
+                // Fetch only public, non-deleted projects
+                List<Project> projects = projectRepository.findByVisibilityAndIsDeletedFalse(ProjectVisibility.PUBLIC);
 
                 List<ProjectListResponse> projectResponses = new ArrayList<>();
 
@@ -484,9 +482,7 @@ public class ProjectService {
                 User currentUser = userOpt.get();
 
                 // Fetch all non-deleted projects created by the authenticated user
-                List<Project> projects = projectRepository.findAll().stream()
-                                .filter(p -> !p.isDeleted() && p.getCreatedBy().getId().equals(currentUser.getId()))
-                                .toList();
+                List<Project> projects = projectRepository.findByCreatedByAndIsDeletedFalse(currentUser);
 
                 List<ProjectListResponse> projectResponses = new ArrayList<>();
 
