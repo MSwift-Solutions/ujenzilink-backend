@@ -11,6 +11,8 @@ import com.ujenzilink.ujenzilink_backend.auth.utils.JWTUtil;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.user_mgt.enums.ActivityType;
+import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -41,6 +43,9 @@ public class GoogleAuthService {
 
     @Autowired
     private ImageRepository imageRepository;
+
+    @Autowired
+    private ActivityService activityService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -87,6 +92,9 @@ public class GoogleAuthService {
                     user.getLastName(),
                     user.getEmail(),
                     user.getUserHandle());
+
+            // Log login activity
+            activityService.logActivity(user, ActivityType.LOGIN, null);
 
             return new ApiCustomResponse<>(
                     response,
