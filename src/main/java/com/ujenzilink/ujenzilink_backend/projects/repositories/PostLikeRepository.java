@@ -15,5 +15,4 @@ public interface PostLikeRepository extends JpaRepository<PostLike, UUID> {
 
     long countByStage(ProjectStage stage);
 
-    long countByUser_Id(UUID userId);
 }

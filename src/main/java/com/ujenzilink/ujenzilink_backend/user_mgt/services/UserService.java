@@ -454,12 +454,8 @@ public class UserService {
     private ApiCustomResponse<UserStatsResponse> getUserStats(User user) {
         long totalProjects = projectRepository.countByOwner_IdAndIsDeletedFalse(user.getId());
         long totalPosts = projectStageRepository.countByPostedBy_IdAndIsDeletedFalse(user.getId());
-        long totalComments = postCommentRepository.countByCommenter_IdAndIsDeletedFalse(user.getId());
-        long projectLikes = projectLikeRepository.countByUser_Id(user.getId());
-        long postLikes = postLikeRepository.countByUser_Id(user.getId());
-        long totalLikes = projectLikes + postLikes;
 
-        UserStatsResponse stats = new UserStatsResponse(totalPosts, totalProjects, totalComments, totalLikes);
+        UserStatsResponse stats = new UserStatsResponse(totalPosts, totalProjects);
 
         return new ApiCustomResponse<>(
                 stats,

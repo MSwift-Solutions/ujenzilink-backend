@@ -21,5 +21,4 @@ public interface ProjectLikeRepository extends JpaRepository<ProjectLike, UUID> 
 
     long countByProject(Project project);
 
-    long countByUser_Id(UUID userId);
 }
