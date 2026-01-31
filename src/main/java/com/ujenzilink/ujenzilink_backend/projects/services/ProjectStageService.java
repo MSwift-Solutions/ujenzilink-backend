@@ -135,7 +135,7 @@ public class ProjectStageService {
                 "Project stage created successfully");
 
         // Log post creation activity
-        activityService.logActivity(user, ActivityType.CREATE_POST, savedStage.getId());
+        activityService.logActivity(user, ActivityType.CREATE_PROJECT_POST, savedStage.getId());
 
         return new ApiCustomResponse<>(response, "Project stage created successfully", HttpStatus.CREATED.value());
     }

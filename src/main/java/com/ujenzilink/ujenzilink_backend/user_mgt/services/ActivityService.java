@@ -168,8 +168,11 @@ public class ActivityService {
                 ActivityType.DELETE_PROJECT);
         long projects = userActivityRepository.countByUser_IdAndActivityTypeIn(userId, projectTypes);
 
-        // Post activities (create, update, delete)
+        // Post activities (includes both project posts and normal posts)
         List<ActivityType> postTypes = Arrays.asList(
+                ActivityType.CREATE_PROJECT_POST,
+                ActivityType.UPDATE_PROJECT_POST,
+                ActivityType.DELETE_PROJECT_POST,
                 ActivityType.CREATE_POST,
                 ActivityType.UPDATE_POST,
                 ActivityType.DELETE_POST);
@@ -185,6 +188,7 @@ public class ActivityService {
         // Like activities (all like types)
         List<ActivityType> likeTypes = Arrays.asList(
                 ActivityType.LIKE_PROJECT,
+                ActivityType.LIKE_PROJECT_POST,
                 ActivityType.LIKE_POST,
                 ActivityType.LIKE_COMMENT);
         long likes = userActivityRepository.countByUser_IdAndActivityTypeIn(userId, likeTypes);
