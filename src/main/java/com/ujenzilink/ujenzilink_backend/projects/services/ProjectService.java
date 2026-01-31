@@ -654,6 +654,7 @@ public class ProjectService {
                 return new ApiCustomResponse<>(null, "Project deleted successfully", HttpStatus.OK.value());
         }
 
+        @Transactional(rollbackFor = Exception.class)
         public ApiCustomResponse<Void> updateProjectVisibility(UUID projectId, UpdateProjectVisibilityRequest request) {
                 // Get the authenticated user
                 Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -687,11 +688,12 @@ public class ProjectService {
                 }
 
                 project.setVisibility(request.visibility());
-                projectRepository.save(project);
+                projectRepository.saveAndFlush(project);
 
                 return new ApiCustomResponse<>(null, "Project visibility updated successfully", HttpStatus.OK.value());
         }
 
+        @Transactional(readOnly = true)
         public ApiCustomResponse<ProjectVisibilityResponse> getProjectVisibility(UUID projectId) {
                 Project project = projectRepository.findById(projectId).orElse(null);
                 if (project == null || project.isDeleted()) {
