@@ -83,24 +83,34 @@ public class ActivityService {
     }
 
     /**
-     * Build activity stats for a user
+     * Build activity stats for a user (limited to last 53 weeks like GitHub)
      */
     private ApiCustomResponse<UserActivityStatsResponse> getUserActivityStats(User user) {
-        // Get total activities count
-        long totalActivities = userActivityRepository.countByUser_Id(user.getId());
+        // Calculate date range: 53 weeks back from today
+        LocalDate endDate = LocalDate.now(ZoneId.systemDefault());
+        LocalDate startDate = endDate.minusWeeks(53);
+
+        // Get total activities count within the date range
+        List<UserActivity> allActivities = userActivityRepository.findByUser_IdAndActivityDateBetween(
+                user.getId(), startDate, endDate);
+        long totalActivities = allActivities.size();
 
         // Get all distinct activity dates for streak calculation
-        List<LocalDate> activityDates = userActivityRepository.findDistinctActivityDatesByUserId(user.getId());
+        List<LocalDate> activityDates = allActivities.stream()
+                .map(UserActivity::getActivityDate)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
         long activeDays = activityDates.size();
 
         // Calculate max streak
         long maxStreak = calculateMaxStreak(activityDates);
 
         // Build activity breakdown
-        ActivityBreakdown breakdown = buildBreakdown(user.getId());
+        ActivityBreakdown breakdown = buildBreakdown(user.getId(), startDate, endDate);
 
         // Build daily stats (date -> count map)
-        Map<String, Integer> dailyStats = buildDailyStats(user.getId());
+        Map<String, Integer> dailyStats = buildDailyStats(allActivities);
 
         UserActivityStatsResponse stats = new UserActivityStatsResponse(
                 totalActivities,
@@ -145,9 +155,7 @@ public class ActivityService {
     /**
      * Build daily stats as a map of date string to activity count
      */
-    private Map<String, Integer> buildDailyStats(UUID userId) {
-        List<UserActivity> activities = userActivityRepository.findByUser_Id(userId);
-
+    private Map<String, Integer> buildDailyStats(List<UserActivity> activities) {
         // Group activities by date and count them
         Map<String, Integer> dailyStats = activities.stream()
                 .collect(Collectors.groupingBy(
@@ -158,15 +166,21 @@ public class ActivityService {
     }
 
     /**
-     * Build activity breakdown by category
+     * Build activity breakdown by category (filtered by date range)
      */
-    private ActivityBreakdown buildBreakdown(UUID userId) {
+    private ActivityBreakdown buildBreakdown(UUID userId, LocalDate startDate, LocalDate endDate) {
+        // Get all activities within the date range
+        List<UserActivity> activities = userActivityRepository.findByUser_IdAndActivityDateBetween(
+                userId, startDate, endDate);
+
         // Project activities (create, update, delete)
         List<ActivityType> projectTypes = Arrays.asList(
                 ActivityType.CREATE_PROJECT,
                 ActivityType.UPDATE_PROJECT,
                 ActivityType.DELETE_PROJECT);
-        long projects = userActivityRepository.countByUser_IdAndActivityTypeIn(userId, projectTypes);
+        long projects = activities.stream()
+                .filter(a -> projectTypes.contains(a.getActivityType()))
+                .count();
 
         // Post activities (includes both project posts and normal posts)
         List<ActivityType> postTypes = Arrays.asList(
@@ -176,14 +190,18 @@ public class ActivityService {
                 ActivityType.CREATE_POST,
                 ActivityType.UPDATE_POST,
                 ActivityType.DELETE_POST);
-        long posts = userActivityRepository.countByUser_IdAndActivityTypeIn(userId, postTypes);
+        long posts = activities.stream()
+                .filter(a -> postTypes.contains(a.getActivityType()))
+                .count();
 
         // Comment activities (create, update, delete)
         List<ActivityType> commentTypes = Arrays.asList(
                 ActivityType.CREATE_COMMENT,
                 ActivityType.UPDATE_COMMENT,
                 ActivityType.DELETE_COMMENT);
-        long comments = userActivityRepository.countByUser_IdAndActivityTypeIn(userId, commentTypes);
+        long comments = activities.stream()
+                .filter(a -> commentTypes.contains(a.getActivityType()))
+                .count();
 
         // Like activities (all like types)
         List<ActivityType> likeTypes = Arrays.asList(
@@ -191,7 +209,9 @@ public class ActivityService {
                 ActivityType.LIKE_PROJECT_POST,
                 ActivityType.LIKE_POST,
                 ActivityType.LIKE_COMMENT);
-        long likes = userActivityRepository.countByUser_IdAndActivityTypeIn(userId, likeTypes);
+        long likes = activities.stream()
+                .filter(a -> likeTypes.contains(a.getActivityType()))
+                .count();
 
         return new ActivityBreakdown(projects, posts, comments, likes);
     }
