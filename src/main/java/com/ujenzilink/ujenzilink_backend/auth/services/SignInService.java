@@ -35,14 +35,7 @@ public class SignInService implements UserDetailsService {
         // Return Spring Security User with correct status flags
         // User(username, password, enabled, accountNonExpired, credentialsNonExpired,
         // accountNonLocked, authorities)
-        return new org.springframework.security.core.userdetails.User(
-                user.getEmail(),
-                user.getPassword(),
-                user.isEnabled(),
-                true, // accountNonExpired
-                true, // credentialsNonExpired
-                !user.getIsLocked(), // accountNonLocked
-                user.getAuthorities());
+        return user;
     }
 
     public User findUserByEmail(String email) {
