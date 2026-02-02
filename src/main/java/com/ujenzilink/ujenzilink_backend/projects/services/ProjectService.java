@@ -5,6 +5,7 @@ import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -379,10 +380,62 @@ public class ProjectService {
                                 HttpStatus.CREATED.value());
         }
 
-        public ApiCustomResponse<List<ProjectListResponse>> getAllProjects() {
-                // Fetch only public, non-deleted projects
-                List<Project> projects = projectRepository.findByVisibilityAndIsDeletedFalse(ProjectVisibility.PUBLIC);
+        public ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse> getAllProjects(
+                        String cursor, Integer size) {
+                // Validate and set defaults
+                if (size == null || size < 1) {
+                        size = 20;
+                }
+                if (size > 100) {
+                        size = 100;
+                }
 
+                // Decode cursor to get timestamp
+                Instant cursorTime = null;
+                if (cursor != null && !cursor.isEmpty()) {
+                        try {
+                                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
+                                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson,
+                                                java.util.Map.class);
+                                String timestamp = (String) cursorData.get("timestamp");
+                                cursorTime = Instant.parse(timestamp);
+                        } catch (Exception e) {
+                                return new ApiCustomResponse<>(null, "Invalid cursor format",
+                                                HttpStatus.BAD_REQUEST.value());
+                        }
+                }
+
+                // Query database - fetch size + 1 to check if more exist
+                org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+                org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0,
+                                size + 1, sort);
+
+                List<Project> projects;
+                if (cursorTime != null) {
+                        projects = projectRepository.findByVisibilityAndIsDeletedFalseAndCreatedAtBefore(
+                                        ProjectVisibility.PUBLIC, cursorTime, pageable);
+                } else {
+                        projects = projectRepository.findByVisibilityAndIsDeletedFalse(
+                                        ProjectVisibility.PUBLIC, pageable);
+                }
+
+                // Add randomization (pseudo-random but consistent per project ID)
+                projects.sort((p1, p2) -> {
+                        int hash1 = Math.abs(p1.getId().hashCode() % 1000);
+                        int hash2 = Math.abs(p2.getId().hashCode() % 1000);
+                        int hashCompare = Integer.compare(hash1, hash2);
+                        return hashCompare != 0 ? hashCompare : p2.getCreatedAt().compareTo(p1.getCreatedAt());
+                });
+
+                // Determine if there are more projects
+                boolean hasMore = projects.size() > size;
+                if (hasMore) {
+                        projects = projects.subList(0, size);
+                }
+
+                // Build response list
                 List<ProjectListResponse> projectResponses = new ArrayList<>();
 
                 for (Project project : projects) {
@@ -399,7 +452,7 @@ public class ProjectService {
                         CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creator.getId(), creatorName, username,
                                         profilePictureUrl);
 
-                        // Get member count (now accurately reflects project_members table)
+                        // Get member count
                         int memberCount = projectMemberRepository.findByProjectAndIsDeletedFalse(project).size();
 
                         // Get current stage
@@ -471,13 +524,31 @@ public class ProjectService {
                         projectResponses.add(response);
                 }
 
+                // Generate next cursor using last project's timestamp
+                String nextCursor = null;
+                if (hasMore && !projects.isEmpty()) {
+                        try {
+                                Project lastProject = projects.get(projects.size() - 1);
+                                String cursorJson = String.format("{\"timestamp\":\"%s\"}",
+                                                lastProject.getCreatedAt().toString());
+                                nextCursor = java.util.Base64.getEncoder()
+                                                .encodeToString(cursorJson.getBytes());
+                        } catch (Exception e) {
+                                // If cursor generation fails, just don't include it
+                        }
+                }
+
+                com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse pageResponse = new com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse(
+                                projectResponses, nextCursor, hasMore);
+
                 return new ApiCustomResponse<>(
-                                projectResponses,
+                                pageResponse,
                                 "Projects retrieved successfully",
                                 HttpStatus.OK.value());
         }
 
-        public ApiCustomResponse<List<ProjectListResponse>> getMyProjects() {
+        public ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse> getMyProjects(
+                        String cursor, Integer size) {
                 // Get the authenticated user
                 Optional<User> userOpt = securityUtil.getAuthenticatedUser();
                 if (userOpt.isEmpty()) {
@@ -489,8 +560,58 @@ public class ProjectService {
 
                 User currentUser = userOpt.get();
 
-                // Fetch all non-deleted projects created by the authenticated user
-                List<Project> projects = projectRepository.findByCreatedByAndIsDeletedFalse(currentUser);
+                // Validate and set defaults
+                if (size == null || size < 1) {
+                        size = 20;
+                }
+                if (size > 100) {
+                        size = 100;
+                }
+
+                // Decode cursor to get timestamp
+                Instant cursorTime = null;
+                if (cursor != null && !cursor.isEmpty()) {
+                        try {
+                                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
+                                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson,
+                                                java.util.Map.class);
+                                String timestamp = (String) cursorData.get("timestamp");
+                                cursorTime = Instant.parse(timestamp);
+                        } catch (Exception e) {
+                                return new ApiCustomResponse<>(null, "Invalid cursor format",
+                                                HttpStatus.BAD_REQUEST.value());
+                        }
+                }
+
+                // Query database - fetch size + 1 to check if more exist
+                org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+                org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0,
+                                size + 1, sort);
+
+                List<Project> projects;
+                if (cursorTime != null) {
+                        projects = projectRepository.findByCreatedByAndIsDeletedFalseAndCreatedAtBefore(
+                                        currentUser, cursorTime, pageable);
+                } else {
+                        projects = projectRepository.findByCreatedByAndIsDeletedFalse(
+                                        currentUser, pageable);
+                }
+
+                // Add randomization (pseudo-random but consistent per project ID)
+                projects.sort((p1, p2) -> {
+                        int hash1 = Math.abs(p1.getId().hashCode() % 1000);
+                        int hash2 = Math.abs(p2.getId().hashCode() % 1000);
+                        int hashCompare = Integer.compare(hash1, hash2);
+                        return hashCompare != 0 ? hashCompare : p2.getCreatedAt().compareTo(p1.getCreatedAt());
+                });
+
+                // Determine if there are more projects
+                boolean hasMore = projects.size() > size;
+                if (hasMore) {
+                        projects = projects.subList(0, size);
+                }
 
                 List<ProjectListResponse> projectResponses = new ArrayList<>();
 
@@ -508,7 +629,7 @@ public class ProjectService {
                         CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creator.getId(), creatorName, username,
                                         profilePictureUrl);
 
-                        // Get member count (now accurately reflects project_members table)
+                        // Get member count
                         int memberCount = projectMemberRepository.findByProjectAndIsDeletedFalse(project).size();
 
                         // Get current stage
@@ -580,13 +701,31 @@ public class ProjectService {
                         projectResponses.add(response);
                 }
 
+                // Generate next cursor using last project's timestamp
+                String nextCursor = null;
+                if (hasMore && !projects.isEmpty()) {
+                        try {
+                                Project lastProject = projects.get(projects.size() - 1);
+                                String cursorJson = String.format("{\"timestamp\":\"%s\"}",
+                                                lastProject.getCreatedAt().toString());
+                                nextCursor = java.util.Base64.getEncoder()
+                                                .encodeToString(cursorJson.getBytes());
+                        } catch (Exception e) {
+                                // If cursor generation fails, just don't include it
+                        }
+                }
+
+                com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse pageResponse = new com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse(
+                                projectResponses, nextCursor, hasMore);
+
                 return new ApiCustomResponse<>(
-                                projectResponses,
+                                pageResponse,
                                 "My projects retrieved successfully",
                                 HttpStatus.OK.value());
         }
 
-        public ApiCustomResponse<List<ProjectListResponse>> getFollowedProjects() {
+        public ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse> getFollowedProjects(
+                        String cursor, Integer size) {
                 // Get the authenticated user
                 Optional<User> userOpt = securityUtil.getAuthenticatedUser();
                 if (userOpt.isEmpty()) {
@@ -597,16 +736,58 @@ public class ProjectService {
                 }
 
                 User currentUser = userOpt.get();
+
+                // Validate and set defaults
+                if (size == null || size < 1) {
+                        size = 20;
+                }
+                if (size > 100) {
+                        size = 100;
+                }
+
+                // Decode cursor to get timestamp
+                Instant cursorTime = null;
+                if (cursor != null && !cursor.isEmpty()) {
+                        try {
+                                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
+                                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson,
+                                                java.util.Map.class);
+                                String timestamp = (String) cursorData.get("timestamp");
+                                cursorTime = Instant.parse(timestamp);
+                        } catch (Exception e) {
+                                return new ApiCustomResponse<>(null, "Invalid cursor format",
+                                                HttpStatus.BAD_REQUEST.value());
+                        }
+                }
 
                 // Get all active follows for this user
                 List<com.ujenzilink.ujenzilink_backend.projects.models.ProjectFollow> follows = projectFollowRepository
                                 .findByUserAndIsActiveTrue(currentUser);
 
-                // Extract projects from follows
+                // Extract projects from follows and apply cursor filter
+                Instant finalCursorTime = cursorTime;
                 List<Project> projects = follows.stream()
                                 .map(com.ujenzilink.ujenzilink_backend.projects.models.ProjectFollow::getProject)
                                 .filter(project -> !project.isDeleted())
+                                .filter(project -> finalCursorTime == null || project.getCreatedAt().isBefore(finalCursorTime))
+                                .sorted((p1, p2) -> p2.getCreatedAt().compareTo(p1.getCreatedAt())) // DESC by createdAt
+                                .limit(size + 1) // Fetch size + 1 to check if more exist
                                 .collect(Collectors.toList());
+
+                // Add randomization (pseudo-random but consistent per project ID)
+                projects.sort((p1, p2) -> {
+                        int hash1 = Math.abs(p1.getId().hashCode() % 1000);
+                        int hash2 = Math.abs(p2.getId().hashCode() % 1000);
+                        int hashCompare = Integer.compare(hash1, hash2);
+                        return hashCompare != 0 ? hashCompare : p2.getCreatedAt().compareTo(p1.getCreatedAt());
+                });
+
+                // Determine if there are more projects
+                boolean hasMore = projects.size() > size;
+                if (hasMore) {
+                        projects = projects.subList(0, size);
+                }
 
                 List<ProjectListResponse> projectResponses = new ArrayList<>();
 
@@ -624,7 +805,7 @@ public class ProjectService {
                         CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creator.getId(), creatorName, username,
                                         profilePictureUrl);
 
-                        // Get member count (now accurately reflects project_members table)
+                        // Get member count
                         int memberCount = projectMemberRepository.findByProjectAndIsDeletedFalse(project).size();
 
                         // Get current stage
@@ -696,8 +877,25 @@ public class ProjectService {
                         projectResponses.add(response);
                 }
 
+                // Generate next cursor using last project's timestamp
+                String nextCursor = null;
+                if (hasMore && !projects.isEmpty()) {
+                        try {
+                                Project lastProject = projects.get(projects.size() - 1);
+                                String cursorJson = String.format("{\"timestamp\":\"%s\"}",
+                                                lastProject.getCreatedAt().toString());
+                                nextCursor = java.util.Base64.getEncoder()
+                                                .encodeToString(cursorJson.getBytes());
+                        } catch (Exception e) {
+                                // If cursor generation fails, just don't include it
+                        }
+                }
+
+                com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse pageResponse = new com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse(
+                                projectResponses, nextCursor, hasMore);
+
                 return new ApiCustomResponse<>(
-                                projectResponses,
+                                pageResponse,
                                 "Followed projects retrieved successfully",
                                 HttpStatus.OK.value());
         }

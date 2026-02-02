@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.Instant;
+import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, UUID> {
@@ -22,4 +24,17 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
     List<Project> findByCreatedByAndIsDeletedFalse(User createdBy);
 
     long countByOwner_IdAndIsDeletedFalse(UUID ownerId);
+
+    // Cursor-based pagination methods
+    List<Project> findByVisibilityAndIsDeletedFalseAndCreatedAtBefore(
+            ProjectVisibility visibility, Instant cursor, Pageable pageable);
+
+    List<Project> findByVisibilityAndIsDeletedFalse(
+            ProjectVisibility visibility, Pageable pageable);
+
+    List<Project> findByCreatedByAndIsDeletedFalseAndCreatedAtBefore(
+            User createdBy, Instant cursor, Pageable pageable);
+
+    List<Project> findByCreatedByAndIsDeletedFalse(
+            User createdBy, Pageable pageable);
 }

@@ -1,21 +1,12 @@
 package com.ujenzilink.ujenzilink_backend.projects.controllers;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateProjectRequest;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateProjectResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.*;
 import com.ujenzilink.ujenzilink_backend.projects.services.ProjectService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDetailsResponse;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectListResponse;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPostResponse;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectDropdownsResponse;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectImageResponse;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.UpdateProjectVisibilityRequest;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectVisibilityResponse;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.EditProjectRequest;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,20 +32,50 @@ public class Project {
     }
 
     @GetMapping
-    public ResponseEntity<ApiCustomResponse<List<ProjectListResponse>>> getAllProjects() {
-        ApiCustomResponse<List<ProjectListResponse>> response = projectService.getAllProjects();
+    public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse>> getAllProjects(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false, defaultValue = "20") Integer size) {
+
+        // Validate size
+        if (size < 1 || size > 100) {
+            return ResponseEntity.badRequest().body(
+                    new ApiCustomResponse<>(null, "Size must be between 1 and 100", 400));
+        }
+
+        ApiCustomResponse<ProjectPageResponse> response = projectService
+                .getAllProjects(cursor, size);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
     @GetMapping("/my-projects")
-    public ResponseEntity<ApiCustomResponse<List<ProjectListResponse>>> getMyProjects() {
-        ApiCustomResponse<List<ProjectListResponse>> response = projectService.getMyProjects();
+    public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse>> getMyProjects(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false, defaultValue = "20") Integer size) {
+
+        // Validate size
+        if (size < 1 || size > 100) {
+            return ResponseEntity.badRequest().body(
+                    new ApiCustomResponse<>(null, "Size must be between 1 and 100", 400));
+        }
+
+        ApiCustomResponse<ProjectPageResponse> response = projectService
+                .getMyProjects(cursor, size);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
     @GetMapping("/followed-projects")
-    public ResponseEntity<ApiCustomResponse<List<ProjectListResponse>>> getFollowedProjects() {
-        ApiCustomResponse<List<ProjectListResponse>> response = projectService.getFollowedProjects();
+    public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse>> getFollowedProjects(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false, defaultValue = "20") Integer size) {
+
+        // Validate size
+        if (size < 1 || size > 100) {
+            return ResponseEntity.badRequest().body(
+                    new ApiCustomResponse<>(null, "Size must be between 1 and 100", 400));
+        }
+
+        ApiCustomResponse<ProjectPageResponse> response = projectService
+                .getFollowedProjects(cursor, size);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
