@@ -9,8 +9,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "post_comments")
-public class PostComment {
+@Table(name = "project_comments")
+public class ProjectComment {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
@@ -29,7 +29,7 @@ public class PostComment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_comment_id")
-    private PostComment parentComment;
+    private ProjectComment parentComment;
 
     @CreationTimestamp
     private Instant createdAt;
@@ -40,7 +40,7 @@ public class PostComment {
     @Column(nullable = false)
     private boolean isDeleted = false;
 
-    public PostComment() {
+    public ProjectComment() {
     }
 
     public UUID getId() {
@@ -75,11 +75,11 @@ public class PostComment {
         this.content = content;
     }
 
-    public PostComment getParentComment() {
+    public ProjectComment getParentComment() {
         return parentComment;
     }
 
-    public void setParentComment(PostComment parentComment) {
+    public void setParentComment(ProjectComment parentComment) {
         this.parentComment = parentComment;
     }
 

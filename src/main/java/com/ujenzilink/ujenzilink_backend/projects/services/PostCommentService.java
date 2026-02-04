@@ -8,7 +8,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateCommentRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ReplyDTO;
 import com.ujenzilink.ujenzilink_backend.projects.models.CommentLike;
-import com.ujenzilink.ujenzilink_backend.projects.models.PostComment;
+import com.ujenzilink.ujenzilink_backend.projects.models.ProjectComment;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.CommentLikeRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectCommentRepository;
@@ -49,14 +49,14 @@ public class PostCommentService {
         User currentUser = securityUtil.getAuthenticatedUser().orElse(null);
 
         // Fetch all non-deleted comments for this project
-        List<PostComment> allComments = projectCommentRepository
+        List<ProjectComment> allComments = projectCommentRepository
                 .findByProjectAndIsDeletedFalseOrderByCreatedAtAsc(project);
 
         // Map to hold children for each parent
-        Map<UUID, List<PostComment>> parentToChildren = new HashMap<>();
-        List<PostComment> rootComments = new ArrayList<>();
+        Map<UUID, List<ProjectComment>> parentToChildren = new HashMap<>();
+        List<ProjectComment> rootComments = new ArrayList<>();
 
-        for (PostComment comment : allComments) {
+        for (ProjectComment comment : allComments) {
             if (comment.getParentComment() == null) {
                 rootComments.add(comment);
             } else {
@@ -89,20 +89,20 @@ public class PostCommentService {
 
         User currentUser = userOpt.get();
 
-        PostComment comment = new PostComment();
+        ProjectComment comment = new ProjectComment();
         comment.setProject(project);
         comment.setCommenter(currentUser);
         comment.setContent(request.text());
 
         if (request.parentId() != null) {
-            PostComment parent = projectCommentRepository.findById(request.parentId()).orElse(null);
+            ProjectComment parent = projectCommentRepository.findById(request.parentId()).orElse(null);
             if (parent == null || parent.isDeleted()) {
                 return new ApiCustomResponse<>(null, "Parent comment not found", HttpStatus.NOT_FOUND.value());
             }
             comment.setParentComment(parent);
         }
 
-        PostComment savedComment = projectCommentRepository.save(comment);
+        ProjectComment savedComment = projectCommentRepository.save(comment);
 
         // Log comment creation activity
         activityService.logActivity(currentUser, ActivityType.CREATE_COMMENT, savedComment.getId());
@@ -114,7 +114,7 @@ public class PostCommentService {
     }
 
     public ApiCustomResponse<String> likeComment(UUID commentId) {
-        PostComment comment = projectCommentRepository.findById(commentId).orElse(null);
+        ProjectComment comment = projectCommentRepository.findById(commentId).orElse(null);
         if (comment == null || comment.isDeleted()) {
             return new ApiCustomResponse<>(null, "Comment not found", HttpStatus.NOT_FOUND.value());
         }
@@ -141,11 +141,11 @@ public class PostCommentService {
         }
     }
 
-    private void collectDescendants(UUID parentId, Map<UUID, List<PostComment>> parentToChildren,
+    private void collectDescendants(UUID parentId, Map<UUID, List<ProjectComment>> parentToChildren,
             List<ReplyDTO> flattenedReplies, User currentUser) {
-        List<PostComment> children = parentToChildren.get(parentId);
+        List<ProjectComment> children = parentToChildren.get(parentId);
         if (children != null) {
-            for (PostComment child : children) {
+            for (ProjectComment child : children) {
                 flattenedReplies.add(mapToReplyDTO(child, currentUser));
                 // Recurse to find all descendants
                 collectDescendants(child.getId(), parentToChildren, flattenedReplies, currentUser);
@@ -153,7 +153,7 @@ public class PostCommentService {
         }
     }
 
-    private CommentDTO mapToCommentDTO(PostComment comment, List<ReplyDTO> replies, User currentUser) {
+    private CommentDTO mapToCommentDTO(ProjectComment comment, List<ReplyDTO> replies, User currentUser) {
         CreatorInfoDTO commenterInfo = mapToCreatorInfoDTO(comment.getCommenter());
         boolean hasLiked = currentUser != null && commentLikeRepository.existsByCommentAndUser(comment, currentUser);
         int likesCount = (int) commentLikeRepository.countByComment(comment);
@@ -168,7 +168,7 @@ public class PostCommentService {
                 replies);
     }
 
-    private ReplyDTO mapToReplyDTO(PostComment comment, User currentUser) {
+    private ReplyDTO mapToReplyDTO(ProjectComment comment, User currentUser) {
         CreatorInfoDTO commenterInfo = mapToCreatorInfoDTO(comment.getCommenter());
         boolean hasLiked = currentUser != null && commentLikeRepository.existsByCommentAndUser(comment, currentUser);
         int likesCount = (int) commentLikeRepository.countByComment(comment);

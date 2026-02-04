@@ -17,7 +17,7 @@ public class CommentLike {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "comment_id", nullable = false)
-    private PostComment comment;
+    private ProjectComment comment;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -29,7 +29,7 @@ public class CommentLike {
     public CommentLike() {
     }
 
-    public CommentLike(PostComment comment, User user) {
+    public CommentLike(ProjectComment comment, User user) {
         this.comment = comment;
         this.user = user;
     }
@@ -42,11 +42,11 @@ public class CommentLike {
         this.id = id;
     }
 
-    public PostComment getComment() {
+    public ProjectComment getComment() {
         return comment;
     }
 
-    public void setComment(PostComment comment) {
+    public void setComment(ProjectComment comment) {
         this.comment = comment;
     }
 

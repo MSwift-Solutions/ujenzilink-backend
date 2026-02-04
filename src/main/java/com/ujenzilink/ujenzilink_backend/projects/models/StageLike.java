@@ -8,8 +8,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "post_likes")
-public class PostLike {
+@Table(name = "stage_likes")
+public class StageLike {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
@@ -26,7 +26,7 @@ public class PostLike {
     @CreationTimestamp
     private Instant createdAt;
 
-    public PostLike() {
+    public StageLike() {
     }
 
     public UUID getId() {
