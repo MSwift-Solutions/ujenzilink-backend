@@ -60,4 +60,34 @@ public class PostController {
                     "Invalid JSON format: " + e.getMessage(), HttpStatus.BAD_REQUEST.value()));
         }
     }
+
+    @GetMapping
+    public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostPageResponse>> getAllPosts(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false, defaultValue = "20") Integer size) {
+
+        if (size < 1 || size > 100) {
+            return ResponseEntity.badRequest().body(
+                    new ApiCustomResponse<>(null, "Size must be between 1 and 100", 400));
+        }
+
+        ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostPageResponse> response = postService
+                .getAllPosts(cursor, size);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/my-posts")
+    public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostPageResponse>> getMyPosts(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false, defaultValue = "20") Integer size) {
+
+        if (size < 1 || size > 100) {
+            return ResponseEntity.badRequest().body(
+                    new ApiCustomResponse<>(null, "Size must be between 1 and 100", 400));
+        }
+
+        ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostPageResponse> response = postService
+                .getMyPosts(cursor, size);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
 }

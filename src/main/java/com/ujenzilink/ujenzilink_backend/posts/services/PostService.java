@@ -9,18 +9,22 @@ import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
 import com.ujenzilink.ujenzilink_backend.images.services.CloudinaryService;
 import com.ujenzilink.ujenzilink_backend.images.services.ImageValidationService;
-import com.ujenzilink.ujenzilink_backend.posts.dtos.CreatePostRequest;
-import com.ujenzilink.ujenzilink_backend.posts.dtos.CreatePostResponse;
+import com.ujenzilink.ujenzilink_backend.posts.dtos.*;
 import com.ujenzilink.ujenzilink_backend.posts.models.Post;
 import com.ujenzilink.ujenzilink_backend.posts.models.PostImage;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostImageRepository;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -101,5 +105,139 @@ public class PostService {
 
         CreatePostResponse response = new CreatePostResponse(savedPost.getId(), "Post created successfully");
         return new ApiCustomResponse<>(response, "Post created successfully.", HttpStatus.CREATED.value());
+    }
+
+    public ApiCustomResponse<PostPageResponse> getAllPosts(String cursor, Integer size) {
+        if (size == null || size < 1)
+            size = 20;
+        if (size > 100)
+            size = 100;
+
+        Instant cursorTime = null;
+        if (cursor != null && !cursor.isEmpty()) {
+            try {
+                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson, java.util.Map.class);
+                String timestamp = (String) cursorData.get("timestamp");
+                cursorTime = Instant.parse(timestamp);
+            } catch (Exception e) {
+                return new ApiCustomResponse<>(null, "Invalid cursor format", HttpStatus.BAD_REQUEST.value());
+            }
+        }
+
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        Pageable pageable = PageRequest.of(0, size + 1, sort);
+
+        List<Post> posts;
+        if (cursorTime != null) {
+            posts = postRepository.findByIsDeletedFalseAndCreatedAtBefore(cursorTime, pageable);
+        } else {
+            posts = postRepository.findByIsDeletedFalse(pageable);
+        }
+
+        boolean hasMore = posts.size() > size;
+        if (hasMore)
+            posts = posts.subList(0, size);
+
+        List<PostListResponse> postResponses = posts.stream().map(this::mapToPostListResponse).toList();
+
+        String nextCursor = null;
+        if (hasMore && !posts.isEmpty()) {
+            try {
+                Post lastPost = posts.get(posts.size() - 1);
+                String cursorJson = String.format("{\"timestamp\":\"%s\"}", lastPost.getCreatedAt().toString());
+                nextCursor = java.util.Base64.getEncoder().encodeToString(cursorJson.getBytes());
+            } catch (Exception e) {
+            }
+        }
+
+        PostPageResponse pageResponse = new PostPageResponse(postResponses, nextCursor, hasMore);
+        return new ApiCustomResponse<>(pageResponse, "Posts retrieved successfully", HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<PostPageResponse> getMyPosts(String cursor, Integer size) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User currentUser = userOpt.get();
+
+        if (size == null || size < 1)
+            size = 20;
+        if (size > 100)
+            size = 100;
+
+        Instant cursorTime = null;
+        if (cursor != null && !cursor.isEmpty()) {
+            try {
+                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson, java.util.Map.class);
+                String timestamp = (String) cursorData.get("timestamp");
+                cursorTime = Instant.parse(timestamp);
+            } catch (Exception e) {
+                return new ApiCustomResponse<>(null, "Invalid cursor format", HttpStatus.BAD_REQUEST.value());
+            }
+        }
+
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        Pageable pageable = PageRequest.of(0, size + 1, sort);
+
+        List<Post> posts;
+        if (cursorTime != null) {
+            posts = postRepository.findByCreatorAndIsDeletedFalseAndCreatedAtBefore(currentUser, cursorTime, pageable);
+        } else {
+            posts = postRepository.findByCreatorAndIsDeletedFalse(currentUser, pageable);
+        }
+
+        boolean hasMore = posts.size() > size;
+        if (hasMore)
+            posts = posts.subList(0, size);
+
+        List<PostListResponse> postResponses = posts.stream().map(this::mapToPostListResponse).toList();
+
+        String nextCursor = null;
+        if (hasMore && !posts.isEmpty()) {
+            try {
+                Post lastPost = posts.get(posts.size() - 1);
+                String cursorJson = String.format("{\"timestamp\":\"%s\"}", lastPost.getCreatedAt().toString());
+                nextCursor = java.util.Base64.getEncoder().encodeToString(cursorJson.getBytes());
+            } catch (Exception e) {
+            }
+        }
+
+        PostPageResponse pageResponse = new PostPageResponse(postResponses, nextCursor, hasMore);
+        return new ApiCustomResponse<>(pageResponse, "My posts retrieved successfully", HttpStatus.OK.value());
+    }
+
+    private PostListResponse mapToPostListResponse(Post post) {
+        User creator = post.getCreator();
+        String creatorName = creator.getFullName();
+        String profilePictureUrl = (creator.getProfilePicture() != null)
+                ? creator.getProfilePicture().getUrl()
+                : "https://ui-avatars.com/api/?name=" + creatorName.replace(" ", "+") + "&background=random";
+        String username = (creator.getUserHandle() != null && !creator.getUserHandle().isEmpty())
+                ? creator.getUserHandle()
+                : creator.getEmail();
+        CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creator.getId(), creatorName, username, profilePictureUrl);
+
+        List<String> images = postImageRepository.findByPostOrderByImageOrderAsc(post).stream()
+                .map(pi -> pi.getImage().getUrl())
+                .toList();
+
+        return new PostListResponse(
+                post.getId(),
+                post.getContent(),
+                post.getCreatedAt(),
+                post.getUpdatedAt(),
+                post.isEdited(),
+                creatorInfo,
+                images,
+                post.getLikesCount(),
+                post.getCommentsCount(),
+                post.getBookmarksCount(),
+                post.getViews());
     }
 }
