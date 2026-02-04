@@ -64,7 +64,7 @@ public class ProjectStage {
 
     @OneToMany(mappedBy = "stage", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("photoOrder ASC")
-    private List<PostPhoto> photos = new ArrayList<>();
+    private List<StagePhoto> photos = new ArrayList<>();
 
     private Integer commentsCount = 0;
 
@@ -201,11 +201,11 @@ public class ProjectStage {
         this.postedBy = postedBy;
     }
 
-    public List<PostPhoto> getPhotos() {
+    public List<StagePhoto> getPhotos() {
         return photos;
     }
 
-    public void setPhotos(List<PostPhoto> photos) {
+    public void setPhotos(List<StagePhoto> photos) {
         this.photos = photos;
     }
 

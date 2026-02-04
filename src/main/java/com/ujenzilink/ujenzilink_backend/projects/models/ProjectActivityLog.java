@@ -9,8 +9,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "activity_logs")
-public class ActivityLog {
+@Table(name = "project_activity_logs")
+public class ProjectActivityLog {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
@@ -39,7 +39,7 @@ public class ActivityLog {
     @CreationTimestamp
     private Instant timestamp;
 
-    public ActivityLog() {
+    public ProjectActivityLog() {
     }
 
     public UUID getId() {

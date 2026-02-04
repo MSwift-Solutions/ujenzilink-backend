@@ -8,8 +8,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "comment_likes")
-public class CommentLike {
+@Table(name = "project_comment_likes")
+public class ProjectCommentLike {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
@@ -26,10 +26,10 @@ public class CommentLike {
     @CreationTimestamp
     private Instant createdAt;
 
-    public CommentLike() {
+    public ProjectCommentLike() {
     }
 
-    public CommentLike(ProjectComment comment, User user) {
+    public ProjectCommentLike(ProjectComment comment, User user) {
         this.comment = comment;
         this.user = user;
     }

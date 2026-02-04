@@ -8,7 +8,7 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectMemberDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.TeamMemberSearchDTO;
-import com.ujenzilink.ujenzilink_backend.projects.services.PostCommentService;
+import com.ujenzilink.ujenzilink_backend.projects.services.ProjectCommentService;
 import com.ujenzilink.ujenzilink_backend.projects.services.UserMgtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,11 +21,11 @@ import java.util.UUID;
 public class UserMgt {
 
     private final UserMgtService projectUserMgtService;
-    private final PostCommentService postCommentService;
+    private final ProjectCommentService projectCommentService;
 
-    public UserMgt(UserMgtService projectUserMgtService, PostCommentService postCommentService) {
+    public UserMgt(UserMgtService projectUserMgtService, ProjectCommentService projectCommentService) {
         this.projectUserMgtService = projectUserMgtService;
-        this.postCommentService = postCommentService;
+        this.projectCommentService = projectCommentService;
     }
 
     @PostMapping("/{projectId}/follow")
@@ -66,7 +66,7 @@ public class UserMgt {
 
     @GetMapping("/{projectId}/comments")
     public ResponseEntity<ApiCustomResponse<List<CommentDTO>>> getProjectComments(@PathVariable UUID projectId) {
-        ApiCustomResponse<List<CommentDTO>> response = postCommentService.getProjectComments(projectId);
+        ApiCustomResponse<List<CommentDTO>> response = projectCommentService.getProjectComments(projectId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
@@ -74,15 +74,15 @@ public class UserMgt {
     public ResponseEntity<ApiCustomResponse<CommentDTO>> createProjectComment(
             @PathVariable UUID projectId,
             @RequestBody CreateCommentRequest request) {
-        ApiCustomResponse<CommentDTO> response = postCommentService.createComment(projectId, request);
+        ApiCustomResponse<CommentDTO> response = projectCommentService.createComment(projectId, request);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
     @PostMapping("/{projectId}/comments/{commentId}/like")
-    public ResponseEntity<ApiCustomResponse<String>> likePostComment(
+    public ResponseEntity<ApiCustomResponse<String>> likeProjectComment(
             @PathVariable UUID projectId,
             @PathVariable UUID commentId) {
-        ApiCustomResponse<String> response = postCommentService.likeComment(commentId);
+        ApiCustomResponse<String> response = projectCommentService.likeComment(commentId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 

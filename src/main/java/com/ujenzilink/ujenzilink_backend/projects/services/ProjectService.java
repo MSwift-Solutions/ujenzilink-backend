@@ -20,7 +20,7 @@ import com.ujenzilink.ujenzilink_backend.projects.enums.BudgetVisibility;
 import com.ujenzilink.ujenzilink_backend.projects.enums.MemberRole;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PostType;
 
-import com.ujenzilink.ujenzilink_backend.projects.models.PostPhoto;
+import com.ujenzilink.ujenzilink_backend.projects.models.StagePhoto;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectMember;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectStage;
@@ -195,7 +195,7 @@ public class ProjectService {
 
                 // Get images
                 List<String> images = new ArrayList<>();
-                for (PostPhoto photo : stage.getPhotos()) {
+                for (StagePhoto photo : stage.getPhotos()) {
                         if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
                                 images.add(photo.getImage().getUrl());
                         }
@@ -252,7 +252,7 @@ public class ProjectService {
                         return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
                 }
 
-                List<PostPhoto> photos = stagePhotoRepository.findByStage_Project_IdOrderByUploadedAtDesc(projectId);
+                List<StagePhoto> photos = stagePhotoRepository.findByStage_Project_IdOrderByUploadedAtDesc(projectId);
 
                 List<ProjectImageResponse> imageResponses = photos.stream()
                                 .map(photo -> new ProjectImageResponse(
@@ -471,8 +471,8 @@ public class ProjectService {
                         for (ProjectStage stage : reversedStages) {
                                 if (projectImages.size() >= 3)
                                         break;
-                                List<PostPhoto> stagePhotos = stagePhotoRepository.findByStageOrderByPhotoOrder(stage);
-                                for (PostPhoto photo : stagePhotos) {
+                                List<StagePhoto> stagePhotos = stagePhotoRepository.findByStageOrderByPhotoOrder(stage);
+                                for (StagePhoto photo : stagePhotos) {
                                         if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
                                                 projectImages.add(photo.getImage().getUrl());
                                                 if (projectImages.size() >= 3)
@@ -648,8 +648,8 @@ public class ProjectService {
                         for (ProjectStage stage : reversedStages) {
                                 if (projectImages.size() >= 3)
                                         break;
-                                List<PostPhoto> stagePhotos = stagePhotoRepository.findByStageOrderByPhotoOrder(stage);
-                                for (PostPhoto photo : stagePhotos) {
+                                List<StagePhoto> stagePhotos = stagePhotoRepository.findByStageOrderByPhotoOrder(stage);
+                                for (StagePhoto photo : stagePhotos) {
                                         if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
                                                 projectImages.add(photo.getImage().getUrl());
                                                 if (projectImages.size() >= 3)
@@ -825,8 +825,8 @@ public class ProjectService {
                         for (ProjectStage stage : reversedStages) {
                                 if (projectImages.size() >= 3)
                                         break;
-                                List<PostPhoto> stagePhotos = stagePhotoRepository.findByStageOrderByPhotoOrder(stage);
-                                for (PostPhoto photo : stagePhotos) {
+                                List<StagePhoto> stagePhotos = stagePhotoRepository.findByStageOrderByPhotoOrder(stage);
+                                for (StagePhoto photo : stagePhotos) {
                                         if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
                                                 projectImages.add(photo.getImage().getUrl());
                                                 if (projectImages.size() >= 3)

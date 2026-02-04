@@ -12,7 +12,7 @@ import com.ujenzilink.ujenzilink_backend.images.services.CloudinaryService;
 import com.ujenzilink.ujenzilink_backend.images.services.ImageValidationService;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateProjectStageRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateProjectStageResponse;
-import com.ujenzilink.ujenzilink_backend.projects.models.PostPhoto;
+import com.ujenzilink.ujenzilink_backend.projects.models.StagePhoto;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectStage;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.StagePhotoRepository;
@@ -121,12 +121,12 @@ public class ProjectStageService {
                 image.setUser(user);
                 image = imageRepository.save(image);
 
-                // Create and Save PostPhoto Entity (Link Image to Stage)
-                PostPhoto postPhoto = new PostPhoto();
-                postPhoto.setStage(savedStage);
-                postPhoto.setImage(image);
-                postPhoto.setPhotoOrder(order++);
-                stagePhotoRepository.save(postPhoto);
+                // Create and Save StagePhoto Entity (Link Image to Stage)
+                StagePhoto stagePhoto = new StagePhoto();
+                stagePhoto.setStage(savedStage);
+                stagePhoto.setImage(image);
+                stagePhoto.setPhotoOrder(order++);
+                stagePhotoRepository.save(stagePhoto);
             }
         }
 

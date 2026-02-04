@@ -8,8 +8,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "post_photos")
-public class PostPhoto {
+@Table(name = "stage_photos")
+public class StagePhoto {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
@@ -31,7 +31,7 @@ public class PostPhoto {
 
     private Integer photoOrder = 0;
 
-    public PostPhoto() {
+    public StagePhoto() {
     }
 
     public UUID getId() {

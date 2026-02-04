@@ -7,10 +7,10 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.CommentDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateCommentRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ReplyDTO;
-import com.ujenzilink.ujenzilink_backend.projects.models.CommentLike;
+import com.ujenzilink.ujenzilink_backend.projects.models.ProjectCommentLike;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectComment;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
-import com.ujenzilink.ujenzilink_backend.projects.repositories.CommentLikeRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectCommentLikeRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectCommentRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class PostCommentService {
+public class ProjectCommentService {
 
     @Autowired
     private ProjectCommentRepository projectCommentRepository;
@@ -32,7 +32,7 @@ public class PostCommentService {
     private ProjectRepository projectRepository;
 
     @Autowired
-    private CommentLikeRepository commentLikeRepository;
+    private ProjectCommentLikeRepository projectCommentLikeRepository;
 
     @Autowired
     private SecurityUtil securityUtil;
@@ -127,15 +127,16 @@ public class PostCommentService {
 
         User currentUser = userOpt.get();
 
-        Optional<CommentLike> existingLike = commentLikeRepository.findByCommentAndUser(comment, currentUser);
+        Optional<ProjectCommentLike> existingLike = projectCommentLikeRepository.findByCommentAndUser(comment,
+                currentUser);
 
         if (existingLike.isPresent()) {
-            commentLikeRepository.delete(existingLike.get());
+            projectCommentLikeRepository.delete(existingLike.get());
             activityService.logActivity(currentUser, ActivityType.UNLIKE_COMMENT, commentId);
             return new ApiCustomResponse<>(null, "Comment unliked successfully", HttpStatus.OK.value());
         } else {
-            CommentLike commentLike = new CommentLike(comment, currentUser);
-            commentLikeRepository.save(commentLike);
+            ProjectCommentLike commentLike = new ProjectCommentLike(comment, currentUser);
+            projectCommentLikeRepository.save(commentLike);
             activityService.logActivity(currentUser, ActivityType.LIKE_COMMENT, commentId);
             return new ApiCustomResponse<>(null, "Comment liked successfully", HttpStatus.CREATED.value());
         }
@@ -155,8 +156,9 @@ public class PostCommentService {
 
     private CommentDTO mapToCommentDTO(ProjectComment comment, List<ReplyDTO> replies, User currentUser) {
         CreatorInfoDTO commenterInfo = mapToCreatorInfoDTO(comment.getCommenter());
-        boolean hasLiked = currentUser != null && commentLikeRepository.existsByCommentAndUser(comment, currentUser);
-        int likesCount = (int) commentLikeRepository.countByComment(comment);
+        boolean hasLiked = currentUser != null
+                && projectCommentLikeRepository.existsByCommentAndUser(comment, currentUser);
+        int likesCount = (int) projectCommentLikeRepository.countByComment(comment);
 
         return new CommentDTO(
                 comment.getId(),
@@ -170,8 +172,9 @@ public class PostCommentService {
 
     private ReplyDTO mapToReplyDTO(ProjectComment comment, User currentUser) {
         CreatorInfoDTO commenterInfo = mapToCreatorInfoDTO(comment.getCommenter());
-        boolean hasLiked = currentUser != null && commentLikeRepository.existsByCommentAndUser(comment, currentUser);
-        int likesCount = (int) commentLikeRepository.countByComment(comment);
+        boolean hasLiked = currentUser != null
+                && projectCommentLikeRepository.existsByCommentAndUser(comment, currentUser);
+        int likesCount = (int) projectCommentLikeRepository.countByComment(comment);
 
         return new ReplyDTO(
                 comment.getId(),
