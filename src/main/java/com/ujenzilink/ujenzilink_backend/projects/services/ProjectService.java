@@ -24,7 +24,7 @@ import com.ujenzilink.ujenzilink_backend.projects.models.PostPhoto;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectMember;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectStage;
-import com.ujenzilink.ujenzilink_backend.projects.repositories.PostCommentRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectCommentRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.StagePhotoRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
@@ -68,7 +68,7 @@ public class ProjectService {
         private StagePhotoRepository stagePhotoRepository;
 
         @Autowired
-        private PostCommentRepository postCommentRepository;
+        private ProjectCommentRepository projectCommentRepository;
 
         @Autowired
         private com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectFollowRepository projectFollowRepository;
@@ -501,7 +501,7 @@ public class ProjectService {
                         likesCount = (int) projectLikeRepository.countByProject(project);
 
                         // Get project comments count
-                        commentsCount = (int) postCommentRepository.countByProjectAndIsDeletedFalse(project);
+                        commentsCount = (int) projectCommentRepository.countByProjectAndIsDeletedFalse(project);
 
                         // Build response
                         ProjectListResponse response = new ProjectListResponse(
@@ -678,7 +678,7 @@ public class ProjectService {
                         likesCount = (int) projectLikeRepository.countByProject(project);
 
                         // Get project comments count
-                        commentsCount = (int) postCommentRepository.countByProjectAndIsDeletedFalse(project);
+                        commentsCount = (int) projectCommentRepository.countByProjectAndIsDeletedFalse(project);
 
                         // Build response
                         ProjectListResponse response = new ProjectListResponse(
@@ -770,7 +770,8 @@ public class ProjectService {
                 List<Project> projects = follows.stream()
                                 .map(com.ujenzilink.ujenzilink_backend.projects.models.ProjectFollow::getProject)
                                 .filter(project -> !project.isDeleted())
-                                .filter(project -> finalCursorTime == null || project.getCreatedAt().isBefore(finalCursorTime))
+                                .filter(project -> finalCursorTime == null
+                                                || project.getCreatedAt().isBefore(finalCursorTime))
                                 .sorted((p1, p2) -> p2.getCreatedAt().compareTo(p1.getCreatedAt())) // DESC by createdAt
                                 .limit(size + 1) // Fetch size + 1 to check if more exist
                                 .collect(Collectors.toList());
@@ -854,7 +855,7 @@ public class ProjectService {
                         likesCount = (int) projectLikeRepository.countByProject(project);
 
                         // Get project comments count
-                        commentsCount = (int) postCommentRepository.countByProjectAndIsDeletedFalse(project);
+                        commentsCount = (int) projectCommentRepository.countByProjectAndIsDeletedFalse(project);
 
                         // Build response
                         ProjectListResponse response = new ProjectListResponse(

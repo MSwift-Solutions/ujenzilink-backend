@@ -11,7 +11,7 @@ import com.ujenzilink.ujenzilink_backend.projects.models.CommentLike;
 import com.ujenzilink.ujenzilink_backend.projects.models.PostComment;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.CommentLikeRepository;
-import com.ujenzilink.ujenzilink_backend.projects.repositories.PostCommentRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectCommentRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 public class PostCommentService {
 
     @Autowired
-    private PostCommentRepository postCommentRepository;
+    private ProjectCommentRepository projectCommentRepository;
 
     @Autowired
     private ProjectRepository projectRepository;
@@ -49,7 +49,7 @@ public class PostCommentService {
         User currentUser = securityUtil.getAuthenticatedUser().orElse(null);
 
         // Fetch all non-deleted comments for this project
-        List<PostComment> allComments = postCommentRepository
+        List<PostComment> allComments = projectCommentRepository
                 .findByProjectAndIsDeletedFalseOrderByCreatedAtAsc(project);
 
         // Map to hold children for each parent
@@ -95,14 +95,14 @@ public class PostCommentService {
         comment.setContent(request.text());
 
         if (request.parentId() != null) {
-            PostComment parent = postCommentRepository.findById(request.parentId()).orElse(null);
+            PostComment parent = projectCommentRepository.findById(request.parentId()).orElse(null);
             if (parent == null || parent.isDeleted()) {
                 return new ApiCustomResponse<>(null, "Parent comment not found", HttpStatus.NOT_FOUND.value());
             }
             comment.setParentComment(parent);
         }
 
-        PostComment savedComment = postCommentRepository.save(comment);
+        PostComment savedComment = projectCommentRepository.save(comment);
 
         // Log comment creation activity
         activityService.logActivity(currentUser, ActivityType.CREATE_COMMENT, savedComment.getId());
@@ -114,7 +114,7 @@ public class PostCommentService {
     }
 
     public ApiCustomResponse<String> likeComment(UUID commentId) {
-        PostComment comment = postCommentRepository.findById(commentId).orElse(null);
+        PostComment comment = projectCommentRepository.findById(commentId).orElse(null);
         if (comment == null || comment.isDeleted()) {
             return new ApiCustomResponse<>(null, "Comment not found", HttpStatus.NOT_FOUND.value());
         }

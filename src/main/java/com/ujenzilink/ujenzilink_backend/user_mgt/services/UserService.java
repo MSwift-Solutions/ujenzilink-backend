@@ -4,9 +4,6 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.projects.repositories.PostCommentRepository;
-import com.ujenzilink.ujenzilink_backend.projects.repositories.PostLikeRepository;
-import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectLikeRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectStageRepository;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.*;
@@ -35,14 +32,6 @@ public class UserService {
     @Autowired
     private ProjectStageRepository projectStageRepository;
 
-    @Autowired
-    private ProjectLikeRepository projectLikeRepository;
-
-    @Autowired
-    private PostLikeRepository postLikeRepository;
-
-    @Autowired
-    private PostCommentRepository postCommentRepository;
 
     public UserService(UserRepository userRepository, BioRepository bioRepository, SecurityUtil securityUtil) {
         this.userRepository = userRepository;

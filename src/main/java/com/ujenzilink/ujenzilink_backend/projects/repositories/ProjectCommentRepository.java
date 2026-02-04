@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface PostCommentRepository extends JpaRepository<PostComment, UUID> {
+public interface ProjectCommentRepository extends JpaRepository<PostComment, UUID> {
 
     List<PostComment> findByProjectAndIsDeletedFalseAndParentCommentIsNullOrderByCreatedAtAsc(Project project);
 
