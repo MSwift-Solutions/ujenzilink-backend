@@ -341,4 +341,29 @@ public class PostService {
         postRepository.save(post);
         return new ApiCustomResponse<>(null, "Post updated successfully", HttpStatus.OK.value());
     }
+
+    @Transactional(rollbackFor = Exception.class)
+    public ApiCustomResponse<Void> deletePost(java.util.UUID postId) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User currentUser = userOpt.get();
+
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post == null || post.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        if (!post.getCreator().getId().equals(currentUser.getId())) {
+            return new ApiCustomResponse<>(null, "You do not have permission to delete this post.",
+                    HttpStatus.FORBIDDEN.value());
+        }
+
+        post.setDeleted(true);
+        postRepository.save(post);
+
+        return new ApiCustomResponse<>(null, "Post deleted successfully", HttpStatus.OK.value());
+    }
 }
