@@ -90,4 +90,41 @@ public class PostController {
                 .getMyPosts(cursor, size);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
+
+    @GetMapping("/{postId}")
+    public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostListResponse>> getPost(
+            @PathVariable java.util.UUID postId) {
+        ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostListResponse> response = postService
+                .getPost(postId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @PutMapping(value = "/{postId}/edit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiCustomResponse<Void>> editPost(
+            @PathVariable java.util.UUID postId,
+            @RequestPart("request") String requestJson,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+
+        try {
+            com.ujenzilink.ujenzilink_backend.posts.dtos.EditPostRequest request = objectMapper.readValue(requestJson,
+                    com.ujenzilink.ujenzilink_backend.posts.dtos.EditPostRequest.class);
+
+            Set<ConstraintViolation<com.ujenzilink.ujenzilink_backend.posts.dtos.EditPostRequest>> violations = validator
+                    .validate(request);
+            if (!violations.isEmpty()) {
+                String errorMessage = violations.stream()
+                        .map(ConstraintViolation::getMessage)
+                        .collect(Collectors.joining(", "));
+                return ResponseEntity.badRequest()
+                        .body(new ApiCustomResponse<>(null, errorMessage, HttpStatus.BAD_REQUEST.value()));
+            }
+
+            ApiCustomResponse<Void> response = postService.editPost(postId, request, images);
+            return ResponseEntity.status(response.statusCode()).body(response);
+
+        } catch (JsonProcessingException e) {
+            return ResponseEntity.badRequest().body(new ApiCustomResponse<>(null,
+                    "Invalid JSON format: " + e.getMessage(), HttpStatus.BAD_REQUEST.value()));
+        }
+    }
 }

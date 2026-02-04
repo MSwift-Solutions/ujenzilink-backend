@@ -14,6 +14,7 @@ import com.ujenzilink.ujenzilink_backend.posts.models.Post;
 import com.ujenzilink.ujenzilink_backend.posts.models.PostImage;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostImageRepository;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostRepository;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -239,5 +239,106 @@ public class PostService {
                 post.getCommentsCount(),
                 post.getBookmarksCount(),
                 post.getViews());
+    }
+
+    public ApiCustomResponse<PostListResponse> getPost(java.util.UUID postId) {
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post == null || post.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        PostListResponse response = mapToPostListResponse(post);
+        return new ApiCustomResponse<>(response, "Post retrieved successfully", HttpStatus.OK.value());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public ApiCustomResponse<Void> editPost(java.util.UUID postId, EditPostRequest request,
+            List<MultipartFile> images) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User currentUser = userOpt.get();
+
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post == null || post.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        if (!post.getCreator().getId().equals(currentUser.getId())) {
+            return new ApiCustomResponse<>(null, "You do not have permission to edit this post.",
+                    HttpStatus.FORBIDDEN.value());
+        }
+
+        boolean contentChanged = false;
+
+        // Update content if provided
+        if (request.content() != null) {
+            String newContent = request.content().trim();
+            if (!newContent.equals(post.getContent())) {
+                post.setContent(newContent);
+                contentChanged = true;
+            }
+        }
+
+        // Handle removed images
+        if (request.removedImageIds() != null && !request.removedImageIds().isEmpty()) {
+            for (java.util.UUID imageId : request.removedImageIds()) {
+                Image image = imageRepository.findById(imageId).orElse(null);
+                if (image != null && !image.getIsDeleted()) {
+                    image.setIsDeleted(true);
+                    imageRepository.save(image);
+                    contentChanged = true;
+                }
+            }
+        }
+
+        // Handle new images
+        if (images != null && !images.isEmpty()) {
+            if (images.size() > 10) {
+                return new ApiCustomResponse<>(null, "Maximum 10 images allowed per post.",
+                        HttpStatus.BAD_REQUEST.value());
+            }
+
+            // Get current max order
+            List<PostImage> existingImages = postImageRepository.findByPostOrderByImageOrderAsc(post);
+            int maxOrder = existingImages.stream()
+                    .mapToInt(PostImage::getImageOrder)
+                    .max()
+                    .orElse(-1);
+
+            for (MultipartFile file : images) {
+                if (file.isEmpty())
+                    continue;
+
+                ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
+                CloudinaryUploadResponse uploadResponse = cloudinaryService.uploadImage(file, "ujenzilink/post-images");
+
+                Image image = new Image();
+                image.setUrl(uploadResponse.secureUrl());
+                image.setFilename(metadata.filename());
+                image.setFileType(metadata.fileType());
+                image.setFileSize(metadata.fileSize());
+                image.setWidth(uploadResponse.width());
+                image.setHeight(uploadResponse.height());
+                image.setUser(currentUser);
+                image = imageRepository.save(image);
+
+                PostImage postImage = new PostImage();
+                postImage.setPost(post);
+                postImage.setImage(image);
+                postImage.setImageOrder(++maxOrder);
+                postImageRepository.save(postImage);
+                contentChanged = true;
+            }
+        }
+
+        if (contentChanged) {
+            post.setEdited(true);
+        }
+
+        postRepository.save(post);
+        return new ApiCustomResponse<>(null, "Post updated successfully", HttpStatus.OK.value());
     }
 }
