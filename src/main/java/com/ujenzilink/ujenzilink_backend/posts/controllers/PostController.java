@@ -136,4 +136,31 @@ public class PostController {
                 ApiCustomResponse<Void> response = postService.deletePost(postId);
                 return ResponseEntity.status(response.statusCode()).body(response);
         }
+
+        @PostMapping("/{postId}/bookmark")
+        public ResponseEntity<ApiCustomResponse<String>> toggleBookmark(@PathVariable java.util.UUID postId) {
+                ApiCustomResponse<String> response = postService.toggleBookmark(postId);
+                return ResponseEntity.status(response.statusCode()).body(response);
+        }
+
+        @GetMapping("/{postId}/bookmark-status")
+        public ResponseEntity<ApiCustomResponse<Boolean>> checkBookmarkStatus(@PathVariable java.util.UUID postId) {
+                ApiCustomResponse<Boolean> response = postService.checkBookmarkStatus(postId);
+                return ResponseEntity.status(response.statusCode()).body(response);
+        }
+
+        @GetMapping("/bookmarked")
+        public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostPageResponse>> getBookmarkedPosts(
+                        @RequestParam(required = false) String cursor,
+                        @RequestParam(required = false, defaultValue = "20") Integer size) {
+
+                if (size < 1 || size > 100) {
+                        return ResponseEntity.badRequest().body(
+                                        new ApiCustomResponse<>(null, "Size must be between 1 and 100", 400));
+                }
+
+                ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostPageResponse> response = postService
+                                .getBookmarkedPosts(cursor, size);
+                return ResponseEntity.status(response.statusCode()).body(response);
+        }
 }

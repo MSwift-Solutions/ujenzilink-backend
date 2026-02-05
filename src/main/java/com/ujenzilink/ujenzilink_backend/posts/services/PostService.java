@@ -50,6 +50,9 @@ public class PostService {
     @Autowired
     private SecurityUtil securityUtil;
 
+    @Autowired
+    private com.ujenzilink.ujenzilink_backend.posts.repositories.PostBookmarkRepository postBookmarkRepository;
+
     @Transactional(rollbackFor = Exception.class)
     public ApiCustomResponse<CreatePostResponse> createPost(CreatePostRequest request, List<MultipartFile> images) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -371,5 +374,129 @@ public class PostService {
         postRepository.save(post);
 
         return new ApiCustomResponse<>(null, "Post deleted successfully", HttpStatus.OK.value());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public ApiCustomResponse<String> toggleBookmark(java.util.UUID postId) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userOpt.get();
+
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post == null || post.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        Optional<com.ujenzilink.ujenzilink_backend.posts.models.PostBookmark> existingBookmark = postBookmarkRepository
+                .findByPostAndUserAndIsDeletedFalse(post, user);
+
+        if (existingBookmark.isPresent()) {
+            // Unbookmark
+            com.ujenzilink.ujenzilink_backend.posts.models.PostBookmark bookmark = existingBookmark.get();
+            bookmark.setDeleted(true);
+            postBookmarkRepository.save(bookmark);
+
+            // Decrement bookmarks count
+            Integer currentCount = post.getBookmarksCount();
+            if (currentCount != null && currentCount > 0) {
+                post.setBookmarksCount(currentCount - 1);
+                postRepository.save(post);
+            }
+
+            return new ApiCustomResponse<>("Unbookmarked", "Post unbookmarked successfully", HttpStatus.OK.value());
+        } else {
+            // Bookmark
+            com.ujenzilink.ujenzilink_backend.posts.models.PostBookmark newBookmark = new com.ujenzilink.ujenzilink_backend.posts.models.PostBookmark(
+                    post, user);
+            postBookmarkRepository.save(newBookmark);
+
+            // Increment bookmarks count
+            Integer currentCount = post.getBookmarksCount();
+            post.setBookmarksCount(currentCount != null ? currentCount + 1 : 1);
+            postRepository.save(post);
+
+            return new ApiCustomResponse<>("Bookmarked", "Post bookmarked successfully", HttpStatus.CREATED.value());
+        }
+    }
+
+    public ApiCustomResponse<Boolean> checkBookmarkStatus(java.util.UUID postId) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(false, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userOpt.get();
+
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post == null || post.isDeleted()) {
+            return new ApiCustomResponse<>(false, "Post not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        boolean isBookmarked = postBookmarkRepository.existsByPostAndUserAndIsDeletedFalse(post, user);
+
+        return new ApiCustomResponse<>(isBookmarked, "Bookmark status checked successfully", HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<PostPageResponse> getBookmarkedPosts(String cursor, Integer size) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User currentUser = userOpt.get();
+
+        if (size == null || size < 1)
+            size = 20;
+        if (size > 100)
+            size = 100;
+
+        Instant cursorTime = null;
+        if (cursor != null && !cursor.isEmpty()) {
+            try {
+                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson, java.util.Map.class);
+                String timestamp = (String) cursorData.get("timestamp");
+                cursorTime = Instant.parse(timestamp);
+            } catch (Exception e) {
+                return new ApiCustomResponse<>(null, "Invalid cursor format", HttpStatus.BAD_REQUEST.value());
+            }
+        }
+
+        // Get all bookmarks for this user
+        List<com.ujenzilink.ujenzilink_backend.posts.models.PostBookmark> bookmarks = postBookmarkRepository
+                .findByUserAndIsDeletedFalseOrderByCreatedAtDesc(currentUser);
+
+        // Extract posts and apply cursor filter
+        Instant finalCursorTime = cursorTime;
+        List<Post> posts = bookmarks.stream()
+                .map(com.ujenzilink.ujenzilink_backend.posts.models.PostBookmark::getPost)
+                .filter(post -> !post.isDeleted())
+                .filter(post -> finalCursorTime == null || post.getCreatedAt().isBefore(finalCursorTime))
+                .sorted((p1, p2) -> p2.getCreatedAt().compareTo(p1.getCreatedAt()))
+                .limit(size + 1)
+                .toList();
+
+        boolean hasMore = posts.size() > size;
+        if (hasMore)
+            posts = posts.subList(0, size);
+
+        List<PostListResponse> postResponses = posts.stream().map(this::mapToPostListResponse).toList();
+
+        String nextCursor = null;
+        if (hasMore && !posts.isEmpty()) {
+            try {
+                Post lastPost = posts.get(posts.size() - 1);
+                String cursorJson = String.format("{\"timestamp\":\"%s\"}", lastPost.getCreatedAt().toString());
+                nextCursor = java.util.Base64.getEncoder().encodeToString(cursorJson.getBytes());
+            } catch (Exception e) {
+            }
+        }
+
+        PostPageResponse pageResponse = new PostPageResponse(postResponses, nextCursor, hasMore);
+        return new ApiCustomResponse<>(pageResponse, "Bookmarked posts retrieved successfully", HttpStatus.OK.value());
     }
 }
