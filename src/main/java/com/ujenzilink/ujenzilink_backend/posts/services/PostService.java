@@ -14,6 +14,7 @@ import com.ujenzilink.ujenzilink_backend.posts.models.Post;
 import com.ujenzilink.ujenzilink_backend.posts.models.PostImage;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostImageRepository;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostRepository;
+import com.ujenzilink.ujenzilink_backend.posts.utils.PostUtils;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -238,7 +239,8 @@ public class PostService {
                 post.getLikesCount(),
                 post.getCommentsCount(),
                 post.getBookmarksCount(),
-                post.getViews());
+                post.getViews(),
+                post.getImpressions());
     }
 
     public ApiCustomResponse<PostListResponse> getPost(java.util.UUID postId) {
@@ -246,6 +248,10 @@ public class PostService {
         if (post == null || post.isDeleted()) {
             return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
         }
+
+        // Increment impressions when post is fetched
+        PostUtils.incrementImpressions(post);
+        postRepository.save(post);
 
         PostListResponse response = mapToPostListResponse(post);
         return new ApiCustomResponse<>(response, "Post retrieved successfully", HttpStatus.OK.value());

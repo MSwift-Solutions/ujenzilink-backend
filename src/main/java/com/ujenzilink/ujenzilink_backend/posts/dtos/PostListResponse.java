@@ -17,5 +17,6 @@ public record PostListResponse(
                 Integer likesCount,
                 Integer commentsCount,
                 Integer bookmarksCount,
-                Integer views) {
+                Integer views,
+                Integer impressions) {
 }
