@@ -1,9 +1,9 @@
 package com.ujenzilink.ujenzilink_backend.projects.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
-import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -54,9 +54,6 @@ public class ProjectService {
 
         @Autowired
         private ProjectRepository projectRepository;
-
-        @Autowired
-        private UserRepository userRepository;
 
         @Autowired
         private ProjectStageRepository projectStageRepository;
@@ -397,7 +394,8 @@ public class ProjectService {
                                 String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
                                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                                 java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson,
-                                                java.util.Map.class);
+                                                new TypeReference<java.util.Map<String, Object>>() {
+                                                });
                                 String timestamp = (String) cursorData.get("timestamp");
                                 cursorTime = Instant.parse(timestamp);
                         } catch (Exception e) {
@@ -575,7 +573,8 @@ public class ProjectService {
                                 String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
                                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                                 java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson,
-                                                java.util.Map.class);
+                                                new TypeReference<java.util.Map<String, Object>>() {
+                                                });
                                 String timestamp = (String) cursorData.get("timestamp");
                                 cursorTime = Instant.parse(timestamp);
                         } catch (Exception e) {
@@ -752,7 +751,8 @@ public class ProjectService {
                                 String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
                                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                                 java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson,
-                                                java.util.Map.class);
+                                                new TypeReference<java.util.Map<String, Object>>() {
+                                                });
                                 String timestamp = (String) cursorData.get("timestamp");
                                 cursorTime = Instant.parse(timestamp);
                         } catch (Exception e) {
