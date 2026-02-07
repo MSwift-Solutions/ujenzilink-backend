@@ -13,13 +13,11 @@ import java.util.UUID;
 @Repository
 public interface PostLikeRepository extends JpaRepository<PostLike, UUID> {
 
-    Optional<PostLike> findByPostAndUser(Post post, User user);
+    Optional<PostLike> findByPostAndUserAndIsDeletedFalse(Post post, User user);
 
-    boolean existsByPostAndUser(Post post, User user);
+    boolean existsByPostAndUserAndIsDeletedFalse(Post post, User user);
 
-    long countByPost(Post post);
+    long countByPostAndIsDeletedFalse(Post post);
 
-    void deleteByPostAndUser(Post post, User user);
-
-    List<PostLike> findByPost(Post post);
+    List<PostLike> findByPostAndIsDeletedFalse(Post post);
 }

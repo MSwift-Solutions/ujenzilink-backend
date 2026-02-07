@@ -53,6 +53,9 @@ public class PostService {
     @Autowired
     private com.ujenzilink.ujenzilink_backend.posts.repositories.PostBookmarkRepository postBookmarkRepository;
 
+    @Autowired
+    private com.ujenzilink.ujenzilink_backend.posts.repositories.PostLikeRepository postLikeRepository;
+
     @Transactional(rollbackFor = Exception.class)
     public ApiCustomResponse<CreatePostResponse> createPost(CreatePostRequest request, List<MultipartFile> images) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -438,6 +441,70 @@ public class PostService {
         boolean isBookmarked = postBookmarkRepository.existsByPostAndUserAndIsDeletedFalse(post, user);
 
         return new ApiCustomResponse<>(isBookmarked, "Bookmark status checked successfully", HttpStatus.OK.value());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public ApiCustomResponse<String> toggleLike(java.util.UUID postId) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userOpt.get();
+
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post == null || post.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        Optional<com.ujenzilink.ujenzilink_backend.posts.models.PostLike> existingLike = postLikeRepository
+                .findByPostAndUserAndIsDeletedFalse(post, user);
+
+        if (existingLike.isPresent()) {
+            // Unlike
+            com.ujenzilink.ujenzilink_backend.posts.models.PostLike like = existingLike.get();
+            like.setDeleted(true);
+            postLikeRepository.save(like);
+
+            // Decrement likes count
+            Integer currentCount = post.getLikesCount();
+            if (currentCount != null && currentCount > 0) {
+                post.setLikesCount(currentCount - 1);
+                postRepository.save(post);
+            }
+
+            return new ApiCustomResponse<>("Unliked", "Post unliked successfully", HttpStatus.OK.value());
+        } else {
+            // Like
+            com.ujenzilink.ujenzilink_backend.posts.models.PostLike newLike = new com.ujenzilink.ujenzilink_backend.posts.models.PostLike(
+                    post, user);
+            postLikeRepository.save(newLike);
+
+            // Increment likes count
+            Integer currentCount = post.getLikesCount();
+            post.setLikesCount(currentCount != null ? currentCount + 1 : 1);
+            postRepository.save(post);
+
+            return new ApiCustomResponse<>("Liked", "Post liked successfully", HttpStatus.CREATED.value());
+        }
+    }
+
+    public ApiCustomResponse<Boolean> checkLikeStatus(java.util.UUID postId) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(false, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userOpt.get();
+
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post == null || post.isDeleted()) {
+            return new ApiCustomResponse<>(false, "Post not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        boolean isLiked = postLikeRepository.existsByPostAndUserAndIsDeletedFalse(post, user);
+
+        return new ApiCustomResponse<>(isLiked, "Like status checked successfully", HttpStatus.OK.value());
     }
 
     public ApiCustomResponse<PostPageResponse> getBookmarkedPosts(String cursor, Integer size) {

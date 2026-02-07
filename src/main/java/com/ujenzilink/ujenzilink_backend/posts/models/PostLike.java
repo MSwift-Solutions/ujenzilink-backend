@@ -3,6 +3,7 @@ package com.ujenzilink.ujenzilink_backend.posts.models;
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -25,6 +26,12 @@ public class PostLike {
 
     @CreationTimestamp
     private Instant createdAt;
+
+    @UpdateTimestamp
+    private Instant updatedAt;
+
+    @Column(nullable = false)
+    private boolean isDeleted = false;
 
     public PostLike() {
     }
@@ -64,5 +71,21 @@ public class PostLike {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
     }
 }

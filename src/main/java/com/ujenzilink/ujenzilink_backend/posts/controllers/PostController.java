@@ -149,6 +149,18 @@ public class PostController {
                 return ResponseEntity.status(response.statusCode()).body(response);
         }
 
+        @PostMapping("/{postId}/like")
+        public ResponseEntity<ApiCustomResponse<String>> toggleLike(@PathVariable java.util.UUID postId) {
+                ApiCustomResponse<String> response = postService.toggleLike(postId);
+                return ResponseEntity.status(response.statusCode()).body(response);
+        }
+
+        @GetMapping("/{postId}/like-status")
+        public ResponseEntity<ApiCustomResponse<Boolean>> checkLikeStatus(@PathVariable java.util.UUID postId) {
+                ApiCustomResponse<Boolean> response = postService.checkLikeStatus(postId);
+                return ResponseEntity.status(response.statusCode()).body(response);
+        }
+
         @GetMapping("/bookmarked")
         public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostPageResponse>> getBookmarkedPosts(
                         @RequestParam(required = false) String cursor,
