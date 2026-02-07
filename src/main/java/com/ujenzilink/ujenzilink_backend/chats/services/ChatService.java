@@ -59,14 +59,7 @@ public class ChatService {
         // Map to summary DTOs
         List<ConversationSummaryDTO> summaries = conversations.stream()
                 .map(conversation -> mapToConversationSummary(conversation, currentUser))
-                .sorted((a, b) -> {
-                    // Sort by last message time (most recent first)
-                    if (a.lastMessage() != null && b.lastMessage() != null) {
-                        return b.lastMessage().createdAt().compareTo(a.lastMessage().createdAt());
-                    }
-                    // If no messages, sort by conversation creation time
-                    return b.createdAt().compareTo(a.createdAt());
-                })
+                .sorted((a, b) -> b.updatedAt().compareTo(a.updatedAt()))
                 .collect(Collectors.toList());
 
         return new ApiCustomResponse<>(summaries, "Conversations retrieved successfully", HttpStatus.OK.value());
@@ -185,11 +178,20 @@ public class ChatService {
         List<ConversationParticipant> participants = participantRepository
                 .findByConversationAndLeftAtIsNull(conversation);
 
-        int participantCount = participants.size();
+        ConversationSummaryDTO.ChatUserDTO chatUser;
 
-        // For direct chats, find the other participant
-        CreatorInfoDTO otherParticipant = null;
-        if (!conversation.isGroup() && participants.size() == 2) {
+        if (conversation.isGroup()) {
+            String name = conversation.getName() != null ? conversation.getName() : "Group Chat";
+            // Group avatar: use a distinctive color and 'group' related initials
+            String avatar = "https://ui-avatars.com/api/?name=" + name.replace(" ", "+")
+                    + "&background=6366f1&color=fff&size=128";
+            chatUser = new ConversationSummaryDTO.ChatUserDTO(
+                    name,
+                    "group",
+                    avatar,
+                    false);
+        } else {
+            // For direct chats, find the other participant
             User other = participants.stream()
                     .map(ConversationParticipant::getUser)
                     .filter(user -> !user.getId().equals(currentUser.getId()))
@@ -197,20 +199,38 @@ public class ChatService {
                     .orElse(null);
 
             if (other != null) {
-                otherParticipant = mapToCreatorInfoDTO(other);
+                String name = other.getFullName();
+                String username = (other.getUserHandle() != null && !other.getUserHandle().isEmpty())
+                        ? other.getUserHandle()
+                        : other.getEmail();
+                String profilePictureUrl = (other.getProfilePicture() != null)
+                        ? other.getProfilePicture().getUrl()
+                        : "https://i.pravatar.cc/150?u=" + username;
+
+                chatUser = new ConversationSummaryDTO.ChatUserDTO(
+                        name,
+                        username,
+                        profilePictureUrl,
+                        false // Default to false
+                );
+            } else {
+                chatUser = new ConversationSummaryDTO.ChatUserDTO(
+                        "Deleted User",
+                        "deleted",
+                        "https://i.pravatar.cc/150?u=deleted",
+                        false);
             }
         }
 
         // Get last message
         Optional<Message> lastMessageOpt = messageRepository.findLastMessageInConversationById(conversation.getId());
-        ConversationSummaryDTO.LastMessageDTO lastMessage = null;
+        String lastMessageText = "";
+        Instant updatedAt = conversation.getUpdatedAt();
 
         if (lastMessageOpt.isPresent()) {
-            Message msg = lastMessageOpt.get();
-            lastMessage = new ConversationSummaryDTO.LastMessageDTO(
-                    msg.getContent(),
-                    mapToCreatorInfoDTO(msg.getSender()),
-                    msg.getCreatedAt());
+            Message lastMsg = lastMessageOpt.get();
+            lastMessageText = lastMsg.getContent();
+            updatedAt = lastMsg.getCreatedAt();
         }
 
         // Get unread count for current user
@@ -219,15 +239,11 @@ public class ChatService {
 
         return new ConversationSummaryDTO(
                 conversation.getId(),
-                conversation.getName(),
-                conversation.isGroup(),
-                conversation.getProject() != null ? conversation.getProject().getId() : null,
-                lastMessage,
+                chatUser,
+                lastMessageText,
                 unreadCount,
-                participantCount,
-                otherParticipant,
-                conversation.getCreatedAt(),
-                conversation.getUpdatedAt());
+                updatedAt,
+                conversation.isGroup());
     }
 
     private MessageDTO mapToMessageDTO(Message message) {
