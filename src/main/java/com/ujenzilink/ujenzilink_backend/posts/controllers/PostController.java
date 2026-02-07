@@ -6,6 +6,7 @@ import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.posts.dtos.CreatePostRequest;
 import com.ujenzilink.ujenzilink_backend.posts.dtos.CreatePostResponse;
 import com.ujenzilink.ujenzilink_backend.posts.services.PostService;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -158,6 +159,14 @@ public class PostController {
         @GetMapping("/{postId}/like-status")
         public ResponseEntity<ApiCustomResponse<Boolean>> checkLikeStatus(@PathVariable java.util.UUID postId) {
                 ApiCustomResponse<Boolean> response = postService.checkLikeStatus(postId);
+                return ResponseEntity.status(response.statusCode()).body(response);
+        }
+
+        @GetMapping("/{postId}/likes")
+        public ResponseEntity<ApiCustomResponse<java.util.List<ProjectLikeDTO>>> getPostLikes(
+                        @PathVariable java.util.UUID postId) {
+                ApiCustomResponse<java.util.List<ProjectLikeDTO>> response = postService
+                                .getPostLikes(postId);
                 return ResponseEntity.status(response.statusCode()).body(response);
         }
 

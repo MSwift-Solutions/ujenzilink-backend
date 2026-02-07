@@ -16,6 +16,7 @@ import com.ujenzilink.ujenzilink_backend.posts.repositories.PostImageRepository;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostRepository;
 import com.ujenzilink.ujenzilink_backend.posts.utils.PostUtils;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -505,6 +506,33 @@ public class PostService {
         boolean isLiked = postLikeRepository.existsByPostAndUserAndIsDeletedFalse(post, user);
 
         return new ApiCustomResponse<>(isLiked, "Like status checked successfully", HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<List<ProjectLikeDTO>> getPostLikes(java.util.UUID postId) {
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post == null || post.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        List<com.ujenzilink.ujenzilink_backend.posts.models.PostLike> likes = postLikeRepository
+                .findByPostAndIsDeletedFalse(post);
+
+        List<ProjectLikeDTO> dtos = likes.stream().map(like -> {
+            User liker = like.getUser();
+            String likerName = liker.getFullName();
+            String profilePictureUrl = (liker.getProfilePicture() != null)
+                    ? liker.getProfilePicture().getUrl()
+                    : "https://ui-avatars.com/api/?name=" + likerName.replace(" ", "+")
+                            + "&background=random";
+            String username = (liker.getUserHandle() != null && !liker.getUserHandle().isEmpty())
+                    ? liker.getUserHandle()
+                    : liker.getEmail();
+
+            CreatorInfoDTO userInfo = new CreatorInfoDTO(liker.getId(), likerName, username, profilePictureUrl);
+            return new ProjectLikeDTO(userInfo, like.getCreatedAt());
+        }).toList();
+
+        return new ApiCustomResponse<>(dtos, "Post likes retrieved successfully", HttpStatus.OK.value());
     }
 
     public ApiCustomResponse<PostPageResponse> getBookmarkedPosts(String cursor, Integer size) {
