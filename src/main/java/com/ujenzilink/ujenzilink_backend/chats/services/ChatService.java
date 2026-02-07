@@ -44,10 +44,6 @@ public class ChatService {
     @Autowired
     private SecurityUtil securityUtil;
 
-    /**
-     * 1. GET CONVERSATION SUMMARIES (Chat Home Screen)
-     * Returns list of conversations with last message, unread count, etc.
-     */
     @Transactional(readOnly = true)
     public ApiCustomResponse<List<ConversationSummaryDTO>> getConversationSummaries() {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -76,10 +72,6 @@ public class ChatService {
         return new ApiCustomResponse<>(summaries, "Conversations retrieved successfully", HttpStatus.OK.value());
     }
 
-    /**
-     * 2. GET MESSAGES FOR CONVERSATION (When user clicks on a conversation)
-     * Returns paginated messages in descending order (newest first)
-     */
     @Transactional(readOnly = true)
     public ApiCustomResponse<MessagePageDTO> getConversationMessages(
             UUID conversationId,
@@ -142,9 +134,6 @@ public class ChatService {
         return new ApiCustomResponse<>(pageDTO, "Messages retrieved successfully", HttpStatus.OK.value());
     }
 
-    /**
-     * 3. SEND MESSAGE (Send a message to a conversation)
-     */
     @Transactional
     public ApiCustomResponse<MessageDTO> sendMessage(UUID conversationId, SendMessageRequest request) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -191,11 +180,6 @@ public class ChatService {
         return new ApiCustomResponse<>(messageDTO, "Message sent successfully", HttpStatus.CREATED.value());
     }
 
-    // ========== HELPER METHODS ==========
-
-    /**
-     * Map Conversation to ConversationSummaryDTO
-     */
     private ConversationSummaryDTO mapToConversationSummary(Conversation conversation, User currentUser) {
         // Get participants
         List<ConversationParticipant> participants = participantRepository
@@ -246,9 +230,6 @@ public class ChatService {
                 conversation.getUpdatedAt());
     }
 
-    /**
-     * Map Message to MessageDTO
-     */
     private MessageDTO mapToMessageDTO(Message message) {
         // Get read receipts for group chats
         List<MessageDTO.ReadByDTO> readBy = new ArrayList<>();
@@ -273,9 +254,6 @@ public class ChatService {
                 message.getCreatedAt());
     }
 
-    /**
-     * Map User to CreatorInfoDTO (reusing existing DTO from projects)
-     */
     private CreatorInfoDTO mapToCreatorInfoDTO(User user) {
         String name = user.getFullName();
         String username = (user.getUserHandle() != null && !user.getUserHandle().isEmpty())
@@ -288,11 +266,6 @@ public class ChatService {
         return new CreatorInfoDTO(user.getId(), name, username, profilePictureUrl);
     }
 
-    // ========== ADDITIONAL APIs ==========
-
-    /**
-     * 4. CREATE CONVERSATION (Direct or Group)
-     */
     @Transactional
     public ApiCustomResponse<ConversationDTO> createConversation(CreateConversationRequest request) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -361,9 +334,6 @@ public class ChatService {
         return new ApiCustomResponse<>(dto, "Conversation created successfully", HttpStatus.CREATED.value());
     }
 
-    /**
-     * 5. GET CONVERSATION DETAILS
-     */
     @Transactional(readOnly = true)
     public ApiCustomResponse<ConversationDTO> getConversationDetails(UUID conversationId) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -393,9 +363,6 @@ public class ChatService {
         return new ApiCustomResponse<>(dto, "Conversation details retrieved successfully", HttpStatus.OK.value());
     }
 
-    /**
-     * 6. MARK MESSAGE AS READ
-     */
     @Transactional
     public ApiCustomResponse<String> markMessageAsRead(UUID messageId) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -441,9 +408,6 @@ public class ChatService {
                 HttpStatus.OK.value());
     }
 
-    /**
-     * 7. ADD PARTICIPANTS TO GROUP
-     */
     @Transactional
     public ApiCustomResponse<String> addParticipants(UUID conversationId, AddParticipantsRequest request) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -497,9 +461,6 @@ public class ChatService {
                 "Participants added successfully", HttpStatus.OK.value());
     }
 
-    /**
-     * 8. REMOVE PARTICIPANT FROM GROUP
-     */
     @Transactional
     public ApiCustomResponse<String> removeParticipant(UUID conversationId, UUID userId) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -547,9 +508,6 @@ public class ChatService {
                 HttpStatus.OK.value());
     }
 
-    /**
-     * 9. LEAVE GROUP CONVERSATION
-     */
     @Transactional
     public ApiCustomResponse<String> leaveConversation(UUID conversationId) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -588,9 +546,6 @@ public class ChatService {
         return new ApiCustomResponse<>("Left conversation", "Left conversation successfully", HttpStatus.OK.value());
     }
 
-    /**
-     * 10. UPDATE GROUP NAME
-     */
     @Transactional
     public ApiCustomResponse<String> updateGroupName(UUID conversationId, UpdateGroupNameRequest request) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -628,9 +583,6 @@ public class ChatService {
         return new ApiCustomResponse<>("Group name updated", "Group name updated successfully", HttpStatus.OK.value());
     }
 
-    /**
-     * 11. DELETE CONVERSATION
-     */
     @Transactional
     public ApiCustomResponse<String> deleteConversation(UUID conversationId) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -675,9 +627,6 @@ public class ChatService {
                 HttpStatus.OK.value());
     }
 
-    /**
-     * 12. EDIT MESSAGE
-     */
     @Transactional
     public ApiCustomResponse<MessageDTO> editMessage(UUID messageId, EditMessageRequest request) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -708,9 +657,6 @@ public class ChatService {
         return new ApiCustomResponse<>(dto, "Message edited successfully", HttpStatus.OK.value());
     }
 
-    /**
-     * 13. DELETE MESSAGE
-     */
     @Transactional
     public ApiCustomResponse<String> deleteMessage(UUID messageId) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -739,9 +685,6 @@ public class ChatService {
         return new ApiCustomResponse<>("Message deleted", "Message deleted successfully", HttpStatus.OK.value());
     }
 
-    /**
-     * Map Conversation to ConversationDTO
-     */
     private ConversationDTO mapToConversationDTO(Conversation conversation) {
         // Get all participants (including those who left)
         List<ConversationParticipant> participants = participantRepository
