@@ -115,6 +115,7 @@ public class PostService {
         return new ApiCustomResponse<>(response, "Post created successfully.", HttpStatus.CREATED.value());
     }
 
+    @Transactional
     public ApiCustomResponse<PostPageResponse> getAllPosts(String cursor, Integer size) {
         if (size == null || size < 1)
             size = 20;
@@ -148,6 +149,12 @@ public class PostService {
         if (hasMore)
             posts = posts.subList(0, size);
 
+        // Increment impressions in bulk
+        if (!posts.isEmpty()) {
+            java.util.List<java.util.UUID> postIds = posts.stream().map(Post::getId).toList();
+            postRepository.incrementImpressionsInBulk(postIds);
+        }
+
         List<PostListResponse> postResponses = posts.stream().map(this::mapToPostListResponse).toList();
 
         String nextCursor = null;
@@ -164,6 +171,7 @@ public class PostService {
         return new ApiCustomResponse<>(pageResponse, "Posts retrieved successfully", HttpStatus.OK.value());
     }
 
+    @Transactional
     public ApiCustomResponse<PostPageResponse> getMyPosts(String cursor, Integer size) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
         if (userOpt.isEmpty()) {
@@ -203,6 +211,12 @@ public class PostService {
         boolean hasMore = posts.size() > size;
         if (hasMore)
             posts = posts.subList(0, size);
+
+        // Increment impressions in bulk
+        if (!posts.isEmpty()) {
+            java.util.List<java.util.UUID> postIds = posts.stream().map(Post::getId).toList();
+            postRepository.incrementImpressionsInBulk(postIds);
+        }
 
         List<PostListResponse> postResponses = posts.stream().map(this::mapToPostListResponse).toList();
 
@@ -250,15 +264,11 @@ public class PostService {
                 post.getImpressions());
     }
 
-    public ApiCustomResponse<PostListResponse> getPost(java.util.UUID postId) {
+    public ApiCustomResponse<PostListResponse> getEditablePostData(java.util.UUID postId) {
         Post post = postRepository.findById(postId).orElse(null);
         if (post == null || post.isDeleted()) {
             return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
         }
-
-        // Increment impressions when post is fetched
-        PostUtils.incrementImpressions(post);
-        postRepository.save(post);
 
         PostListResponse response = mapToPostListResponse(post);
         return new ApiCustomResponse<>(response, "Post retrieved successfully", HttpStatus.OK.value());
@@ -535,6 +545,7 @@ public class PostService {
         return new ApiCustomResponse<>(dtos, "Post likes retrieved successfully", HttpStatus.OK.value());
     }
 
+    @Transactional
     public ApiCustomResponse<PostPageResponse> getBookmarkedPosts(String cursor, Integer size) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
         if (userOpt.isEmpty()) {
@@ -578,6 +589,12 @@ public class PostService {
         boolean hasMore = posts.size() > size;
         if (hasMore)
             posts = posts.subList(0, size);
+
+        // Increment impressions in bulk
+        if (!posts.isEmpty()) {
+            java.util.List<java.util.UUID> postIds = posts.stream().map(Post::getId).toList();
+            postRepository.incrementImpressionsInBulk(postIds);
+        }
 
         List<PostListResponse> postResponses = posts.stream().map(this::mapToPostListResponse).toList();
 

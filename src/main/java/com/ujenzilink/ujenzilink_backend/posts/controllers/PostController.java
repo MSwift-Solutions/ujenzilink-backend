@@ -100,10 +100,10 @@ public class PostController {
         }
 
         @GetMapping("/{postId}")
-        public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostListResponse>> getPost(
+        public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostListResponse>> getEditablePostData(
                         @PathVariable java.util.UUID postId) {
                 ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostListResponse> response = postService
-                                .getPost(postId);
+                                .getEditablePostData(postId);
                 return ResponseEntity.status(response.statusCode()).body(response);
         }
 

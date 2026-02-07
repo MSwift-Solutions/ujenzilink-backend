@@ -28,4 +28,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     List<Post> findByCreatorAndIsDeletedFalse(User creator, Pageable pageable);
 
     long countByCreator_IdAndIsDeletedFalse(UUID creatorId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("UPDATE Post p SET p.impressions = p.impressions + 1 WHERE p.id IN :postIds")
+    void incrementImpressionsInBulk(
+            @org.springframework.data.repository.query.Param("postIds") java.util.Collection<UUID> postIds);
 }

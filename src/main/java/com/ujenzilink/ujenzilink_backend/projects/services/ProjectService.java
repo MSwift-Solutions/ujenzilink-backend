@@ -79,15 +79,15 @@ public class ProjectService {
         @Autowired
         private ActivityService activityService;
 
+        @Transactional
         public ApiCustomResponse<ProjectDetailsResponse> getProjectDetails(UUID projectId) {
                 Project project = projectRepository.findById(projectId).orElse(null);
                 if (project == null || project.isDeleted()) {
                         return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
                 }
 
-                // Increment impressions when project is fetched
-                ProjectUtils.incrementImpressions(project);
-                projectRepository.save(project);
+                // Increment views when project details are fetched
+                projectRepository.incrementViews(projectId);
 
                 List<ProjectStage> stages = projectStageRepository.findByProjectOrderByCreatedAtAsc(project);
 
@@ -377,6 +377,7 @@ public class ProjectService {
                                 HttpStatus.CREATED.value());
         }
 
+        @Transactional
         public ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse> getAllProjects(
                         String cursor, Integer size) {
                 // Validate and set defaults
@@ -431,6 +432,12 @@ public class ProjectService {
                 boolean hasMore = projects.size() > size;
                 if (hasMore) {
                         projects = projects.subList(0, size);
+                }
+
+                // Increment impressions in bulk
+                if (!projects.isEmpty()) {
+                        List<UUID> projectIds = projects.stream().map(Project::getId).toList();
+                        projectRepository.incrementImpressionsInBulk(projectIds);
                 }
 
                 // Build response list
@@ -545,6 +552,7 @@ public class ProjectService {
                                 HttpStatus.OK.value());
         }
 
+        @Transactional
         public ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse> getMyProjects(
                         String cursor, Integer size) {
                 // Get the authenticated user
@@ -610,6 +618,12 @@ public class ProjectService {
                 boolean hasMore = projects.size() > size;
                 if (hasMore) {
                         projects = projects.subList(0, size);
+                }
+
+                // Increment impressions in bulk
+                if (!projects.isEmpty()) {
+                        List<UUID> projectIds = projects.stream().map(Project::getId).toList();
+                        projectRepository.incrementImpressionsInBulk(projectIds);
                 }
 
                 List<ProjectListResponse> projectResponses = new ArrayList<>();
@@ -723,6 +737,7 @@ public class ProjectService {
                                 HttpStatus.OK.value());
         }
 
+        @Transactional
         public ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse> getFollowedProjects(
                         String cursor, Integer size) {
                 // Get the authenticated user
@@ -788,6 +803,12 @@ public class ProjectService {
                 boolean hasMore = projects.size() > size;
                 if (hasMore) {
                         projects = projects.subList(0, size);
+                }
+
+                // Increment impressions in bulk
+                if (!projects.isEmpty()) {
+                        List<UUID> projectIds = projects.stream().map(Project::getId).toList();
+                        projectRepository.incrementImpressionsInBulk(projectIds);
                 }
 
                 List<ProjectListResponse> projectResponses = new ArrayList<>();
