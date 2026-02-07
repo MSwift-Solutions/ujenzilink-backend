@@ -6,6 +6,9 @@ import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.posts.dtos.CreatePostRequest;
 import com.ujenzilink.ujenzilink_backend.posts.dtos.CreatePostResponse;
 import com.ujenzilink.ujenzilink_backend.posts.services.PostService;
+import com.ujenzilink.ujenzilink_backend.posts.services.PostCommentService;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.CommentDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.CreateCommentRequest;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -26,11 +29,14 @@ import java.util.stream.Collectors;
 public class PostController {
 
         private final PostService postService;
+        private final PostCommentService postCommentService;
         private final ObjectMapper objectMapper;
         private final Validator validator;
 
-        public PostController(PostService postService, ObjectMapper objectMapper) {
+        public PostController(PostService postService, PostCommentService postCommentService,
+                        ObjectMapper objectMapper) {
                 this.postService = postService;
+                this.postCommentService = postCommentService;
                 this.objectMapper = objectMapper;
                 ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
                 this.validator = factory.getValidator();
@@ -182,6 +188,29 @@ public class PostController {
 
                 ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostPageResponse> response = postService
                                 .getBookmarkedPosts(cursor, size);
+                return ResponseEntity.status(response.statusCode()).body(response);
+        }
+
+        @GetMapping("/{postId}/comments")
+        public ResponseEntity<ApiCustomResponse<List<CommentDTO>>> getPostComments(
+                        @PathVariable java.util.UUID postId) {
+                ApiCustomResponse<List<CommentDTO>> response = postCommentService.getPostComments(postId);
+                return ResponseEntity.status(response.statusCode()).body(response);
+        }
+
+        @PostMapping("/{postId}/comments")
+        public ResponseEntity<ApiCustomResponse<CommentDTO>> createPostComment(
+                        @PathVariable java.util.UUID postId,
+                        @RequestBody CreateCommentRequest request) {
+                ApiCustomResponse<CommentDTO> response = postCommentService.createComment(postId, request);
+                return ResponseEntity.status(response.statusCode()).body(response);
+        }
+
+        @PostMapping("/{postId}/comments/{commentId}/like")
+        public ResponseEntity<ApiCustomResponse<String>> likePostComment(
+                        @PathVariable java.util.UUID postId,
+                        @PathVariable java.util.UUID commentId) {
+                ApiCustomResponse<String> response = postCommentService.likeComment(commentId);
                 return ResponseEntity.status(response.statusCode()).body(response);
         }
 }

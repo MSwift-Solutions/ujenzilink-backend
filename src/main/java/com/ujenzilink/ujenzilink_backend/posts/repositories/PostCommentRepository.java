@@ -18,4 +18,6 @@ public interface PostCommentRepository extends JpaRepository<PostComment, UUID> 
     long countByPostAndIsDeletedFalse(Post post);
 
     List<PostComment> findByPostAndIsDeletedFalseOrderByCreatedAtDesc(Post post);
+
+    List<PostComment> findByPostAndIsDeletedFalseOrderByCreatedAtAsc(Post post);
 }
