@@ -5,7 +5,7 @@ import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
-import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectStageRepository;
+import com.ujenzilink.ujenzilink_backend.posts.repositories.PostRepository;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.*;
 import com.ujenzilink.ujenzilink_backend.user_mgt.models.Bio;
 import com.ujenzilink.ujenzilink_backend.user_mgt.repositories.BioRepository;
@@ -30,8 +30,7 @@ public class UserService {
     private ProjectRepository projectRepository;
 
     @Autowired
-    private ProjectStageRepository projectStageRepository;
-
+    private PostRepository postRepository;
 
     public UserService(UserRepository userRepository, BioRepository bioRepository, SecurityUtil securityUtil) {
         this.userRepository = userRepository;
@@ -442,7 +441,7 @@ public class UserService {
 
     private ApiCustomResponse<UserStatsResponse> getUserStats(User user) {
         long totalProjects = projectRepository.countByOwner_IdAndIsDeletedFalse(user.getId());
-        long totalPosts = projectStageRepository.countByPostedBy_IdAndIsDeletedFalse(user.getId());
+        long totalPosts = postRepository.countByCreator_IdAndIsDeletedFalse(user.getId());
 
         UserStatsResponse stats = new UserStatsResponse(totalPosts, totalProjects);
 
