@@ -8,8 +8,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "post_photos")
-public class PostPhoto {
+@Table(name = "stage_photos")
+public class StagePhoto {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
@@ -23,16 +23,15 @@ public class PostPhoto {
     @JoinColumn(name = "image_id", nullable = false)
     private Image image;
 
-    @Column(nullable = false)
-    private Integer photoOrder = 0;
-
     @Column(length = 500)
     private String caption;
 
     @CreationTimestamp
     private Instant uploadedAt;
 
-    public PostPhoto() {
+    private Integer photoOrder = 0;
+
+    public StagePhoto() {
     }
 
     public UUID getId() {
@@ -59,14 +58,6 @@ public class PostPhoto {
         this.image = image;
     }
 
-    public Integer getPhotoOrder() {
-        return photoOrder;
-    }
-
-    public void setPhotoOrder(Integer photoOrder) {
-        this.photoOrder = photoOrder;
-    }
-
     public String getCaption() {
         return caption;
     }
@@ -81,5 +72,13 @@ public class PostPhoto {
 
     public void setUploadedAt(Instant uploadedAt) {
         this.uploadedAt = uploadedAt;
+    }
+
+    public Integer getPhotoOrder() {
+        return photoOrder;
+    }
+
+    public void setPhotoOrder(Integer photoOrder) {
+        this.photoOrder = photoOrder;
     }
 }

@@ -4,6 +4,7 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectStatus;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectType;
 import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectVisibility;
+import com.ujenzilink.ujenzilink_backend.projects.enums.BudgetVisibility;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -55,8 +56,9 @@ public class Project {
     @Column(length = 3)
     private String currency;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 50)
-    private String budgetVisibility;
+    private BudgetVisibility budgetVisibility;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
@@ -183,11 +185,11 @@ public class Project {
         this.currency = currency;
     }
 
-    public String getBudgetVisibility() {
+    public BudgetVisibility getBudgetVisibility() {
         return budgetVisibility;
     }
 
-    public void setBudgetVisibility(String budgetVisibility) {
+    public void setBudgetVisibility(BudgetVisibility budgetVisibility) {
         this.budgetVisibility = budgetVisibility;
     }
 

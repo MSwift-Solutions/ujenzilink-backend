@@ -4,15 +4,12 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.SocialLink;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.TestimonialItemDto;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UpdateUserProfileRequest;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserCountResponseDto;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserInfoDto;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserProfileResponse;
-import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.UserSummaryResponse;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectStageRepository;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.*;
 import com.ujenzilink.ujenzilink_backend.user_mgt.models.Bio;
 import com.ujenzilink.ujenzilink_backend.user_mgt.repositories.BioRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +25,13 @@ public class UserService {
     private final UserRepository userRepository;
     private final BioRepository bioRepository;
     private final SecurityUtil securityUtil;
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
+    private ProjectStageRepository projectStageRepository;
+
 
     public UserService(UserRepository userRepository, BioRepository bioRepository, SecurityUtil securityUtil) {
         this.userRepository = userRepository;
@@ -332,34 +336,34 @@ public class UserService {
         User user = userOpt.get();
 
         // Update user fields
-        if (request.firstName() != null) {
+        if (request.firstName() != null && !request.firstName().isBlank()) {
             user.setFirstName(request.firstName());
         }
-        if (request.middleName() != null) {
+        if (request.middleName() != null && !request.middleName().isBlank()) {
             user.setMiddleName(request.middleName());
         }
-        if (request.lastName() != null) {
+        if (request.lastName() != null && !request.lastName().isBlank()) {
             user.setLastName(request.lastName());
         }
-        if (request.phoneNumber() != null) {
+        if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
             user.setPhoneNumber(request.phoneNumber());
         }
         if (request.dateOfBirth() != null) {
             user.setDateOfBirth(request.dateOfBirth());
         }
-        if (request.location() != null) {
+        if (request.location() != null && !request.location().isBlank()) {
             user.setLocation(request.location());
         }
-        if (request.geoLocation() != null) {
+        if (request.geoLocation() != null && !request.geoLocation().isBlank()) {
             user.setGeoLocation(request.geoLocation());
         }
         if (request.gender() != null) {
             user.setGender(request.gender());
         }
-        if (request.license() != null) {
+        if (request.license() != null && !request.license().isBlank()) {
             user.setLicense(request.license());
         }
-        if (request.skills() != null) {
+        if (request.skills() != null && !request.skills().isBlank()) {
             user.setSkills(request.skills());
         }
         if (request.verificationStatus() != null) {
@@ -376,10 +380,10 @@ public class UserService {
         Bio bio = bioRepository.findByUser(user).orElse(new Bio());
         bio.setUser(user);
 
-        if (request.bio() != null) {
+        if (request.bio() != null && !request.bio().isBlank()) {
             bio.setBio(request.bio());
         }
-        if (request.title() != null) {
+        if (request.title() != null && !request.title().isBlank()) {
             bio.setTitle(request.title());
         }
         if (request.yearsOfExperience() != null) {
@@ -407,5 +411,44 @@ public class UserService {
 
         // Return updated profile
         return getMyProfile();
+    }
+
+    public ApiCustomResponse<UserStatsResponse> getMyStats() {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not authenticated or not found.",
+                    HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User user = userOpt.get();
+        return getUserStats(user);
+    }
+
+    public ApiCustomResponse<UserStatsResponse> getUserStats(String username) {
+        User user = userRepository.findFirstByUsername(username);
+
+        if (user == null || user.getIsDeleted()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not found.",
+                    HttpStatus.NOT_FOUND.value());
+        }
+
+        return getUserStats(user);
+    }
+
+    private ApiCustomResponse<UserStatsResponse> getUserStats(User user) {
+        long totalProjects = projectRepository.countByOwner_IdAndIsDeletedFalse(user.getId());
+        long totalPosts = projectStageRepository.countByPostedBy_IdAndIsDeletedFalse(user.getId());
+
+        UserStatsResponse stats = new UserStatsResponse(totalPosts, totalProjects);
+
+        return new ApiCustomResponse<>(
+                stats,
+                "User stats retrieved successfully",
+                HttpStatus.OK.value());
     }
 }

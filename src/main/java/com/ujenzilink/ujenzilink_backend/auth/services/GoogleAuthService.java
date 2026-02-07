@@ -11,6 +11,8 @@ import com.ujenzilink.ujenzilink_backend.auth.utils.JWTUtil;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.user_mgt.enums.ActivityType;
+import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -41,6 +43,9 @@ public class GoogleAuthService {
 
     @Autowired
     private ImageRepository imageRepository;
+
+    @Autowired
+    private ActivityService activityService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -73,10 +78,9 @@ public class GoogleAuthService {
                             HttpStatus.FORBIDDEN.value());
                 }
 
-                // Existing user: Do not update or save to prevent modifying immutable fields
-                // timestamp issues
-                // user.setLastSuccessfulLogin(Instant.now());
-                // userRepository.save(user);
+                // Track successful login for Google users
+                user.setLastSuccessfulLogin(Instant.now());
+                userRepository.save(user);
             }
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
@@ -88,6 +92,9 @@ public class GoogleAuthService {
                     user.getLastName(),
                     user.getEmail(),
                     user.getUserHandle());
+
+            // Log login activity
+            activityService.logActivity(user, ActivityType.LOGIN, null);
 
             return new ApiCustomResponse<>(
                     response,
@@ -131,6 +138,7 @@ public class GoogleAuthService {
         user.setVerificationStatus(VerificationStatus.VERIFIED);
         user.setHasAgreedToTerms(true);
         user.setTermsVersion("1.0");
+        user.setLastSuccessfulLogin(Instant.now());
 
         user = userRepository.save(user);
 

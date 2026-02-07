@@ -1,8 +1,9 @@
-package com.ujenzilink.ujenzilink_backend.projects.models;
+package com.ujenzilink.ujenzilink_backend.posts.models;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -16,8 +17,8 @@ public class PostLike {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "stage_id")
-    private ProjectStage stage;
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -26,7 +27,18 @@ public class PostLike {
     @CreationTimestamp
     private Instant createdAt;
 
+    @UpdateTimestamp
+    private Instant updatedAt;
+
+    @Column(nullable = false)
+    private boolean isDeleted = false;
+
     public PostLike() {
+    }
+
+    public PostLike(Post post, User user) {
+        this.post = post;
+        this.user = user;
     }
 
     public UUID getId() {
@@ -37,12 +49,12 @@ public class PostLike {
         this.id = id;
     }
 
-    public ProjectStage getStage() {
-        return stage;
+    public Post getPost() {
+        return post;
     }
 
-    public void setStage(ProjectStage stage) {
-        this.stage = stage;
+    public void setPost(Post post) {
+        this.post = post;
     }
 
     public User getUser() {
@@ -59,5 +71,21 @@ public class PostLike {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
     }
 }

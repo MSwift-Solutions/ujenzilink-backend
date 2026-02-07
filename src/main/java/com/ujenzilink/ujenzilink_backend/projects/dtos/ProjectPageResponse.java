@@ -1,0 +1,9 @@
+package com.ujenzilink.ujenzilink_backend.projects.dtos;
+
+import java.util.List;
+
+public record ProjectPageResponse(
+        List<ProjectListResponse> projects,
+        String nextCursor,
+        boolean hasMore) {
+}

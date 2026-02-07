@@ -1,5 +1,6 @@
 package com.ujenzilink.ujenzilink_backend.auth.utils;
 
+import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -29,11 +30,16 @@ public class JWTUtil {
         Instant now = Instant.now();
         Instant expiration = now.plus(24, ChronoUnit.HOURS);
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(userDetails.getUsername())
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(expiration))
-                .signWith(signingKey)
+                .expiration(Date.from(expiration));
+
+        if (userDetails instanceof User user) {
+            builder.claim("userId", user.getId());
+        }
+
+        return builder.signWith(signingKey)
                 .compact();
     }
 

@@ -9,8 +9,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "documents")
-public class Document {
+@Table(name = "project_documents")
+public class ProjectDocument {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
@@ -49,7 +49,7 @@ public class Document {
     @CreationTimestamp
     private Instant uploadedAt;
 
-    public Document() {
+    public ProjectDocument() {
     }
 
     public UUID getId() {

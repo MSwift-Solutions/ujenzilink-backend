@@ -1,4 +1,4 @@
-package com.ujenzilink.ujenzilink_backend.projects.models;
+package com.ujenzilink.ujenzilink_backend.posts.models;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import jakarta.persistence.*;
@@ -17,8 +17,8 @@ public class PostComment {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "stage_id")
-    private ProjectStage stage;
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -40,6 +40,12 @@ public class PostComment {
     @Column(nullable = false)
     private boolean isDeleted = false;
 
+    @Column(nullable = false)
+    private boolean isEdited = false;
+
+    @Column(nullable = false)
+    private Integer likesCount = 0;
+
     public PostComment() {
     }
 
@@ -51,12 +57,12 @@ public class PostComment {
         this.id = id;
     }
 
-    public ProjectStage getStage() {
-        return stage;
+    public Post getPost() {
+        return post;
     }
 
-    public void setStage(ProjectStage stage) {
-        this.stage = stage;
+    public void setPost(Post post) {
+        this.post = post;
     }
 
     public User getCommenter() {
@@ -105,5 +111,21 @@ public class PostComment {
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public boolean isEdited() {
+        return isEdited;
+    }
+
+    public void setEdited(boolean edited) {
+        isEdited = edited;
+    }
+
+    public Integer getLikesCount() {
+        return likesCount;
+    }
+
+    public void setLikesCount(Integer likesCount) {
+        this.likesCount = likesCount;
     }
 }
