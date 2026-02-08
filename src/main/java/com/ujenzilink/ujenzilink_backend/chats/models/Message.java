@@ -6,11 +6,14 @@ import com.ujenzilink.ujenzilink_backend.chats.enums.MessageType;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import org.hibernate.annotations.SQLRestriction;
+
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "messages")
+@SQLRestriction("deleted_at IS NULL")
 public class Message {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -39,6 +42,9 @@ public class Message {
     @CreationTimestamp
     @Column(updatable = false)
     private Instant createdAt;
+
+    @Column
+    private Instant deletedAt;
 
     public Message() {
     }
@@ -97,5 +103,13 @@ public class Message {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Instant deletedAt) {
+        this.deletedAt = deletedAt;
     }
 }

@@ -660,8 +660,9 @@ public class ChatService {
             }
         }
 
-        // Delete conversation (cascade will handle participants, messages, etc.)
-        conversationRepository.delete(conversation);
+        // Soft delete conversation
+        conversation.setDeletedAt(Instant.now());
+        conversationRepository.save(conversation);
 
         return new ApiCustomResponse<>("Conversation deleted", "Conversation deleted successfully",
                 HttpStatus.OK.value());
@@ -719,8 +720,9 @@ public class ChatService {
             return new ApiCustomResponse<>(null, "You can only delete your own messages", HttpStatus.FORBIDDEN.value());
         }
 
-        // Delete message
-        messageRepository.delete(message);
+        // Soft delete message
+        message.setDeletedAt(Instant.now());
+        messageRepository.save(message);
 
         return new ApiCustomResponse<>("Message deleted", "Message deleted successfully", HttpStatus.OK.value());
     }

@@ -6,11 +6,14 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import org.hibernate.annotations.SQLRestriction;
+
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "conversations")
+@SQLRestriction("deleted_at IS NULL")
 public class Conversation {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -37,6 +40,9 @@ public class Conversation {
 
     @UpdateTimestamp
     private Instant updatedAt;
+
+    @Column
+    private Instant deletedAt;
 
     public Conversation() {
     }
@@ -95,5 +101,13 @@ public class Conversation {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Instant deletedAt) {
+        this.deletedAt = deletedAt;
     }
 }
