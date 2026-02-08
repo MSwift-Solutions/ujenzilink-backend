@@ -35,13 +35,13 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
 
         // Find direct conversation between two users
         @Query("SELECT c FROM Conversation c " +
-                        "WHERE c.isGroup = false " +
+                        "WHERE c.isGroup = false AND c.deletedAt IS NULL " +
                         "AND EXISTS (SELECT cp1 FROM ConversationParticipant cp1 " +
                         "            WHERE cp1.conversation = c AND cp1.user.id = :user1Id AND cp1.leftAt IS NULL) " +
                         "AND EXISTS (SELECT cp2 FROM ConversationParticipant cp2 " +
                         "            WHERE cp2.conversation = c AND cp2.user.id = :user2Id AND cp2.leftAt IS NULL) " +
                         "AND (SELECT COUNT(cp3) FROM ConversationParticipant cp3 " +
-                        "     WHERE cp3.conversation = c AND cp3.leftAt IS NULL) = 2")
+                        "     WHERE cp3.conversation = c AND cp3.leftAt IS NULL) = (CASE WHEN :user1Id = :user2Id THEN 1 ELSE 2 END)")
         Optional<Conversation> findDirectConversationBetweenUsers(
                         @Param("user1Id") UUID user1Id,
                         @Param("user2Id") UUID user2Id);

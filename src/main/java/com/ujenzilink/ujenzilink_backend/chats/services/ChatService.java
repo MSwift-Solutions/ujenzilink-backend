@@ -190,11 +190,13 @@ public class ChatService {
                         false // Default to false
                 );
             } else {
+                // If other is null and it's a direct chat, it's a self-chat
+                chatUser = mapToChatUserDTO(currentUser);
                 chatUser = new ConversationSummaryDTO.ChatUserDTO(
-                        "Deleted User",
-                        "deleted",
-                        "https://i.pravatar.cc/150?u=deleted",
-                        false);
+                        chatUser.name() + " (Me)",
+                        chatUser.username(),
+                        chatUser.avatar(),
+                        chatUser.isOnline());
             }
         }
 
@@ -299,13 +301,15 @@ public class ChatService {
         creatorParticipant.setRole(ParticipantRole.MEMBER);
         participantRepository.save(creatorParticipant);
 
-        // Add other participant
-        ConversationParticipant participant = new ConversationParticipant();
-        participant.setConversation(savedConversation);
-        participant.setUser(new User());
-        participant.getUser().setId(otherUserId);
-        participant.setRole(ParticipantRole.MEMBER);
-        participantRepository.save(participant);
+        // Add other participant (only if different from creator)
+        if (!currentUser.getId().equals(otherUserId)) {
+            ConversationParticipant participant = new ConversationParticipant();
+            participant.setConversation(savedConversation);
+            participant.setUser(new User());
+            participant.getUser().setId(otherUserId);
+            participant.setRole(ParticipantRole.MEMBER);
+            participantRepository.save(participant);
+        }
 
         return new ApiCustomResponse<>(mapToDirectConversationDTO(savedConversation, currentUser),
                 "Direct conversation created successfully", HttpStatus.CREATED.value());
@@ -735,7 +739,7 @@ public class ChatService {
                 .map(ConversationParticipant::getUser)
                 .filter(user -> !user.getId().equals(currentUser.getId()))
                 .findFirst()
-                .orElse(null);
+                .orElse(currentUser); // Default to current user for self-chat
 
         ConversationSummaryDTO.ChatUserDTO chatUser = mapToChatUserDTO(other);
 
