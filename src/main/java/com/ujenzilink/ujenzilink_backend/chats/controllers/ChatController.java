@@ -59,14 +59,6 @@ public class ChatController {
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
-    @PostMapping("/conversations")
-    public ResponseEntity<ApiCustomResponse<ConversationDTO>> createConversation(
-            @Valid @RequestBody CreateConversationRequest request) {
-
-        ApiCustomResponse<ConversationDTO> response = chatService.createConversation(request);
-        return ResponseEntity.status(response.statusCode()).body(response);
-    }
-
     @GetMapping("/conversations/{id}")
     public ResponseEntity<ApiCustomResponse<ConversationDTO>> getConversationDetails(
             @PathVariable UUID id) {

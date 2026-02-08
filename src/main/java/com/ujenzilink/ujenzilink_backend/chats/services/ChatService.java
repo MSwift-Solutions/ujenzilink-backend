@@ -371,19 +371,6 @@ public class ChatService {
         return new ApiCustomResponse<>(dto, "Group conversation created successfully", HttpStatus.CREATED.value());
     }
 
-    @Transactional
-    public ApiCustomResponse<ConversationDTO> createConversation(CreateConversationRequest request) {
-        if (request.isGroup()) {
-            return createGroupConversation(
-                    new CreateGroupConversationRequest(request.name(), request.participantIds()));
-        } else {
-            if (request.participantIds().isEmpty()) {
-                return new ApiCustomResponse<>(null, "Participant ID is required", HttpStatus.BAD_REQUEST.value());
-            }
-            return createDirectConversation(new CreateDirectConversationRequest(request.participantIds().get(0)));
-        }
-    }
-
     @Transactional(readOnly = true)
     public ApiCustomResponse<ConversationDTO> getConversationDetails(UUID conversationId) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
