@@ -103,7 +103,7 @@ public class ChatService {
     }
 
     @Transactional
-    public ApiCustomResponse<MessageDTO> sendMessage(UUID conversationId, SendMessageRequest request) {
+    public ApiCustomResponse<String> sendMessage(UUID conversationId, SendMessageRequest request) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
         if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(null, "User not authenticated", HttpStatus.UNAUTHORIZED.value());
@@ -136,16 +136,14 @@ public class ChatService {
         message.setMessageType(request.messageType());
         message.setStatus(MessageStatus.SENT);
 
-        Message savedMessage = messageRepository.save(message);
+        messageRepository.save(message);
 
         // Update conversation's updatedAt timestamp
         conversation.setUpdatedAt(Instant.now());
         conversationRepository.save(conversation);
 
-        // Map to DTO
-        MessageDTO messageDTO = mapToMessageDTO(savedMessage);
-
-        return new ApiCustomResponse<>(messageDTO, "Message sent successfully", HttpStatus.CREATED.value());
+        return new ApiCustomResponse<>("Message sent successfully", "Message sent successfully",
+                HttpStatus.CREATED.value());
     }
 
     private ConversationSummaryDTO mapToConversationSummary(Conversation conversation, User currentUser) {

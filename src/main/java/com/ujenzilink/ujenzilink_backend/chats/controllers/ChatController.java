@@ -33,11 +33,11 @@ public class ChatController {
     }
 
     @PostMapping("/conversations/{id}/messages")
-    public ResponseEntity<ApiCustomResponse<MessageDTO>> sendMessage(
+    public ResponseEntity<ApiCustomResponse<String>> sendMessage(
             @PathVariable UUID id,
             @Valid @RequestBody SendMessageRequest request) {
 
-        ApiCustomResponse<MessageDTO> response = chatService.sendMessage(id, request);
+        ApiCustomResponse<String> response = chatService.sendMessage(id, request);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
