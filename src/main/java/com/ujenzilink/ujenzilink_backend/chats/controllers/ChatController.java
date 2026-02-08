@@ -25,12 +25,10 @@ public class ChatController {
     }
 
     @GetMapping("/conversations/{id}/messages")
-    public ResponseEntity<ApiCustomResponse<MessagePageDTO>> getConversationMessages(
-            @PathVariable UUID id,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size) {
+    public ResponseEntity<ApiCustomResponse<List<MessageDTO>>> getConversationMessages(
+            @PathVariable UUID id) {
 
-        ApiCustomResponse<MessagePageDTO> response = chatService.getConversationMessages(id, page, size);
+        ApiCustomResponse<List<MessageDTO>> response = chatService.getConversationMessages(id);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 

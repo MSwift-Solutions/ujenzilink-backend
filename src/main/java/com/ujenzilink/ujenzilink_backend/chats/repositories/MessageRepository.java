@@ -17,48 +17,51 @@ import java.util.UUID;
 @Repository
 public interface MessageRepository extends JpaRepository<Message, UUID> {
 
-    // Find messages in a conversation (paginated)
-    List<Message> findByConversationOrderByCreatedAtDesc(Conversation conversation, Pageable pageable);
+        // Find messages in a conversation (paginated)
+        List<Message> findByConversationOrderByCreatedAtDesc(Conversation conversation, Pageable pageable);
 
-    List<Message> findByConversation_IdOrderByCreatedAtDesc(UUID conversationId, Pageable pageable);
+        List<Message> findByConversation_IdOrderByCreatedAtDesc(UUID conversationId, Pageable pageable);
 
-    // Cursor-based pagination for messages
-    List<Message> findByConversationAndCreatedAtBeforeOrderByCreatedAtDesc(
-            Conversation conversation, Instant cursor, Pageable pageable);
+        // Find all messages in a conversation without pagination
+        List<Message> findByConversation_IdOrderByCreatedAtDesc(UUID conversationId);
 
-    List<Message> findByConversation_IdAndCreatedAtBeforeOrderByCreatedAtDesc(
-            UUID conversationId, Instant cursor, Pageable pageable);
+        // Cursor-based pagination for messages
+        List<Message> findByConversationAndCreatedAtBeforeOrderByCreatedAtDesc(
+                        Conversation conversation, Instant cursor, Pageable pageable);
 
-    // Find the last message in a conversation
-    @Query("SELECT m FROM Message m " +
-            "WHERE m.conversation = :conversation " +
-            "ORDER BY m.createdAt DESC " +
-            "LIMIT 1")
-    Optional<Message> findLastMessageInConversation(@Param("conversation") Conversation conversation);
+        List<Message> findByConversation_IdAndCreatedAtBeforeOrderByCreatedAtDesc(
+                        UUID conversationId, Instant cursor, Pageable pageable);
 
-    @Query("SELECT m FROM Message m " +
-            "WHERE m.conversation.id = :conversationId " +
-            "ORDER BY m.createdAt DESC " +
-            "LIMIT 1")
-    Optional<Message> findLastMessageInConversationById(@Param("conversationId") UUID conversationId);
+        // Find the last message in a conversation
+        @Query("SELECT m FROM Message m " +
+                        "WHERE m.conversation = :conversation " +
+                        "ORDER BY m.createdAt DESC " +
+                        "LIMIT 1")
+        Optional<Message> findLastMessageInConversation(@Param("conversation") Conversation conversation);
 
-    // Count messages in a conversation
-    long countByConversation(Conversation conversation);
+        @Query("SELECT m FROM Message m " +
+                        "WHERE m.conversation.id = :conversationId " +
+                        "ORDER BY m.createdAt DESC " +
+                        "LIMIT 1")
+        Optional<Message> findLastMessageInConversationById(@Param("conversationId") UUID conversationId);
 
-    long countByConversation_Id(UUID conversationId);
+        // Count messages in a conversation
+        long countByConversation(Conversation conversation);
 
-    // Find messages by sender
-    List<Message> findBySender(User sender, Pageable pageable);
+        long countByConversation_Id(UUID conversationId);
 
-    List<Message> findBySender_Id(UUID senderId, Pageable pageable);
+        // Find messages by sender
+        List<Message> findBySender(User sender, Pageable pageable);
 
-    // Count unread messages for a user in a conversation
-    @Query("SELECT COUNT(m) FROM Message m " +
-            "WHERE m.conversation.id = :conversationId " +
-            "AND m.sender.id != :userId " +
-            "AND NOT EXISTS (SELECT mrr FROM MessageReadReceipt mrr " +
-            "                WHERE mrr.message = m AND mrr.user.id = :userId)")
-    long countUnreadMessagesForUser(
-            @Param("conversationId") UUID conversationId,
-            @Param("userId") UUID userId);
+        List<Message> findBySender_Id(UUID senderId, Pageable pageable);
+
+        // Count unread messages for a user in a conversation
+        @Query("SELECT COUNT(m) FROM Message m " +
+                        "WHERE m.conversation.id = :conversationId " +
+                        "AND m.sender.id != :userId " +
+                        "AND NOT EXISTS (SELECT mrr FROM MessageReadReceipt mrr " +
+                        "                WHERE mrr.message = m AND mrr.user.id = :userId)")
+        long countUnreadMessagesForUser(
+                        @Param("conversationId") UUID conversationId,
+                        @Param("userId") UUID userId);
 }

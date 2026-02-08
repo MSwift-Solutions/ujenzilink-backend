@@ -66,10 +66,7 @@ public class ChatService {
     }
 
     @Transactional(readOnly = true)
-    public ApiCustomResponse<MessagePageDTO> getConversationMessages(
-            UUID conversationId,
-            Integer page,
-            Integer size) {
+    public ApiCustomResponse<List<MessageDTO>> getConversationMessages(UUID conversationId) {
 
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
         if (userOpt.isEmpty()) {
@@ -94,37 +91,15 @@ public class ChatService {
                     HttpStatus.FORBIDDEN.value());
         }
 
-        // Set defaults for pagination
-        if (page == null || page < 0)
-            page = 0;
-        if (size == null || size < 1)
-            size = 20;
-        if (size > 50)
-            size = 50;
-
-        Pageable pageable = PageRequest.of(page, size);
-
-        // Get messages (ordered by createdAt DESC - newest first)
-        List<Message> messages = messageRepository.findByConversation_IdOrderByCreatedAtDesc(conversationId, pageable);
-
-        // Calculate totals
-        long totalMessages = messageRepository.countByConversation_Id(conversationId);
-        int totalPages = (int) Math.ceil((double) totalMessages / size);
-        boolean hasNext = (page + 1) < totalPages;
+        // Get all messages (ordered by createdAt DESC - newest first)
+        List<Message> messages = messageRepository.findByConversation_IdOrderByCreatedAtDesc(conversationId);
 
         // Map to DTOs
         List<MessageDTO> messageDTOs = messages.stream()
                 .map(this::mapToMessageDTO)
                 .collect(Collectors.toList());
 
-        MessagePageDTO pageDTO = new MessagePageDTO(
-                messageDTOs,
-                totalMessages,
-                totalPages,
-                page,
-                hasNext);
-
-        return new ApiCustomResponse<>(pageDTO, "Messages retrieved successfully", HttpStatus.OK.value());
+        return new ApiCustomResponse<>(messageDTOs, "Messages retrieved successfully", HttpStatus.OK.value());
     }
 
     @Transactional
