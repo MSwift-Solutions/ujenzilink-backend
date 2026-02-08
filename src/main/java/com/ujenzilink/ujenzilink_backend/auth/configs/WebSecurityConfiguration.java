@@ -73,7 +73,11 @@ public class WebSecurityConfiguration {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200")); // Avoid "*" in production
+        config.setAllowedOrigins(List.of(
+                "http://localhost:4200",
+                "http://192.168.100.97:4200",
+                "http://172.29.112.1:4200",
+                "http://127.0.0.1:4200")); // Avoid "*" in production
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept"));
         config.setAllowCredentials(true);
