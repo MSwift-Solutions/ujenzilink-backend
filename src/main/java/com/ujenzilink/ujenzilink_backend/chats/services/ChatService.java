@@ -283,7 +283,7 @@ public class ChatService {
     }
 
     @Transactional
-    public ApiCustomResponse<ConversationDTO> createDirectConversation(CreateDirectConversationRequest request) {
+    public ApiCustomResponse<DirectConversationDTO> createDirectConversation(CreateDirectConversationRequest request) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
         if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(null, "User not authenticated", HttpStatus.UNAUTHORIZED.value());
@@ -298,8 +298,8 @@ public class ChatService {
 
         if (existingConv.isPresent()) {
             // Return existing conversation
-            ConversationDTO dto = mapToConversationDTO(existingConv.get());
-            return new ApiCustomResponse<>(dto, "Conversation already exists", HttpStatus.OK.value());
+            return new ApiCustomResponse<>(mapToDirectConversationDTO(existingConv.get(), currentUser),
+                    "Conversation already exists", HttpStatus.OK.value());
         }
 
         // Create conversation
@@ -324,12 +324,12 @@ public class ChatService {
         participant.setRole(ParticipantRole.MEMBER);
         participantRepository.save(participant);
 
-        ConversationDTO dto = mapToConversationDTO(savedConversation);
-        return new ApiCustomResponse<>(dto, "Direct conversation created successfully", HttpStatus.CREATED.value());
+        return new ApiCustomResponse<>(mapToDirectConversationDTO(savedConversation, currentUser),
+                "Direct conversation created successfully", HttpStatus.CREATED.value());
     }
 
     @Transactional
-    public ApiCustomResponse<ConversationDTO> createGroupConversation(CreateGroupConversationRequest request) {
+    public ApiCustomResponse<GroupConversationDTO> createGroupConversation(CreateGroupConversationRequest request) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
         if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(null, "User not authenticated", HttpStatus.UNAUTHORIZED.value());
@@ -367,8 +367,8 @@ public class ChatService {
             participantRepository.save(participant);
         }
 
-        ConversationDTO dto = mapToConversationDTO(savedConversation);
-        return new ApiCustomResponse<>(dto, "Group conversation created successfully", HttpStatus.CREATED.value());
+        return new ApiCustomResponse<>(mapToGroupConversationDTO(savedConversation),
+                "Group conversation created successfully", HttpStatus.CREATED.value());
     }
 
     @Transactional(readOnly = true)
@@ -720,6 +720,57 @@ public class ChatService {
         messageRepository.delete(message);
 
         return new ApiCustomResponse<>("Message deleted", "Message deleted successfully", HttpStatus.OK.value());
+    }
+
+    private DirectConversationDTO mapToDirectConversationDTO(Conversation conversation, User currentUser) {
+        List<ConversationParticipant> participants = participantRepository
+                .findByConversationAndLeftAtIsNull(conversation);
+
+        User other = participants.stream()
+                .map(ConversationParticipant::getUser)
+                .filter(user -> !user.getId().equals(currentUser.getId()))
+                .findFirst()
+                .orElse(null);
+
+        ConversationSummaryDTO.ChatUserDTO chatUser;
+        if (other != null) {
+            String name = other.getFullName();
+            String username = (other.getUserHandle() != null && !other.getUserHandle().isEmpty())
+                    ? other.getUserHandle()
+                    : other.getEmail();
+            String profilePictureUrl = (other.getProfilePicture() != null)
+                    ? other.getProfilePicture().getUrl()
+                    : "https://i.pravatar.cc/150?u=" + username;
+
+            chatUser = new ConversationSummaryDTO.ChatUserDTO(
+                    name,
+                    username,
+                    profilePictureUrl,
+                    false);
+        } else {
+            chatUser = new ConversationSummaryDTO.ChatUserDTO(
+                    "Deleted User",
+                    "deleted",
+                    "https://i.pravatar.cc/150?u=deleted",
+                    false);
+        }
+
+        return new DirectConversationDTO(conversation.getId(), chatUser, conversation.getCreatedAt());
+    }
+
+    private GroupConversationDTO mapToGroupConversationDTO(Conversation conversation) {
+        List<ConversationParticipant> participants = participantRepository
+                .findByConversationAndLeftAtIsNull(conversation);
+
+        List<CreatorInfoDTO> participantDTOs = participants.stream()
+                .map(p -> mapToCreatorInfoDTO(p.getUser()))
+                .collect(Collectors.toList());
+
+        return new GroupConversationDTO(
+                conversation.getId(),
+                conversation.getName(),
+                participantDTOs,
+                conversation.getCreatedAt());
     }
 
     private ConversationDTO mapToConversationDTO(Conversation conversation) {

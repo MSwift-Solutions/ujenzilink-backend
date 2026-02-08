@@ -44,18 +44,18 @@ public class ChatController {
     }
 
     @PostMapping("/conversations/direct")
-    public ResponseEntity<ApiCustomResponse<ConversationDTO>> createDirectConversation(
+    public ResponseEntity<ApiCustomResponse<DirectConversationDTO>> createDirectConversation(
             @Valid @RequestBody CreateDirectConversationRequest request) {
 
-        ApiCustomResponse<ConversationDTO> response = chatService.createDirectConversation(request);
+        ApiCustomResponse<DirectConversationDTO> response = chatService.createDirectConversation(request);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
     @PostMapping("/conversations/group")
-    public ResponseEntity<ApiCustomResponse<ConversationDTO>> createGroupConversation(
+    public ResponseEntity<ApiCustomResponse<GroupConversationDTO>> createGroupConversation(
             @Valid @RequestBody CreateGroupConversationRequest request) {
 
-        ApiCustomResponse<ConversationDTO> response = chatService.createGroupConversation(request);
+        ApiCustomResponse<GroupConversationDTO> response = chatService.createGroupConversation(request);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
