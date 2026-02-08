@@ -222,6 +222,10 @@ public class ChatService {
     }
 
     private MessageDTO mapToMessageDTO(Message message) {
+        // Get current user to determine isMe
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        UUID currentUserId = userOpt.map(User::getId).orElse(null);
+
         // Get read receipts for group chats
         List<MessageDTO.ReadByDTO> readBy = new ArrayList<>();
 
@@ -229,18 +233,21 @@ public class ChatService {
             List<MessageReadReceipt> receipts = readReceiptRepository.findByMessage(message);
             readBy = receipts.stream()
                     .map(receipt -> new MessageDTO.ReadByDTO(
-                            mapToCreatorInfoDTO(receipt.getUser()),
+                            receipt.getUser().getId(),
                             receipt.getReadAt()))
                     .collect(Collectors.toList());
         }
 
+        boolean isMe = currentUserId != null && message.getSender().getId().equals(currentUserId);
+
         return new MessageDTO(
                 message.getId(),
                 message.getConversation().getId(),
-                mapToCreatorInfoDTO(message.getSender()),
+                message.getSender().getId(),
                 message.getContent(),
                 message.getMessageType(),
                 message.getStatus(),
+                isMe,
                 readBy,
                 message.getCreatedAt());
     }

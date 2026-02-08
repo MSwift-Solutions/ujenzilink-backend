@@ -12,16 +12,17 @@ import java.util.UUID;
  * Full message details including read receipts for group chats
  */
 public record MessageDTO(
-        UUID id,
-        UUID conversationId,
-        CreatorInfoDTO sender,
-        String content,
-        MessageType messageType,
-        MessageStatus status,
-        List<ReadByDTO> readBy,
-        Instant createdAt) {
-    public record ReadByDTO(
-            CreatorInfoDTO user,
-            Instant readAt) {
-    }
+                UUID messageId,
+                UUID conversationId,
+                UUID senderId,
+                String content,
+                MessageType messageType,
+                MessageStatus status,
+                boolean isMe,
+                List<ReadByDTO> readBy,
+                Instant createdAt) {
+        public record ReadByDTO(
+                        UUID userId,
+                        Instant readAt) {
+        }
 }
