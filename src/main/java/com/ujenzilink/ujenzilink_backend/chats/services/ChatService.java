@@ -283,7 +283,53 @@ public class ChatService {
     }
 
     @Transactional
-    public ApiCustomResponse<ConversationDTO> createConversation(CreateConversationRequest request) {
+    public ApiCustomResponse<ConversationDTO> createDirectConversation(CreateDirectConversationRequest request) {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "User not authenticated", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        User currentUser = userOpt.get();
+        UUID otherUserId = request.participantId();
+
+        // Check if conversation already exists
+        Optional<Conversation> existingConv = conversationRepository
+                .findDirectConversationBetweenUsers(currentUser.getId(), otherUserId);
+
+        if (existingConv.isPresent()) {
+            // Return existing conversation
+            ConversationDTO dto = mapToConversationDTO(existingConv.get());
+            return new ApiCustomResponse<>(dto, "Conversation already exists", HttpStatus.OK.value());
+        }
+
+        // Create conversation
+        Conversation conversation = new Conversation();
+        conversation.setGroup(false);
+        conversation.setCreatedBy(currentUser);
+
+        Conversation savedConversation = conversationRepository.save(conversation);
+
+        // Add creator as participant
+        ConversationParticipant creatorParticipant = new ConversationParticipant();
+        creatorParticipant.setConversation(savedConversation);
+        creatorParticipant.setUser(currentUser);
+        creatorParticipant.setRole(ParticipantRole.MEMBER);
+        participantRepository.save(creatorParticipant);
+
+        // Add other participant
+        ConversationParticipant participant = new ConversationParticipant();
+        participant.setConversation(savedConversation);
+        participant.setUser(new User());
+        participant.getUser().setId(otherUserId);
+        participant.setRole(ParticipantRole.MEMBER);
+        participantRepository.save(participant);
+
+        ConversationDTO dto = mapToConversationDTO(savedConversation);
+        return new ApiCustomResponse<>(dto, "Direct conversation created successfully", HttpStatus.CREATED.value());
+    }
+
+    @Transactional
+    public ApiCustomResponse<ConversationDTO> createGroupConversation(CreateGroupConversationRequest request) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
         if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(null, "User not authenticated", HttpStatus.UNAUTHORIZED.value());
@@ -291,44 +337,19 @@ public class ChatService {
 
         User currentUser = userOpt.get();
 
-        // Validation for direct chat
-        if (!request.isGroup() && request.participantIds().size() != 1) {
-            return new ApiCustomResponse<>(null, "Direct conversation requires exactly one participant",
-                    HttpStatus.BAD_REQUEST.value());
-        }
-
-        // Validation for group chat
-        if (request.isGroup() && (request.name() == null || request.name().trim().isEmpty())) {
-            return new ApiCustomResponse<>(null, "Group name is required for group conversations",
-                    HttpStatus.BAD_REQUEST.value());
-        }
-
-        // For direct chats, check if conversation already exists
-        if (!request.isGroup()) {
-            UUID otherUserId = request.participantIds().get(0);
-            Optional<Conversation> existingConv = conversationRepository
-                    .findDirectConversationBetweenUsers(currentUser.getId(), otherUserId);
-
-            if (existingConv.isPresent()) {
-                // Return existing conversation
-                ConversationDTO dto = mapToConversationDTO(existingConv.get());
-                return new ApiCustomResponse<>(dto, "Conversation already exists", HttpStatus.OK.value());
-            }
-        }
-
         // Create conversation
         Conversation conversation = new Conversation();
-        conversation.setName(request.isGroup() ? request.name() : null);
-        conversation.setGroup(request.isGroup());
+        conversation.setName(request.name());
+        conversation.setGroup(true);
         conversation.setCreatedBy(currentUser);
 
         Conversation savedConversation = conversationRepository.save(conversation);
 
-        // Add creator as participant (ADMIN for groups, MEMBER for direct)
+        // Add creator as participant (ADMIN for groups)
         ConversationParticipant creatorParticipant = new ConversationParticipant();
         creatorParticipant.setConversation(savedConversation);
         creatorParticipant.setUser(currentUser);
-        creatorParticipant.setRole(request.isGroup() ? ParticipantRole.ADMIN : ParticipantRole.MEMBER);
+        creatorParticipant.setRole(ParticipantRole.ADMIN);
         participantRepository.save(creatorParticipant);
 
         // Add other participants
@@ -341,13 +362,26 @@ public class ChatService {
             ConversationParticipant participant = new ConversationParticipant();
             participant.setConversation(savedConversation);
             participant.setUser(new User());
-            participant.getUser().setId(userId); // Simplified - in production, validate user exists
+            participant.getUser().setId(userId);
             participant.setRole(ParticipantRole.MEMBER);
             participantRepository.save(participant);
         }
 
         ConversationDTO dto = mapToConversationDTO(savedConversation);
-        return new ApiCustomResponse<>(dto, "Conversation created successfully", HttpStatus.CREATED.value());
+        return new ApiCustomResponse<>(dto, "Group conversation created successfully", HttpStatus.CREATED.value());
+    }
+
+    @Transactional
+    public ApiCustomResponse<ConversationDTO> createConversation(CreateConversationRequest request) {
+        if (request.isGroup()) {
+            return createGroupConversation(
+                    new CreateGroupConversationRequest(request.name(), request.participantIds()));
+        } else {
+            if (request.participantIds().isEmpty()) {
+                return new ApiCustomResponse<>(null, "Participant ID is required", HttpStatus.BAD_REQUEST.value());
+            }
+            return createDirectConversation(new CreateDirectConversationRequest(request.participantIds().get(0)));
+        }
     }
 
     @Transactional(readOnly = true)
