@@ -732,28 +732,7 @@ public class ChatService {
                 .findFirst()
                 .orElse(null);
 
-        ConversationSummaryDTO.ChatUserDTO chatUser;
-        if (other != null) {
-            String name = other.getFullName();
-            String username = (other.getUserHandle() != null && !other.getUserHandle().isEmpty())
-                    ? other.getUserHandle()
-                    : other.getEmail();
-            String profilePictureUrl = (other.getProfilePicture() != null)
-                    ? other.getProfilePicture().getUrl()
-                    : "https://i.pravatar.cc/150?u=" + username;
-
-            chatUser = new ConversationSummaryDTO.ChatUserDTO(
-                    name,
-                    username,
-                    profilePictureUrl,
-                    false);
-        } else {
-            chatUser = new ConversationSummaryDTO.ChatUserDTO(
-                    "Deleted User",
-                    "deleted",
-                    "https://i.pravatar.cc/150?u=deleted",
-                    false);
-        }
+        ConversationSummaryDTO.ChatUserDTO chatUser = mapToChatUserDTO(other);
 
         return new DirectConversationDTO(conversation.getId(), chatUser, conversation.getCreatedAt());
     }
@@ -762,8 +741,8 @@ public class ChatService {
         List<ConversationParticipant> participants = participantRepository
                 .findByConversationAndLeftAtIsNull(conversation);
 
-        List<CreatorInfoDTO> participantDTOs = participants.stream()
-                .map(p -> mapToCreatorInfoDTO(p.getUser()))
+        List<ConversationSummaryDTO.ChatUserDTO> participantDTOs = participants.stream()
+                .map(p -> mapToChatUserDTO(p.getUser()))
                 .collect(Collectors.toList());
 
         return new GroupConversationDTO(
@@ -771,6 +750,30 @@ public class ChatService {
                 conversation.getName(),
                 participantDTOs,
                 conversation.getCreatedAt());
+    }
+
+    private ConversationSummaryDTO.ChatUserDTO mapToChatUserDTO(User user) {
+        if (user == null) {
+            return new ConversationSummaryDTO.ChatUserDTO(
+                    "Deleted User",
+                    "deleted",
+                    "https://i.pravatar.cc/150?u=deleted",
+                    false);
+        }
+
+        String name = user.getFullName() != null ? user.getFullName() : "";
+        String username = (user.getUserHandle() != null && !user.getUserHandle().isEmpty())
+                ? user.getUserHandle()
+                : user.getEmail();
+        String profilePictureUrl = (user.getProfilePicture() != null)
+                ? user.getProfilePicture().getUrl()
+                : "https://i.pravatar.cc/150?u=" + (username != null ? username : "unknown");
+
+        return new ConversationSummaryDTO.ChatUserDTO(
+                name,
+                username,
+                profilePictureUrl,
+                false);
     }
 
     private ConversationDTO mapToConversationDTO(Conversation conversation) {
