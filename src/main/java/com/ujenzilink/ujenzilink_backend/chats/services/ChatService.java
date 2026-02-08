@@ -65,7 +65,7 @@ public class ChatService {
         return new ApiCustomResponse<>(summaries, "Conversations retrieved successfully", HttpStatus.OK.value());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ApiCustomResponse<List<MessageDTO>> getConversationMessages(UUID conversationId) {
 
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -92,7 +92,10 @@ public class ChatService {
         }
 
         // Get all messages (ordered by createdAt DESC - newest first)
-        List<Message> messages = messageRepository.findByConversation_IdOrderByCreatedAtDesc(conversationId);
+        List<Message> messages = messageRepository.findByConversation_IdOrderByCreatedAtAsc(conversationId);
+
+        // Mark unread messages as read
+        markConversationAsRead(conversationId, currentUser);
 
         // Map to DTOs
         List<MessageDTO> messageDTOs = messages.stream()
@@ -423,6 +426,26 @@ public class ChatService {
 
         return new ApiCustomResponse<>("Message marked as read", "Message marked as read successfully",
                 HttpStatus.OK.value());
+    }
+
+    @Transactional
+    public void markConversationAsRead(UUID conversationId, User user) {
+        List<Message> unreadMessages = messageRepository.findUnreadMessagesForUser(conversationId, user.getId());
+
+        if (unreadMessages.isEmpty()) {
+            return;
+        }
+
+        List<MessageReadReceipt> receipts = unreadMessages.stream()
+                .map(message -> {
+                    MessageReadReceipt receipt = new MessageReadReceipt();
+                    receipt.setMessage(message);
+                    receipt.setUser(user);
+                    return receipt;
+                })
+                .collect(Collectors.toList());
+
+        readReceiptRepository.saveAll(receipts);
     }
 
     @Transactional

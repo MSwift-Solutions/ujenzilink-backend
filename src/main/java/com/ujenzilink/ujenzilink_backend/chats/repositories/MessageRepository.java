@@ -23,7 +23,7 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
         List<Message> findByConversation_IdOrderByCreatedAtDesc(UUID conversationId, Pageable pageable);
 
         // Find all messages in a conversation without pagination
-        List<Message> findByConversation_IdOrderByCreatedAtDesc(UUID conversationId);
+        List<Message> findByConversation_IdOrderByCreatedAtAsc(UUID conversationId);
 
         // Cursor-based pagination for messages
         List<Message> findByConversationAndCreatedAtBeforeOrderByCreatedAtDesc(
@@ -62,6 +62,16 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
                         "AND NOT EXISTS (SELECT mrr FROM MessageReadReceipt mrr " +
                         "                WHERE mrr.message = m AND mrr.user.id = :userId)")
         long countUnreadMessagesForUser(
+                        @Param("conversationId") UUID conversationId,
+                        @Param("userId") UUID userId);
+
+        // Find unread messages for a user in a conversation
+        @Query("SELECT m FROM Message m " +
+                        "WHERE m.conversation.id = :conversationId " +
+                        "AND m.sender.id != :userId " +
+                        "AND NOT EXISTS (SELECT mrr FROM MessageReadReceipt mrr " +
+                        "                WHERE mrr.message = m AND mrr.user.id = :userId)")
+        List<Message> findUnreadMessagesForUser(
                         @Param("conversationId") UUID conversationId,
                         @Param("userId") UUID userId);
 }
