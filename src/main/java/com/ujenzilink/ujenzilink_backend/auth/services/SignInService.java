@@ -73,13 +73,12 @@ public class SignInService implements UserDetailsService {
             activityService.logActivity(user, ActivityType.LOGIN, null);
 
             // Create sign-in notification
-            String loginTime = Instant.now().toString();
             notificationService.createNotification(
                     user,
                     null,
                     com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType.SIGNIN_SUCCESS,
-                    "New Sign-in Detected",
-                    "You signed in at " + loginTime,
+                    "New Sign-in",
+                    "You signed in successfully.",
                     com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority.MEDIUM,
                     false,
                     null,

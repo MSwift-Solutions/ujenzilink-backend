@@ -100,13 +100,12 @@ public class GoogleAuthService {
             activityService.logActivity(user, ActivityType.LOGIN, null);
 
             // Create sign-in notification
-            String loginTime = Instant.now().toString();
             notificationService.createNotification(
                     user,
                     null,
                     com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType.SIGNIN_SUCCESS,
-                    "New Sign-in Detected",
-                    "You signed in with Google at " + loginTime,
+                    "New Sign-in",
+                    "You signed in with Google successfully.",
                     com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority.MEDIUM,
                     false,
                     null,
