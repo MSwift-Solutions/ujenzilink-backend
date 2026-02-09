@@ -1,6 +1,6 @@
-package com.ujenzilink.ujenzilink_backend.auth.repositories;
+package com.ujenzilink.ujenzilink_backend.notifications.repositories;
 
-import com.ujenzilink.ujenzilink_backend.auth.models.Email;
+import com.ujenzilink.ujenzilink_backend.notifications.models.Email;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

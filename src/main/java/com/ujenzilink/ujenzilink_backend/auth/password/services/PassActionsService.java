@@ -1,6 +1,6 @@
 package com.ujenzilink.ujenzilink_backend.auth.password.services;
 
-import com.ujenzilink.ujenzilink_backend.auth.dtos.EmailDetails;
+import com.ujenzilink.ujenzilink_backend.notifications.dtos.EmailNotificationDTO;
 import com.ujenzilink.ujenzilink_backend.auth.enums.PasswordActionType;
 import com.ujenzilink.ujenzilink_backend.auth.enums.Roles;
 import com.ujenzilink.ujenzilink_backend.auth.models.PasswordActionToken;
@@ -13,7 +13,7 @@ import com.ujenzilink.ujenzilink_backend.auth.password.model.PasswordAction;
 import com.ujenzilink.ujenzilink_backend.auth.password.repository.PasswordActionRepository;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.PasswordActionTokenRepository;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
-import com.ujenzilink.ujenzilink_backend.auth.services.EmailService;
+import com.ujenzilink.ujenzilink_backend.notifications.services.EmailNotificationService;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +40,7 @@ public class PassActionsService {
         private PasswordActionTokenRepository passwordActionTokenRepository;
 
         @Autowired
-        private EmailService emailService;
+        private EmailNotificationService emailNotificationService;
 
         @Autowired
         private SecurityUtil securityUtil;
@@ -90,11 +90,11 @@ public class PassActionsService {
                 passwordActionRepository.save(passwordAction);
 
                 // Send email notification
-                EmailDetails emailDetails = new EmailDetails(
+                EmailNotificationDTO emailDetails = new EmailNotificationDTO(
                                 user.getEmail(),
                                 user.getFirstName(),
                                 null);
-                emailService.sendPassChangeEmail(emailDetails, user);
+                emailNotificationService.sendPassChangeEmail(emailDetails, user);
 
                 return new ApiCustomResponse<>(
                                 null,
@@ -128,11 +128,11 @@ public class PassActionsService {
                 System.out.println("Reset code generated: " + resetCode);
 
                 // Send reset email
-                EmailDetails emailDetails = new EmailDetails(
+                EmailNotificationDTO emailDetails = new EmailNotificationDTO(
                                 user.getEmail(),
                                 user.getFirstName(),
                                 resetCode);
-                emailService.sendPassResetEmail(emailDetails, user);
+                emailNotificationService.sendPassResetEmail(emailDetails, user);
 
                 // Create password action record (not completed yet)
                 PasswordAction passwordAction = new PasswordAction();
@@ -241,11 +241,11 @@ public class PassActionsService {
                 passwordActionRepository.save(passwordAction);
 
                 // Send confirmation email
-                EmailDetails emailDetails = new EmailDetails(
+                EmailNotificationDTO emailDetails = new EmailNotificationDTO(
                                 user.getEmail(),
                                 user.getFirstName(),
                                 null);
-                emailService.sendPassChangeEmail(emailDetails, user);
+                emailNotificationService.sendPassChangeEmail(emailDetails, user);
 
                 return new ApiCustomResponse<>(
                                 null,

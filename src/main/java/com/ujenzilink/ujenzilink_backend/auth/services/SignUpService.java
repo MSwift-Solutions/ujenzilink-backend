@@ -2,7 +2,7 @@ package com.ujenzilink.ujenzilink_backend.auth.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.dtos.SignInResponse;
 import com.ujenzilink.ujenzilink_backend.auth.dtos.SignUpRequest;
-import com.ujenzilink.ujenzilink_backend.auth.dtos.EmailDetails;
+import com.ujenzilink.ujenzilink_backend.notifications.dtos.EmailNotificationDTO;
 import com.ujenzilink.ujenzilink_backend.auth.enums.Roles;
 import com.ujenzilink.ujenzilink_backend.auth.enums.SignupMethod;
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
@@ -29,7 +29,9 @@ public class SignUpService {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private EmailService emailService;
+    private com.ujenzilink.ujenzilink_backend.notifications.services.EmailNotificationService emailNotificationService;
+    @Autowired
+    private com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService notificationService;
     @Autowired
     private VerificationTokenRepository verificationTokenRepository;
     @Autowired
@@ -111,11 +113,11 @@ public class SignUpService {
 
         String token = generateToken(user);
 
-        EmailDetails emailDetails = new EmailDetails(
+        EmailNotificationDTO emailDetails = new EmailNotificationDTO(
                 signUpRequest.email(),
                 signUpRequest.firstName(),
                 token);
-        emailService.sendConfirmationEmail(emailDetails, user);
+        emailNotificationService.sendConfirmationEmail(emailDetails, user);
 
         return new ApiCustomResponse<>(
                 null,
@@ -172,11 +174,23 @@ public class SignUpService {
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String jwt = jwtUtil.generateToken(userDetails);
 
-        EmailDetails emailDetails = new EmailDetails(
+        EmailNotificationDTO emailDetails = new EmailNotificationDTO(
                 user.getEmail(),
                 user.getFirstName(),
                 null);
-        emailService.sendSuccessfulCreationEmail(emailDetails, user);
+        emailNotificationService.sendSuccessfulCreationEmail(emailDetails, user);
+
+        // Create sign-up success notification
+        notificationService.createNotification(
+                user,
+                null,
+                com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType.SIGNUP_SUCCESS,
+                "Welcome to UJENZI LINK!",
+                "Your account has been successfully verified. Start exploring our platform!",
+                com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority.HIGH,
+                false,
+                null,
+                null);
 
         SignInResponse confirmResponse = new SignInResponse(
                 jwt,
@@ -220,11 +234,11 @@ public class SignUpService {
 
         String token = generateToken(user);
 
-        EmailDetails emailDetails = new EmailDetails(
+        EmailNotificationDTO emailDetails = new EmailNotificationDTO(
                 user.getEmail(),
                 user.getFirstName(),
                 token);
-        emailService.sendConfirmationEmail(emailDetails, user);
+        emailNotificationService.sendConfirmationEmail(emailDetails, user);
 
         updateResendTracking(user);
 

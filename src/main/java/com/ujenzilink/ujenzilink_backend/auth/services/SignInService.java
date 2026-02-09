@@ -16,10 +16,17 @@ import java.time.Instant;
 public class SignInService implements UserDetailsService {
     private final UserRepository userRepository;
     private final ActivityService activityService;
+    private final com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService notificationService;
+    private final com.ujenzilink.ujenzilink_backend.notifications.services.EmailNotificationService emailNotificationService;
 
-    public SignInService(UserRepository userRepository, ActivityService activityService) {
+    public SignInService(UserRepository userRepository,
+            ActivityService activityService,
+            com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService notificationService,
+            com.ujenzilink.ujenzilink_backend.notifications.services.EmailNotificationService emailNotificationService) {
         this.userRepository = userRepository;
         this.activityService = activityService;
+        this.notificationService = notificationService;
+        this.emailNotificationService = emailNotificationService;
     }
 
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -64,6 +71,19 @@ public class SignInService implements UserDetailsService {
 
             // Log login activity
             activityService.logActivity(user, ActivityType.LOGIN, null);
+
+            // Create sign-in notification
+            String loginTime = Instant.now().toString();
+            notificationService.createNotification(
+                    user,
+                    null,
+                    com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType.SIGNIN_SUCCESS,
+                    "New Sign-in Detected",
+                    "You signed in at " + loginTime,
+                    com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority.MEDIUM,
+                    false,
+                    null,
+                    null);
         }
     }
 

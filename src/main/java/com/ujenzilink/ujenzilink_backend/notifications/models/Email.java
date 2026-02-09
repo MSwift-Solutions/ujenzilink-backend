@@ -1,6 +1,7 @@
-package com.ujenzilink.ujenzilink_backend.auth.models;
+package com.ujenzilink.ujenzilink_backend.notifications.models;
 
-import com.ujenzilink.ujenzilink_backend.auth.enums.EmailTypes;
+import com.ujenzilink.ujenzilink_backend.auth.models.User;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.EmailTypes;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;

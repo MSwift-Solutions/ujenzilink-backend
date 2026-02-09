@@ -22,6 +22,8 @@ public enum NotificationType {
     // Authentication
     VERIFICATION_CODE,
     PASSWORD_RESET,
+    SIGNUP_SUCCESS,
+    SIGNIN_SUCCESS,
 
     // System
     SYSTEM_ANNOUNCEMENT,

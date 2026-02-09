@@ -47,6 +47,9 @@ public class GoogleAuthService {
     @Autowired
     private ActivityService activityService;
 
+    @Autowired
+    private com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService notificationService;
+
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional
@@ -95,6 +98,19 @@ public class GoogleAuthService {
 
             // Log login activity
             activityService.logActivity(user, ActivityType.LOGIN, null);
+
+            // Create sign-in notification
+            String loginTime = Instant.now().toString();
+            notificationService.createNotification(
+                    user,
+                    null,
+                    com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType.SIGNIN_SUCCESS,
+                    "New Sign-in Detected",
+                    "You signed in with Google at " + loginTime,
+                    com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority.MEDIUM,
+                    false,
+                    null,
+                    null);
 
             return new ApiCustomResponse<>(
                     response,
