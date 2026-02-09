@@ -221,31 +221,10 @@ public class NotificationService {
 
     // Map Notification to DTO
     private NotificationDTO mapToNotificationDTO(Notification notification) {
-        CreatorInfoDTO initiatorInfo = null;
-        if (notification.getInitiator() != null) {
-            User initiator = notification.getInitiator();
-            String name = initiator.getFullName();
-            String username = (initiator.getUserHandle() != null && !initiator.getUserHandle().isEmpty())
-                    ? initiator.getUserHandle()
-                    : initiator.getEmail();
-            String profilePictureUrl = (initiator.getProfilePicture() != null)
-                    ? initiator.getProfilePicture().getUrl()
-                    : "https://ui-avatars.com/api/?name=" + name.replace(" ", "+") + "&background=random";
-
-            initiatorInfo = new CreatorInfoDTO(initiator.getId(), name, username, profilePictureUrl);
-        }
-
         return new NotificationDTO(
-                notification.getId(),
-                notification.getType(),
                 notification.getTitle(),
                 notification.getMessage(),
-                notification.getPriority(),
-                initiatorInfo,
                 notification.getReadAt() != null,
-                notification.getReadAt(),
-                notification.isBatched(),
-                notification.getAggregationCount(),
                 notification.getCreatedAt());
     }
 }
