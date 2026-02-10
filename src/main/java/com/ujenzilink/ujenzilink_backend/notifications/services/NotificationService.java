@@ -123,6 +123,10 @@ public class NotificationService {
             notifications = notifications.subList(0, size);
         }
 
+        List<NotificationDTO> notificationDTOs = notifications.stream()
+                .map(this::mapToNotificationDTO)
+                .toList();
+
         // Mark fetched notifications as read
         for (Notification notification : notifications) {
             if (notification.getReadAt() == null) {
@@ -134,10 +138,6 @@ public class NotificationService {
                 logService.logNotificationEvent(notification, null, "INFO", "READ", "", null);
             }
         }
-
-        List<NotificationDTO> notificationDTOs = notifications.stream()
-                .map(this::mapToNotificationDTO)
-                .toList();
 
         String nextCursor = null;
         if (hasMore && !notifications.isEmpty()) {
