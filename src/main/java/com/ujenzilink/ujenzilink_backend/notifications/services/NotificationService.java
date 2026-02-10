@@ -10,7 +10,6 @@ import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationStatus;
 import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
 import com.ujenzilink.ujenzilink_backend.notifications.models.Notification;
 import com.ujenzilink.ujenzilink_backend.notifications.repositories.NotificationRepository;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -82,6 +81,7 @@ public class NotificationService {
             try {
                 String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
                 ObjectMapper mapper = new ObjectMapper();
+                @SuppressWarnings("unchecked")
                 Map<String, Object> cursorData = mapper.readValue(decodedJson, Map.class);
                 String timestamp = (String) cursorData.get("timestamp");
                 cursorTime = Instant.parse(timestamp);

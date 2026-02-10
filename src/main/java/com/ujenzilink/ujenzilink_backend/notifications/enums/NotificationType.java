@@ -14,6 +14,7 @@ public enum NotificationType {
     PROJECT_COMMENT_REPLY,
     PROJECT_FOLLOW,
     PROJECT_MEMBER_ADDED,
+    PROJECT_UPDATED,
     PROJECT_STAGE_UPDATE,
 
     // Chats

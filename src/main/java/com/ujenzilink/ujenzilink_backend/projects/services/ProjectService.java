@@ -1151,6 +1151,26 @@ public class ProjectService {
 
                 projectRepository.save(project);
 
+                // Send in-app notification to project members
+                List<ProjectMember> members = projectMemberRepository.findByProjectAndIsDeletedFalse(project);
+                for (ProjectMember member : members) {
+                        // Don't notify the person who made the update
+                        if (member.getUser().getId().equals(currentUser.getId())) {
+                                continue;
+                        }
+
+                        notificationService.createNotification(
+                                        member.getUser(),
+                                        currentUser,
+                                        NotificationType.PROJECT_UPDATED,
+                                        "Project Updated",
+                                        "Project '" + project.getTitle() + "' has been updated.",
+                                        NotificationPriority.MEDIUM,
+                                        false,
+                                        null,
+                                        null);
+                }
+
                 // Log project update activity
                 activityService.logActivity(currentUser, ActivityType.UPDATE_PROJECT, projectId);
 

@@ -20,6 +20,11 @@ import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectStageRepository;
 import com.ujenzilink.ujenzilink_backend.user_mgt.enums.ActivityType;
 import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
+import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
+import com.ujenzilink.ujenzilink_backend.projects.models.ProjectMember;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -58,6 +63,12 @@ public class ProjectStageService {
 
     @Autowired
     private ActivityService activityService;
+
+    @Autowired
+    private NotificationService notificationService;
+
+    @Autowired
+    private ProjectMemberRepository projectMemberRepository;
 
     @Transactional(rollbackFor = Exception.class)
     public ApiCustomResponse<CreateProjectStageResponse> createProjectStage(CreateProjectStageRequest request,
@@ -136,6 +147,26 @@ public class ProjectStageService {
 
         // Log post creation activity
         activityService.logActivity(user, ActivityType.CREATE_PROJECT_POST, savedStage.getId());
+
+        // Send in-app notification to project members
+        List<ProjectMember> members = projectMemberRepository.findByProjectAndIsDeletedFalse(project);
+        for (ProjectMember member : members) {
+            // Don't notify the person who posted the update
+            if (member.getUser().getId().equals(user.getId())) {
+                continue;
+            }
+
+            notificationService.createNotification(
+                    member.getUser(),
+                    user,
+                    NotificationType.PROJECT_STAGE_UPDATE,
+                    "Project Stage Update",
+                    "New stage update for '" + project.getTitle() + "': " + savedStage.getConstructionStage().name(),
+                    NotificationPriority.MEDIUM,
+                    false,
+                    null,
+                    null);
+        }
 
         return new ApiCustomResponse<>(response, "Project stage created successfully", HttpStatus.CREATED.value());
     }
