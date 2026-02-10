@@ -1012,6 +1012,23 @@ public class ProjectService {
                 // Log project deletion activity
                 activityService.logActivity(currentUser, ActivityType.DELETE_PROJECT, projectId);
 
+                // Notify members
+                List<ProjectMember> members = projectMemberRepository.findByProjectAndIsDeletedFalse(project);
+                for (ProjectMember member : members) {
+                        if (!member.getUser().getId().equals(currentUser.getId())) {
+                                notificationService.createNotification(
+                                                member.getUser(),
+                                                currentUser,
+                                                NotificationType.PROJECT_DELETED,
+                                                "Project Deleted",
+                                                "Project '" + project.getTitle() + "' has been deleted.",
+                                                NotificationPriority.HIGH,
+                                                false,
+                                                null,
+                                                null);
+                        }
+                }
+
                 return new ApiCustomResponse<>(null, "Project deleted successfully", HttpStatus.OK.value());
         }
 
@@ -1050,6 +1067,24 @@ public class ProjectService {
 
                 project.setVisibility(request.visibility());
                 projectRepository.saveAndFlush(project);
+
+                // Notify members
+                List<ProjectMember> members = projectMemberRepository.findByProjectAndIsDeletedFalse(project);
+                for (ProjectMember member : members) {
+                        if (!member.getUser().getId().equals(currentUser.getId())) {
+                                notificationService.createNotification(
+                                                member.getUser(),
+                                                currentUser,
+                                                NotificationType.PROJECT_VISIBILITY_CHANGED,
+                                                "Project Visibility Updated",
+                                                "Project '" + project.getTitle() + "' visibility is now "
+                                                                + request.visibility() + ".",
+                                                NotificationPriority.MEDIUM,
+                                                false,
+                                                null,
+                                                null);
+                        }
+                }
 
                 return new ApiCustomResponse<>(null, "Project visibility updated successfully", HttpStatus.OK.value());
         }
