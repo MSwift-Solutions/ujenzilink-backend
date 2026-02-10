@@ -96,6 +96,21 @@ public class SignInService implements UserDetailsService {
 
             if (failedAttempts >= 3) {
                 user.setIsLocked(true);
+
+                // Send critical email
+                emailNotificationService.sendAccountLockedEmail(user.getEmail(), user.getFirstName(), user);
+
+                // Create in-app notification
+                notificationService.createNotification(
+                        user,
+                        null,
+                        com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType.ACCOUNT_SECURITY,
+                        "Account Locked",
+                        "Your account has been locked due to too many failed login attempts.",
+                        com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority.URGENT,
+                        false,
+                        null,
+                        null);
             }
 
             userRepository.save(user);

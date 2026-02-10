@@ -2,11 +2,13 @@ package com.ujenzilink.ujenzilink_backend.notifications.enums;
 
 public enum NotificationType {
     // Posts
+    POST_CREATED,
     POST_LIKE,
     POST_COMMENT,
     POST_COMMENT_REPLY,
 
     // Projects
+    PROJECT_CREATED,
     PROJECT_LIKE,
     PROJECT_COMMENT,
     PROJECT_COMMENT_REPLY,

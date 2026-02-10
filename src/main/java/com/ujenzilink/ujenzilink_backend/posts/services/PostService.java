@@ -25,6 +25,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
 
 import java.time.Instant;
 import java.util.List;
@@ -56,6 +59,9 @@ public class PostService {
 
     @Autowired
     private com.ujenzilink.ujenzilink_backend.posts.repositories.PostLikeRepository postLikeRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @Transactional(rollbackFor = Exception.class)
     public ApiCustomResponse<CreatePostResponse> createPost(CreatePostRequest request, List<MultipartFile> images) {
@@ -112,6 +118,19 @@ public class PostService {
         }
 
         CreatePostResponse response = new CreatePostResponse(savedPost.getId(), "Post created successfully");
+
+        // Send in-app notification
+        notificationService.createNotification(
+                user,
+                null,
+                NotificationType.POST_CREATED,
+                "Post Created",
+                "Your post has been shared successfully.",
+                NotificationPriority.LOW,
+                false,
+                null,
+                null);
+
         return new ApiCustomResponse<>(response, "Post created successfully.", HttpStatus.CREATED.value());
     }
 

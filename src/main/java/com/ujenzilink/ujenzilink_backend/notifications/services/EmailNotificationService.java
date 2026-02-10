@@ -54,6 +54,11 @@ public class EmailNotificationService {
         sendEmail(email, "Welcome to UJENZI LINK", body, user, EmailTypes.SIGNUP_NOTIFICATION);
     }
 
+    public void sendAccountLockedEmail(String email, String name, User user) {
+        String body = EmailTemplates.getAccountLockedEmail(name);
+        sendEmail(email, "Account Locked", body, user, EmailTypes.ACCOUNT_LOCKED);
+    }
+
     // Generic email sending method
     private void sendEmail(String to, String subject, String body, User user, EmailTypes emailType) {
         try {

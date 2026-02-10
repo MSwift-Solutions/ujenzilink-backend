@@ -58,4 +58,12 @@ public class EmailTemplates {
                 "Best regards,\n\n" +
                 "~Musa";
     }
+
+    public static String getAccountLockedEmail(String name) {
+        return "Dear " + name.toUpperCase() + ",\n\n" +
+                "Your account has been temporarily locked due to multiple failed login attempts.\n\n" +
+                "To unlock your account, please reset your password or contact our support team.\n\n" +
+                "Best regards,\n\n" +
+                "~Musa";
+    }
 }

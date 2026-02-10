@@ -19,6 +19,9 @@ import com.ujenzilink.ujenzilink_backend.projects.enums.ProjectVisibility;
 import com.ujenzilink.ujenzilink_backend.projects.enums.BudgetVisibility;
 import com.ujenzilink.ujenzilink_backend.projects.enums.MemberRole;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PostType;
+import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
 
 import com.ujenzilink.ujenzilink_backend.projects.models.StagePhoto;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
@@ -78,6 +81,9 @@ public class ProjectService {
 
         @Autowired
         private ActivityService activityService;
+
+        @Autowired
+        private NotificationService notificationService;
 
         @Transactional
         public ApiCustomResponse<ProjectDetailsResponse> getProjectDetails(UUID projectId) {
@@ -370,6 +376,18 @@ public class ProjectService {
 
                 // Log project creation activity
                 activityService.logActivity(user, ActivityType.CREATE_PROJECT, savedProject.getId());
+
+                // Send in-app notification
+                notificationService.createNotification(
+                                user,
+                                null,
+                                NotificationType.PROJECT_CREATED,
+                                "Project Created",
+                                "Project '" + savedProject.getTitle() + "' has been created successfully.",
+                                NotificationPriority.LOW,
+                                false,
+                                null,
+                                null);
 
                 return new ApiCustomResponse<>(
                                 response,
