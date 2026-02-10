@@ -178,6 +178,23 @@ public class UserMgtService {
         ProjectLike newLike = new ProjectLike(project, user);
         projectLikeRepository.save(newLike);
 
+        // Send in-app notification to project owner
+        User projectOwner = project.getOwner();
+        if (projectOwner != null && !projectOwner.getId().equals(user.getId())) {
+            String notificationMessage = user.getFirstName() + " " + user.getLastName() + " liked your project '"
+                    + project.getTitle() + "'.";
+            notificationService.createNotification(
+                    projectOwner,
+                    user,
+                    NotificationType.PROJECT_LIKE,
+                    "New Project Like",
+                    notificationMessage,
+                    NotificationPriority.LOW,
+                    false,
+                    null,
+                    null);
+        }
+
         return new ApiCustomResponse<>("Liked", "Project liked successfully", HttpStatus.CREATED.value());
     }
 

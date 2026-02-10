@@ -515,6 +515,22 @@ public class PostService {
             post.setLikesCount(currentCount != null ? currentCount + 1 : 1);
             postRepository.save(post);
 
+            // Send in-app notification to post creator
+            User postCreator = post.getCreator();
+            if (postCreator != null && !postCreator.getId().equals(user.getId())) {
+                String notificationMessage = user.getFirstName() + " " + user.getLastName() + " liked your post.";
+                notificationService.createNotification(
+                        postCreator,
+                        user,
+                        NotificationType.POST_LIKE,
+                        "New Post Like",
+                        notificationMessage,
+                        NotificationPriority.LOW,
+                        false,
+                        null,
+                        null);
+            }
+
             return new ApiCustomResponse<>("Liked", "Post liked successfully", HttpStatus.CREATED.value());
         }
     }
