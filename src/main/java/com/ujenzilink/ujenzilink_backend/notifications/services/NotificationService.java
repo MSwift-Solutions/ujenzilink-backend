@@ -10,6 +10,8 @@ import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationStatus;
 import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
 import com.ujenzilink.ujenzilink_backend.notifications.models.Notification;
 import com.ujenzilink.ujenzilink_backend.notifications.repositories.NotificationRepository;
+import com.ujenzilink.ujenzilink_backend.chats.repositories.MessageRepository;
+import com.ujenzilink.ujenzilink_backend.notifications.dtos.UnreadCountersDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,7 +33,22 @@ public class NotificationService {
     private NotificationRepository notificationRepository;
 
     @Autowired
+    private MessageRepository messageRepository;
+
+    @Autowired
     private NotificationLogService logService;
+
+    @Transactional(readOnly = true)
+    public ApiCustomResponse<UnreadCountersDTO> getUnreadCounters(User user) {
+        long unreadNotifications = notificationRepository.countByUser_IdAndReadAtIsNull(user.getId());
+        long unreadMessages = messageRepository.countTotalUnreadMessagesForUser(user.getId());
+
+        UnreadCountersDTO counters = new UnreadCountersDTO(
+                unreadMessages > 0,
+                unreadNotifications > 0);
+
+        return new ApiCustomResponse<>(counters, "Unread counters retrieved successfully", HttpStatus.OK.value());
+    }
 
     // Create a new notification
     @Transactional

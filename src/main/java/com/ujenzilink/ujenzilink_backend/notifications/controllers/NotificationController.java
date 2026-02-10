@@ -4,6 +4,7 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.notifications.dtos.NotificationPageResponse;
+import com.ujenzilink.ujenzilink_backend.notifications.dtos.UnreadCountersDTO;
 import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,18 @@ public class NotificationController {
 
     @Autowired
     private SecurityUtil securityUtil;
+
+    @GetMapping("/unread-status")
+    public ResponseEntity<ApiCustomResponse<UnreadCountersDTO>> getUnreadStatus() {
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiCustomResponse<>(null, "User not authenticated", HttpStatus.UNAUTHORIZED.value()));
+        }
+
+        ApiCustomResponse<UnreadCountersDTO> response = notificationService.getUnreadCounters(userOpt.get());
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
 
     // Get notifications with cursor pagination (automatically marks fetched
     // notifications as read)
