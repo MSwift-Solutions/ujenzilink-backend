@@ -808,4 +808,39 @@ public class ChatService {
                 conversation.getCreatedAt(),
                 conversation.getUpdatedAt());
     }
+
+    @Transactional
+    public void ensureProjectChatExistsAndAddMember(com.ujenzilink.ujenzilink_backend.projects.models.Project project,
+            User memberToAdd, User addedBy) {
+        Optional<Conversation> conversationOpt = conversationRepository.findByProject(project);
+        Conversation conversation;
+        if (conversationOpt.isEmpty()) {
+            // Create new project chat
+            conversation = new Conversation();
+            conversation.setName(project.getTitle());
+            conversation.setGroup(true);
+            conversation.setProject(project);
+            conversation.setCreatedBy(addedBy);
+            conversation = conversationRepository.save(conversation);
+
+            // Add owner (project owner) as ADMIN
+            ConversationParticipant ownerParticipant = new ConversationParticipant();
+            ownerParticipant.setConversation(conversation);
+            ownerParticipant.setUser(project.getOwner());
+            ownerParticipant.setRole(ParticipantRole.ADMIN);
+            participantRepository.save(ownerParticipant);
+        } else {
+            conversation = conversationOpt.get();
+        }
+
+        // Add the new member as MEMBER if not already in chat
+        if (!participantRepository.existsByConversation_IdAndUser_IdAndLeftAtIsNull(conversation.getId(),
+                memberToAdd.getId())) {
+            ConversationParticipant participant = new ConversationParticipant();
+            participant.setConversation(conversation);
+            participant.setUser(memberToAdd);
+            participant.setRole(ParticipantRole.MEMBER);
+            participantRepository.save(participant);
+        }
+    }
 }

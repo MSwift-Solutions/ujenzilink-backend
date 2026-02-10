@@ -18,6 +18,11 @@ import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectFollowRepo
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectLikeRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
+import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
+import com.ujenzilink.ujenzilink_backend.notifications.services.EmailNotificationService;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
+import com.ujenzilink.ujenzilink_backend.chats.services.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -50,6 +55,15 @@ public class UserMgtService {
 
     @Autowired
     private SecurityUtil securityUtil;
+
+    @Autowired
+    private NotificationService notificationService;
+
+    @Autowired
+    private EmailNotificationService emailNotificationService;
+
+    @Autowired
+    private ChatService chatService;
 
     public ApiCustomResponse<String> followProject(UUID projectId) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -297,6 +311,30 @@ public class UserMgtService {
         member.setCanManageMembers(true);
 
         projectMemberRepository.save(member);
+
+        // Send in-app notification
+        notificationService.createNotification(
+                memberToAdd,
+                currentUser,
+                NotificationType.PROJECT_MEMBER_ADDED,
+                "Added to Project",
+                "You have been added to the project '" + project.getTitle() + "' by " + currentUser.getFirstName()
+                        + ".",
+                NotificationPriority.MEDIUM,
+                false,
+                null,
+                null);
+
+        // Send email notification
+        emailNotificationService.sendProjectInvitationEmail(
+                memberToAdd.getEmail(),
+                memberToAdd.getFirstName(),
+                project.getTitle(),
+                currentUser.getFirstName(),
+                memberToAdd);
+
+        // Handle automatic chat group creation/addition
+        chatService.ensureProjectChatExistsAndAddMember(project, memberToAdd, currentUser);
 
         return new ApiCustomResponse<>("Member Added", "Member added to project successfully",
                 HttpStatus.CREATED.value());

@@ -16,45 +16,48 @@ import java.util.UUID;
 @Repository
 public interface ConversationParticipantRepository extends JpaRepository<ConversationParticipant, UUID> {
 
-    // Find all participants in a conversation (active only)
-    List<ConversationParticipant> findByConversationAndLeftAtIsNull(Conversation conversation);
+        // Find all participants in a conversation (active only)
+        List<ConversationParticipant> findByConversationAndLeftAtIsNull(Conversation conversation);
 
-    List<ConversationParticipant> findByConversation_IdAndLeftAtIsNull(UUID conversationId);
+        List<ConversationParticipant> findByConversation_IdAndLeftAtIsNull(UUID conversationId);
 
-    // Find all participants including those who left
-    List<ConversationParticipant> findByConversation(Conversation conversation);
+        // Find all participants including those who left
+        List<ConversationParticipant> findByConversation(Conversation conversation);
 
-    List<ConversationParticipant> findByConversation_Id(UUID conversationId);
+        List<ConversationParticipant> findByConversation_Id(UUID conversationId);
 
-    // Check if user is participant
-    Optional<ConversationParticipant> findByConversationAndUserAndLeftAtIsNull(
-            Conversation conversation, User user);
+        // Check if user is participant
+        Optional<ConversationParticipant> findByConversationAndUserAndLeftAtIsNull(
+                        Conversation conversation, User user);
 
-    Optional<ConversationParticipant> findByConversation_IdAndUser_IdAndLeftAtIsNull(
-            UUID conversationId, UUID userId);
+        Optional<ConversationParticipant> findByConversation_IdAndUser_IdAndLeftAtIsNull(
+                        UUID conversationId, UUID userId);
 
-    // Find by user
-    List<ConversationParticipant> findByUserAndLeftAtIsNull(User user);
+        boolean existsByConversation_IdAndUser_IdAndLeftAtIsNull(
+                        UUID conversationId, UUID userId);
 
-    List<ConversationParticipant> findByUser_IdAndLeftAtIsNull(UUID userId);
+        // Find by user
+        List<ConversationParticipant> findByUserAndLeftAtIsNull(User user);
 
-    // Find admins in a conversation
-    List<ConversationParticipant> findByConversationAndRoleAndLeftAtIsNull(
-            Conversation conversation, ParticipantRole role);
+        List<ConversationParticipant> findByUser_IdAndLeftAtIsNull(UUID userId);
 
-    List<ConversationParticipant> findByConversation_IdAndRoleAndLeftAtIsNull(
-            UUID conversationId, ParticipantRole role);
+        // Find admins in a conversation
+        List<ConversationParticipant> findByConversationAndRoleAndLeftAtIsNull(
+                        Conversation conversation, ParticipantRole role);
 
-    // Count active participants
-    @Query("SELECT COUNT(cp) FROM ConversationParticipant cp " +
-            "WHERE cp.conversation = :conversation AND cp.leftAt IS NULL")
-    long countActiveParticipants(@Param("conversation") Conversation conversation);
+        List<ConversationParticipant> findByConversation_IdAndRoleAndLeftAtIsNull(
+                        UUID conversationId, ParticipantRole role);
 
-    @Query("SELECT COUNT(cp) FROM ConversationParticipant cp " +
-            "WHERE cp.conversation.id = :conversationId AND cp.leftAt IS NULL")
-    long countActiveParticipantsByConversationId(@Param("conversationId") UUID conversationId);
+        // Count active participants
+        @Query("SELECT COUNT(cp) FROM ConversationParticipant cp " +
+                        "WHERE cp.conversation = :conversation AND cp.leftAt IS NULL")
+        long countActiveParticipants(@Param("conversation") Conversation conversation);
 
-    // Check if user has specific role
-    boolean existsByConversation_IdAndUser_IdAndRoleAndLeftAtIsNull(
-            UUID conversationId, UUID userId, ParticipantRole role);
+        @Query("SELECT COUNT(cp) FROM ConversationParticipant cp " +
+                        "WHERE cp.conversation.id = :conversationId AND cp.leftAt IS NULL")
+        long countActiveParticipantsByConversationId(@Param("conversationId") UUID conversationId);
+
+        // Check if user has specific role
+        boolean existsByConversation_IdAndUser_IdAndRoleAndLeftAtIsNull(
+                        UUID conversationId, UUID userId, ParticipantRole role);
 }

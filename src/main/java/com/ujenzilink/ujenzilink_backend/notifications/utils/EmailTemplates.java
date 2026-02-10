@@ -59,6 +59,14 @@ public class EmailTemplates {
                 "~Musa";
     }
 
+    public static String getProjectInvitationEmail(String name, String projectName, String inviterName) {
+        return "Dear " + name.toUpperCase() + ",\n\n" +
+                "You have been added to the project '" + projectName + "' by " + inviterName + ".\n\n" +
+                "You can now access the project details and collaborate with the team.\n\n" +
+                "Best regards,\n\n" +
+                "~Musa";
+    }
+
     public static String getAccountLockedEmail(String name) {
         return "Dear " + name.toUpperCase() + ",\n\n" +
                 "Your account has been temporarily locked due to multiple failed login attempts.\n\n" +
