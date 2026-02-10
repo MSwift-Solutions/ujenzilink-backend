@@ -15,6 +15,9 @@ import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ReplyDTO;
 import com.ujenzilink.ujenzilink_backend.user_mgt.enums.ActivityType;
 import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
+import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -39,6 +42,9 @@ public class PostCommentService {
 
     @Autowired
     private ActivityService activityService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     public ApiCustomResponse<List<CommentDTO>> getPostComments(UUID postId) {
         Post post = postRepository.findById(postId).orElse(null);
@@ -111,6 +117,39 @@ public class PostCommentService {
         // Log comment creation activity
         activityService.logActivity(currentUser, ActivityType.CREATE_COMMENT, savedComment.getId());
 
+        // Send notifications
+        if (savedComment.getParentComment() != null) {
+            // It's a reply
+            User parentCommenter = savedComment.getParentComment().getCommenter();
+            if (parentCommenter != null && !parentCommenter.getId().equals(currentUser.getId())) {
+                notificationService.createNotification(
+                        parentCommenter,
+                        currentUser,
+                        NotificationType.POST_COMMENT_REPLY,
+                        "New Reply",
+                        currentUser.getFirstName() + " replied to your comment.",
+                        NotificationPriority.LOW,
+                        false,
+                        null,
+                        null);
+            }
+        } else {
+            // It's a comment on the post
+            User postCreator = post.getCreator();
+            if (postCreator != null && !postCreator.getId().equals(currentUser.getId())) {
+                notificationService.createNotification(
+                        postCreator,
+                        currentUser,
+                        NotificationType.POST_COMMENT,
+                        "New Comment",
+                        currentUser.getFirstName() + " commented on your post.",
+                        NotificationPriority.LOW,
+                        false,
+                        null,
+                        null);
+            }
+        }
+
         // Map to DTO for response (newly created comment has no replies)
         CommentDTO responseDTO = mapToCommentDTO(savedComment, new ArrayList<>(), currentUser);
 
@@ -150,6 +189,21 @@ public class PostCommentService {
             // Update counts
             comment.setLikesCount((comment.getLikesCount() != null ? comment.getLikesCount() : 0) + 1);
             postCommentRepository.save(comment);
+
+            // Send notification to commenter
+            User commenter = comment.getCommenter();
+            if (commenter != null && !commenter.getId().equals(currentUser.getId())) {
+                notificationService.createNotification(
+                        commenter,
+                        currentUser,
+                        NotificationType.POST_COMMENT_LIKE,
+                        "Comment Liked",
+                        currentUser.getFirstName() + " liked your comment.",
+                        NotificationPriority.LOW,
+                        false,
+                        null,
+                        null);
+            }
 
             activityService.logActivity(currentUser, ActivityType.LIKE_COMMENT, commentId);
             return new ApiCustomResponse<>(null, "Comment liked successfully", HttpStatus.CREATED.value());

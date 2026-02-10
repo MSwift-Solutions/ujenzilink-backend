@@ -13,6 +13,9 @@ import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectCommentLikeRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectCommentRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
+import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -39,6 +42,9 @@ public class ProjectCommentService {
 
     @Autowired
     private ActivityService activityService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     public ApiCustomResponse<List<CommentDTO>> getProjectComments(UUID projectId) {
         Project project = projectRepository.findById(projectId).orElse(null);
@@ -107,6 +113,39 @@ public class ProjectCommentService {
         // Log comment creation activity
         activityService.logActivity(currentUser, ActivityType.CREATE_COMMENT, savedComment.getId());
 
+        // Send notifications
+        if (savedComment.getParentComment() != null) {
+            // It's a reply
+            User parentCommenter = savedComment.getParentComment().getCommenter();
+            if (parentCommenter != null && !parentCommenter.getId().equals(currentUser.getId())) {
+                notificationService.createNotification(
+                        parentCommenter,
+                        currentUser,
+                        NotificationType.PROJECT_COMMENT_REPLY,
+                        "New Reply",
+                        currentUser.getFirstName() + " replied to your comment on project " + project.getTitle() + ".",
+                        NotificationPriority.LOW,
+                        false,
+                        null,
+                        null);
+            }
+        } else {
+            // It's a comment on the project
+            User projectOwner = project.getOwner();
+            if (projectOwner != null && !projectOwner.getId().equals(currentUser.getId())) {
+                notificationService.createNotification(
+                        projectOwner,
+                        currentUser,
+                        NotificationType.PROJECT_COMMENT,
+                        "New Comment",
+                        currentUser.getFirstName() + " commented on your project " + project.getTitle() + ".",
+                        NotificationPriority.LOW,
+                        false,
+                        null,
+                        null);
+            }
+        }
+
         // Map to DTO for response (newly created comment has no replies)
         CommentDTO responseDTO = mapToCommentDTO(savedComment, new ArrayList<>(), currentUser);
 
@@ -137,6 +176,22 @@ public class ProjectCommentService {
         } else {
             ProjectCommentLike commentLike = new ProjectCommentLike(comment, currentUser);
             projectCommentLikeRepository.save(commentLike);
+
+            // Send notification to commenter
+            User commenter = comment.getCommenter();
+            if (commenter != null && !commenter.getId().equals(currentUser.getId())) {
+                notificationService.createNotification(
+                        commenter,
+                        currentUser,
+                        NotificationType.PROJECT_COMMENT_LIKE,
+                        "Comment Liked",
+                        currentUser.getFirstName() + " liked your comment.",
+                        NotificationPriority.LOW,
+                        false,
+                        null,
+                        null);
+            }
+
             activityService.logActivity(currentUser, ActivityType.LIKE_COMMENT, commentId);
             return new ApiCustomResponse<>(null, "Comment liked successfully", HttpStatus.CREATED.value());
         }
