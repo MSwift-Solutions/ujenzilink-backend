@@ -1,21 +1,24 @@
 package com.ujenzilink.ujenzilink_backend.auth.models;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.redis.core.RedisHash;
-import org.springframework.data.redis.core.index.Indexed;
-
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-@RedisHash(value = "verification_tokens", timeToLive = 900)
+@Entity
+@Table(name = "verification_tokens")
 public class VerificationToken {
 
     @Id
+    @Column(length = 6)
     private String token;
 
-    @Indexed
+    @Column(nullable = false)
     private UUID userId;
 
+    @Column(nullable = false)
     private Instant expiresAt;
 
     public VerificationToken() {

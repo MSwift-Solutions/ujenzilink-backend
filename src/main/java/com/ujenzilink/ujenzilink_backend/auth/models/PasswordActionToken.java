@@ -1,24 +1,26 @@
 package com.ujenzilink.ujenzilink_backend.auth.models;
 
 import com.ujenzilink.ujenzilink_backend.auth.enums.PasswordActionType;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.redis.core.RedisHash;
-import org.springframework.data.redis.core.index.Indexed;
-
+import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
 
-@RedisHash(value = "password_tokens", timeToLive = 900)
+@Entity
+@Table(name = "password_tokens")
 public class PasswordActionToken {
 
     @Id
+    @Column(length = 6)
     private String token;
 
-    @Indexed
+    @Column(nullable = false)
     private UUID userId;
 
+    @Column(nullable = false)
     private Instant expiresAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private PasswordActionType actionType;
 
     public PasswordActionToken() {
