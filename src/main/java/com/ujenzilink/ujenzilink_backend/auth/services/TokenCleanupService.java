@@ -20,9 +20,7 @@ public class TokenCleanupService {
         this.passwordActionTokenRepository = passwordActionTokenRepository;
     }
 
-    /**
-     * Cleans up expired tokens every hour.
-     */
+    // Cleans up expired tokens every hour.
     @Scheduled(cron = "0 0 * * * *")
     @Transactional
     public void cleanupExpiredTokens() {
@@ -31,7 +29,7 @@ public class TokenCleanupService {
         int deletedVerification = verificationTokenRepository.deleteByExpiresAtBefore(now);
         int deletedPassword = passwordActionTokenRepository.deleteByExpiresAtBefore(now);
 
-        System.out.println("Cleaned up expired tokens: " + deletedVerification + " verification, " + deletedPassword
-                + " password.");
+//        System.out.println("Cleaned up expired tokens: " + deletedVerification + " verification, " + deletedPassword
+//                + " password.");
     }
 }
