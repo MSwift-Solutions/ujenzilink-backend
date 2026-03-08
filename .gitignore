@@ -32,6 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 
-
+.env
 **/resources/application.yaml
 
