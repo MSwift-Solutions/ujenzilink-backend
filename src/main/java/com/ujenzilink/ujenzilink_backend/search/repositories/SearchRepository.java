@@ -11,31 +11,11 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Repository providing PostgreSQL Full-Text Search (FTS) queries for the unified search endpoint.
- *
- * <p>Strategy:
- * <ul>
- *   <li>Primary ranking: {@code ts_rank} on a computed {@code tsvector}</li>
- *   <li>Fallback for short / typo queries: {@code pg_trgm} similarity via ILIKE trigram patterns</li>
- *   <li>Each search has a paired COUNT query so the service can return total match sizes
- *       without fetching all rows.</li>
- * </ul>
- *
- * <p>Requirements: {@code pg_trgm} extension must be enabled in the database.
- * Run {@code CREATE EXTENSION IF NOT EXISTS pg_trgm;} once on the target PostgreSQL instance.
- */
 @Repository
 public interface SearchRepository extends JpaRepository<User, UUID> {
 
-    // ─── USERS ────────────────────────────────────────────────────────────────
+    // ─── USERS ───────────────────────────────────────────────────────────────
 
-    /**
-     * Full-text + trigram search across first name, last name, username, bio, skills, and location.
-     *
-     * <p>The query combines two strategies with OR so both exact FTS matches and fuzzy ILIKE
-     * matches are included, then ranks by FTS relevance descending.
-     */
     @Query(value = """
             SELECT u.*
             FROM users u
@@ -75,9 +55,6 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
                            @Param("rawQuery") String rawQuery,
                            @Param("limit") int limit);
 
-    /**
-     * Count of users matching the search — used to populate {@code SearchResultCounts.totalPeople}.
-     */
     @Query(value = """
             SELECT COUNT(u.id)
             FROM users u
@@ -102,12 +79,8 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
     long countSearchUsers(@Param("query") String query,
                           @Param("rawQuery") String rawQuery);
 
-    // ─── PROJECTS ─────────────────────────────────────────────────────────────
+    // ─── PROJECTS ────────────────────────────────────────────────────────────
 
-    /**
-     * Full-text + trigram search over project title, description, and location.
-     * Only PUBLIC, non-deleted projects are included.
-     */
     @Query(value = """
             SELECT p.*
             FROM projects p
@@ -142,9 +115,6 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
                                  @Param("rawQuery") String rawQuery,
                                  @Param("limit") int limit);
 
-    /**
-     * Count of projects matching the search — used to populate {@code SearchResultCounts.totalProjects}.
-     */
     @Query(value = """
             SELECT COUNT(p.id)
             FROM projects p
@@ -166,12 +136,8 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
     long countSearchProjects(@Param("query") String query,
                               @Param("rawQuery") String rawQuery);
 
-    // ─── POSTS ────────────────────────────────────────────────────────────────
+    // ─── POSTS ───────────────────────────────────────────────────────────────
 
-    /**
-     * Full-text + trigram search over post content.
-     * Only non-deleted posts are included.
-     */
     @Query(value = """
             SELECT po.*
             FROM posts po
@@ -193,9 +159,6 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
                            @Param("rawQuery") String rawQuery,
                            @Param("limit") int limit);
 
-    /**
-     * Count of posts matching the search — used to populate {@code SearchResultCounts.totalPosts}.
-     */
     @Query(value = """
             SELECT COUNT(po.id)
             FROM posts po

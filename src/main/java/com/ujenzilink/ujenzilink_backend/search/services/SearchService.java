@@ -22,22 +22,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Orchestrates unified full-text search across Users, Projects, and Posts.
- *
- * <p>Search approach:
- * <ol>
- *   <li>Validates and sanitises the query string.</li>
- *   <li>Runs three parallel pairs of (search + count) native SQL queries using
- *       {@link SearchRepository}.</li>
- *   <li>Maps raw JPA entities to lean search result DTOs.</li>
- *   <li>Returns up to {@code limit} results per category and the full match count
- *       per category so the frontend can show "400 results found".</li>
- * </ol>
- *
- * <p>Requires the {@code pg_trgm} extension on the PostgreSQL instance:
- * {@code CREATE EXTENSION IF NOT EXISTS pg_trgm;}
- */
 @Service
 public class SearchService {
 
@@ -56,13 +40,6 @@ public class SearchService {
     @Autowired
     private SecurityUtil securityUtil;
 
-    /**
-     * Perform a unified search across people, projects, and posts.
-     *
-     * @param query raw query string from the client
-     * @param limit max results to return per category (1–50); defaults to 10
-     * @return {@link ApiCustomResponse} wrapping a {@link SearchResponse}
-     */
     @Transactional(readOnly = true)
     public ApiCustomResponse<SearchResponse> search(String query, Integer limit) {
 
@@ -214,10 +191,7 @@ public class SearchService {
                 : "https://ui-avatars.com/api/?name=" + fullName.replace(" ", "+") + "&background=random";
     }
 
-    /**
-     * Human-readable relative time from a past {@link Instant}, e.g. "3 hours ago".
-     * Mirrors the implementation in {@code UserMgtService} for consistency.
-     */
+    // relative time string e.g. "3 hours ago"
     private String formatLastActivity(Instant lastLogin) {
         Duration duration = Duration.between(lastLogin, Instant.now());
         long seconds = duration.getSeconds();
