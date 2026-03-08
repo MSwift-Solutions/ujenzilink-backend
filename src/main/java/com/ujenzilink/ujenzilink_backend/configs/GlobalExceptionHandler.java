@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.redis.RedisConnectionFailureException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -27,21 +27,7 @@ import io.jsonwebtoken.MalformedJwtException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-        /**
-         * REDIS CONNECTION FAILURE HANDLER
-         * Handles Redis connection issues gracefully with a generic message
-         */
-        @ExceptionHandler(RedisConnectionFailureException.class)
-        public ResponseEntity<ApiCustomResponse<Void>> handleRedisConnectionFailure(
-                        RedisConnectionFailureException ex) {
-                // Log the actual error for debugging (in production, use a proper logger)
-                System.err.println("Redis connection failed: " + ex.getMessage());
 
-                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(new ApiCustomResponse<>(
-                                null,
-                                "Service temporarily unavailable. Please try again later.",
-                                HttpStatus.SERVICE_UNAVAILABLE.value()));
-        }
 
         /**
          * CATCH-ALL EXCEPTION HANDLER
