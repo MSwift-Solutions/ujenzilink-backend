@@ -136,7 +136,55 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
     long countSearchProjects(@Param("query") String query,
                               @Param("rawQuery") String rawQuery);
 
-    // ─── POSTS ───────────────────────────────────────────────────────────────
+    // ─── FALLBACK: projects by person name (owner or member) ─────────────────
+    // Called when the primary project text search returns no results.
+    // Joins project_members so we catch both project owners and added members.
+
+    @Query(value = """
+            SELECT DISTINCT p.*
+            FROM projects p
+            LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.is_deleted = false
+            LEFT JOIN users u ON u.id = p.owner_id OR u.id = pm.user_id
+            WHERE p.is_deleted = false
+              AND p.visibility = 'PUBLIC'
+              AND (
+                    to_tsvector('english',
+                        COALESCE(u.first_name, '') || ' ' ||
+                        COALESCE(u.middle_name, '') || ' ' ||
+                        COALESCE(u.last_name, '')
+                    ) @@ plainto_tsquery('english', :query)
+                    OR LOWER(CONCAT(u.first_name, ' ', COALESCE(u.middle_name, ''), ' ', u.last_name))
+                        ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                  )
+            ORDER BY p.created_at DESC
+            LIMIT :limit
+            """,
+            nativeQuery = true)
+    List<Project> searchProjectsByPersonName(@Param("query") String query,
+                                             @Param("rawQuery") String rawQuery,
+                                             @Param("limit") int limit);
+
+    @Query(value = """
+            SELECT COUNT(DISTINCT p.id)
+            FROM projects p
+            LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.is_deleted = false
+            LEFT JOIN users u ON u.id = p.owner_id OR u.id = pm.user_id
+            WHERE p.is_deleted = false
+              AND p.visibility = 'PUBLIC'
+              AND (
+                    to_tsvector('english',
+                        COALESCE(u.first_name, '') || ' ' ||
+                        COALESCE(u.middle_name, '') || ' ' ||
+                        COALESCE(u.last_name, '')
+                    ) @@ plainto_tsquery('english', :query)
+                    OR LOWER(CONCAT(u.first_name, ' ', COALESCE(u.middle_name, ''), ' ', u.last_name))
+                        ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                  )
+            """,
+            nativeQuery = true)
+    long countSearchProjectsByPersonName(@Param("query") String query,
+                                         @Param("rawQuery") String rawQuery);
+
 
     @Query(value = """
             SELECT po.*
@@ -172,4 +220,48 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
             nativeQuery = true)
     long countSearchPosts(@Param("query") String query,
                           @Param("rawQuery") String rawQuery);
+
+    // ─── FALLBACK: posts by person name (creator) ─────────────────────────────
+    // Called when the primary post content search returns no results.
+
+    @Query(value = """
+            SELECT po.*
+            FROM posts po
+            JOIN users u ON u.id = po.creator_user_id
+            WHERE po.is_deleted = false
+              AND (
+                    to_tsvector('english',
+                        COALESCE(u.first_name, '') || ' ' ||
+                        COALESCE(u.middle_name, '') || ' ' ||
+                        COALESCE(u.last_name, '')
+                    ) @@ plainto_tsquery('english', :query)
+                    OR LOWER(CONCAT(u.first_name, ' ', COALESCE(u.middle_name, ''), ' ', u.last_name))
+                        ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                  )
+            ORDER BY po.created_at DESC
+            LIMIT :limit
+            """,
+            nativeQuery = true)
+    List<Post> searchPostsByPersonName(@Param("query") String query,
+                                       @Param("rawQuery") String rawQuery,
+                                       @Param("limit") int limit);
+
+    @Query(value = """
+            SELECT COUNT(po.id)
+            FROM posts po
+            JOIN users u ON u.id = po.creator_user_id
+            WHERE po.is_deleted = false
+              AND (
+                    to_tsvector('english',
+                        COALESCE(u.first_name, '') || ' ' ||
+                        COALESCE(u.middle_name, '') || ' ' ||
+                        COALESCE(u.last_name, '')
+                    ) @@ plainto_tsquery('english', :query)
+                    OR LOWER(CONCAT(u.first_name, ' ', COALESCE(u.middle_name, ''), ' ', u.last_name))
+                        ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                  )
+            """,
+            nativeQuery = true)
+    long countSearchPostsByPersonName(@Param("query") String query,
+                                      @Param("rawQuery") String rawQuery);
 }

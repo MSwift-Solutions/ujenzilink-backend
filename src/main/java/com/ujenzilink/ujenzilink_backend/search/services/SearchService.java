@@ -73,14 +73,29 @@ public class SearchService {
         int effectiveLimit = (limit == null || limit < 1) ? DEFAULT_LIMIT : Math.min(limit, MAX_LIMIT);
 
         // ── Run searches ────────────────────────────────────────────────────
-        List<User>    users    = searchRepository.searchUsers(sanitised, sanitised, effectiveLimit);
-        long          totalPeople   = searchRepository.countSearchUsers(sanitised, sanitised);
+        List<User> users      = searchRepository.searchUsers(sanitised, sanitised, effectiveLimit);
+        long       totalPeople = searchRepository.countSearchUsers(sanitised, sanitised);
 
-        List<Project> projects = searchRepository.searchProjects(sanitised, sanitised, effectiveLimit);
+        List<Project> projects      = searchRepository.searchProjects(sanitised, sanitised, effectiveLimit);
         long          totalProjects = searchRepository.countSearchProjects(sanitised, sanitised);
 
-        List<Post>    posts    = searchRepository.searchPosts(sanitised, sanitised, effectiveLimit);
-        long          totalPosts    = searchRepository.countSearchPosts(sanitised, sanitised);
+        List<Post> posts      = searchRepository.searchPosts(sanitised, sanitised, effectiveLimit);
+        long       totalPosts = searchRepository.countSearchPosts(sanitised, sanitised);
+
+        // ── Fallback: if primary text search returned NOTHING, search by person name ──
+        if (projects.isEmpty()) {
+            projects = searchRepository.searchProjectsByPersonName(sanitised, sanitised, effectiveLimit);
+            if (!projects.isEmpty()) {
+                totalProjects = searchRepository.countSearchProjectsByPersonName(sanitised, sanitised);
+            }
+        }
+
+        if (posts.isEmpty()) {
+            posts = searchRepository.searchPostsByPersonName(sanitised, sanitised, effectiveLimit);
+            if (!posts.isEmpty()) {
+                totalPosts = searchRepository.countSearchPostsByPersonName(sanitised, sanitised);
+            }
+        }
 
         // ── Map results ─────────────────────────────────────────────────────
         List<SearchPeopleResult>  peopleResults  = users.stream()
