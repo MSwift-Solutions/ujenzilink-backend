@@ -264,4 +264,15 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
             nativeQuery = true)
     long countSearchPostsByPersonName(@Param("query") String query,
                                       @Param("rawQuery") String rawQuery);
+
+    // ─── RANDOM SAMPLES ──────────────────────────────────────────────────────
+
+    @Query(value = "SELECT * FROM users WHERE is_deleted = false AND is_enabled = true ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
+    List<User> findRandomUsers(@Param("limit") int limit);
+
+    @Query(value = "SELECT * FROM projects WHERE is_deleted = false AND visibility = 'PUBLIC' ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
+    List<Project> findRandomProjects(@Param("limit") int limit);
+
+    @Query(value = "SELECT * FROM posts WHERE is_deleted = false ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
+    List<Post> findRandomPosts(@Param("limit") int limit);
 }

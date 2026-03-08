@@ -114,6 +114,40 @@ public class SearchService {
                 HttpStatus.OK.value());
     }
 
+    @Transactional(readOnly = true)
+    public ApiCustomResponse<SearchResponse> getSampleData() {
+        // ── Auth check ──────────────────────────────────────────────────────
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        int sampleLimit = 5;
+
+        // ── Fetch random data ───────────────────────────────────────────────
+        List<User> users       = searchRepository.findRandomUsers(sampleLimit);
+        List<Project> projects = searchRepository.findRandomProjects(sampleLimit);
+        List<Post> posts       = searchRepository.findRandomPosts(sampleLimit);
+
+        // ── Map results ─────────────────────────────────────────────────────
+        List<SearchPeopleResult>  peopleResults  = users.stream()
+                .map(this::mapUserToSearchResult).toList();
+
+        List<SearchProjectResult> projectResults = projects.stream()
+                .map(this::mapProjectToSearchResult).toList();
+
+        List<SearchPostResult>    postResults    = posts.stream()
+                .map(this::mapPostToSearchResult).toList();
+
+        // ── Counts are set to 0 as per requirement ──────────────────────────
+        SearchResultCounts counts = new SearchResultCounts(0, 0, 0);
+        SearchResponse response   = new SearchResponse(peopleResults, projectResults, postResults, counts);
+
+        return new ApiCustomResponse<>(response,
+                "Sample data fetched successfully",
+                HttpStatus.OK.value());
+    }
+
     // ─── Mapper helpers ──────────────────────────────────────────────────────
 
     private SearchPeopleResult mapUserToSearchResult(User user) {

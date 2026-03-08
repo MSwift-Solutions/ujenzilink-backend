@@ -28,4 +28,10 @@ public class SearchController {
         ApiCustomResponse<SearchResponse> response = searchService.search(q, limit);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
+
+    @GetMapping("/sample")
+    public ResponseEntity<ApiCustomResponse<SearchResponse>> getSampleData() {
+        ApiCustomResponse<SearchResponse> response = searchService.getSampleData();
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
 }
