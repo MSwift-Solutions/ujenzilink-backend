@@ -1,5 +1,6 @@
 package com.ujenzilink.ujenzilink_backend.search.dtos;
 
+import java.time.Instant;
 import java.util.UUID;
 
 
@@ -11,5 +12,5 @@ public record SearchPeopleResult(
         String bio,
         String location,
         String skills,
-        String lastActivity) {
+        Instant lastActivity) {
 }

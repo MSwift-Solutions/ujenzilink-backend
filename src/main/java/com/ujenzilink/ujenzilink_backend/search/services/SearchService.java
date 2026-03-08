@@ -17,7 +17,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -121,9 +120,6 @@ public class SearchService {
         String name = user.getFullName();
         String username = resolveUsername(user);
         String profilePictureUrl = resolveProfilePicture(user, name);
-        String lastActivity = user.getLastSuccessfulLogin() != null
-                ? formatLastActivity(user.getLastSuccessfulLogin())
-                : null;
 
         return new SearchPeopleResult(
                 user.getId(),
@@ -133,7 +129,7 @@ public class SearchService {
                 user.getBio(),
                 user.getLocation(),
                 user.getSkills(),
-                lastActivity);
+                user.getLastSuccessfulLogin());
     }
 
     private SearchProjectResult mapProjectToSearchResult(Project project) {
@@ -204,25 +200,5 @@ public class SearchService {
         return (user.getProfilePicture() != null)
                 ? user.getProfilePicture().getUrl()
                 : "https://ui-avatars.com/api/?name=" + fullName.replace(" ", "+") + "&background=random";
-    }
-
-    // relative time string e.g. "3 hours ago"
-    private String formatLastActivity(Instant lastLogin) {
-        Duration duration = Duration.between(lastLogin, Instant.now());
-        long seconds = duration.getSeconds();
-        long minutes = duration.toMinutes();
-        long hours   = duration.toHours();
-        long days    = duration.toDays();
-
-        if (seconds < 60)  return "Just now";
-        if (minutes < 60)  return minutes + (minutes == 1 ? " minute ago" : " minutes ago");
-        if (hours < 24)    return hours   + (hours   == 1 ? " hour ago"   : " hours ago");
-        if (days < 7)      return days    + (days    == 1 ? " day ago"    : " days ago");
-        long weeks = days / 7;
-        if (days < 30)     return weeks   + (weeks   == 1 ? " week ago"   : " weeks ago");
-        long months = days / 30;
-        if (days < 365)    return months  + (months  == 1 ? " month ago"  : " months ago");
-        long years = days / 365;
-        return years + (years == 1 ? " year ago" : " years ago");
     }
 }
