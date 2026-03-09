@@ -1,6 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.search.controllers;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.search.dtos.PeoplePageResponse;
 import com.ujenzilink.ujenzilink_backend.search.dtos.SearchResponse;
 import com.ujenzilink.ujenzilink_backend.search.services.SearchService;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +33,16 @@ public class SearchController {
     @GetMapping("/sample")
     public ResponseEntity<ApiCustomResponse<SearchResponse>> getSampleData() {
         ApiCustomResponse<SearchResponse> response = searchService.getSampleData();
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/people")
+    public ResponseEntity<ApiCustomResponse<PeoplePageResponse>> searchPeople(
+            @RequestParam(name = "q") String q,
+            @RequestParam(name = "cursor", required = false) String cursor,
+            @RequestParam(name = "limit", required = false, defaultValue = "10") Integer limit) {
+
+        ApiCustomResponse<PeoplePageResponse> response = searchService.searchPeoplePaginated(q, cursor, limit);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }

@@ -12,6 +12,9 @@ import com.ujenzilink.ujenzilink_backend.projects.models.StagePhoto;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.StagePhotoRepository;
 import com.ujenzilink.ujenzilink_backend.search.dtos.*;
 import com.ujenzilink.ujenzilink_backend.search.repositories.SearchRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
+import com.ujenzilink.ujenzilink_backend.posts.repositories.PostRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Base64;
 import java.util.Optional;
 
 @Service
@@ -35,6 +40,12 @@ public class SearchService {
 
     @Autowired
     private StagePhotoRepository stagePhotoRepository;
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
+    private PostRepository postRepository;
 
     @Autowired
     private SecurityUtil securityUtil;
@@ -112,6 +123,92 @@ public class SearchService {
         return new ApiCustomResponse<>(response,
                 "Search completed successfully",
                 HttpStatus.OK.value());
+    }
+
+    @Transactional(readOnly = true)
+    public ApiCustomResponse<PeoplePageResponse> searchPeoplePaginated(String query, String cursor, Integer limit) {
+
+        // ── Auth check ──────────────────────────────────────────────────────
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        // ── Validate query ──────────────────────────────────────────────────
+        if (query == null || query.isBlank()) {
+            return new ApiCustomResponse<>(null, "Search query must not be blank", HttpStatus.BAD_REQUEST.value());
+        }
+
+        String trimmed = query.trim();
+        if (trimmed.length() < 2) {
+            return new ApiCustomResponse<>(null, "Search query must be at least 2 characters", HttpStatus.BAD_REQUEST.value());
+        }
+        if (trimmed.length() > 200) {
+            return new ApiCustomResponse<>(null, "Search query must not exceed 200 characters", HttpStatus.BAD_REQUEST.value());
+        }
+
+        String sanitised = trimmed.replaceAll("[!&|<>():*]", " ").trim();
+        int effectiveLimit = (limit == null || limit < 1) ? DEFAULT_LIMIT : Math.min(limit, MAX_LIMIT);
+
+        Instant cursorTime = Instant.now();
+        if (cursor != null && !cursor.isEmpty()) {
+            try {
+                String decodedJson = new String(Base64.getDecoder().decode(cursor));
+                ObjectMapper mapper = new ObjectMapper();
+                @SuppressWarnings("unchecked")
+                Map<String, Object> cursorData = mapper.readValue(decodedJson, Map.class);
+                if (cursorData.containsKey("timestamp")) {
+                    cursorTime = Instant.parse((String) cursorData.get("timestamp"));
+                }
+            } catch (Exception e) {
+                return new ApiCustomResponse<>(null, "Invalid cursor format", HttpStatus.BAD_REQUEST.value());
+            }
+        }
+
+        // Fetch limit + 1 to determine if there are more
+        List<User> users = searchRepository.searchUsersPaginated(sanitised, sanitised, effectiveLimit + 1, cursorTime);
+        
+        boolean hasMore = users.size() > effectiveLimit;
+        if (hasMore) {
+            users = users.subList(0, effectiveLimit);
+        }
+
+        List<PersonDTO> people = users.stream().map(u -> {
+            int projCount = (int) projectRepository.countByOwner_IdAndIsDeletedFalse(u.getId());
+            int postCount = (int) postRepository.countByCreator_IdAndIsDeletedFalse(u.getId());
+            
+            String roleStr = (u.getRole() != null) ? u.getRole().name() : "USER";
+            String avatarUrl = resolveProfilePicture(u, u.getFullName());
+            String loc = (u.getLocation() != null) ? u.getLocation() : "";
+            
+            return new PersonDTO(
+                    u.getId(),
+                    u.getFullName(),
+                    resolveUsername(u),
+                    avatarUrl,
+                    roleStr,
+                    loc,
+                    projCount,
+                    postCount,
+                    u.getBio(),
+                    0 // yearsInConstruction
+            );
+        }).toList();
+
+        String nextCursor = null;
+        if (hasMore && !users.isEmpty()) {
+            try {
+                User lastUser = users.get(users.size() - 1);
+                String cursorJson = String.format("{\"timestamp\":\"%s\"}", lastUser.getDateOfCreation().toString());
+                nextCursor = Base64.getEncoder().encodeToString(cursorJson.getBytes());
+            } catch (Exception e) {
+                // Ignore cursor generation errors
+            }
+        }
+
+        PeoplePageResponse pageResponse = new PeoplePageResponse(people, nextCursor, hasMore);
+
+        return new ApiCustomResponse<>(pageResponse, "Paginated people retrieved successfully", HttpStatus.OK.value());
     }
 
     @Transactional(readOnly = true)

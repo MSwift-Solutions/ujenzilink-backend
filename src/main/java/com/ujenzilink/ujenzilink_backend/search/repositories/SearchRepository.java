@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -54,6 +55,35 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
     List<User> searchUsers(@Param("query") String query,
                            @Param("rawQuery") String rawQuery,
                            @Param("limit") int limit);
+
+    @Query(value = """
+            SELECT u.*
+            FROM users u
+            WHERE u.is_deleted = false
+              AND u.is_enabled = true
+              AND u.date_of_creation < :cursor
+              AND (
+                    to_tsvector('english',
+                        COALESCE(u.first_name, '') || ' ' ||
+                        COALESCE(u.middle_name, '') || ' ' ||
+                        COALESCE(u.last_name, '') || ' ' ||
+                        COALESCE(u.username, '') || ' ' ||
+                        COALESCE(u.bio, '') || ' ' ||
+                        COALESCE(u.skills, '') || ' ' ||
+                        COALESCE(u.location, '')
+                    ) @@ plainto_tsquery('english', :query)
+                    OR LOWER(CONCAT(u.first_name, ' ', COALESCE(u.middle_name, ''), ' ', u.last_name))
+                        ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                    OR LOWER(u.username) ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                  )
+            ORDER BY u.date_of_creation DESC
+            LIMIT :limit
+            """,
+            nativeQuery = true)
+    List<User> searchUsersPaginated(@Param("query") String query,
+                                    @Param("rawQuery") String rawQuery,
+                                    @Param("limit") int limit,
+                                    @Param("cursor") Instant cursor);
 
     @Query(value = """
             SELECT COUNT(u.id)
