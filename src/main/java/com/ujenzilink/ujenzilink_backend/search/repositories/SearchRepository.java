@@ -101,6 +101,56 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
                                     @Param("limit") int limit,
                                     @Param("cursor") Instant cursor);
 
+    // ─── PROJECTS (paginated search) ─────────────────────────────────────────
+
+    @Query(value = """
+            SELECT p.*
+            FROM projects p
+            WHERE p.is_deleted = false
+              AND p.visibility = 'PUBLIC'
+              AND p.created_at < :cursor
+              AND (
+                    to_tsvector('english',
+                        COALESCE(p.title, '') || ' ' ||
+                        COALESCE(p.description, '') || ' ' ||
+                        COALESCE(p.location, '') || ' ' ||
+                        COALESCE(CAST(p.project_type AS TEXT), '') || ' ' ||
+                        COALESCE(CAST(p.project_status AS TEXT), '')
+                    ) @@ plainto_tsquery('english', :query)
+                    OR LOWER(p.title) ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                    OR LOWER(p.location) ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                  )
+            ORDER BY p.created_at DESC
+            LIMIT :limit
+            """,
+            nativeQuery = true)
+    List<Project> searchProjectsPaginated(@Param("query") String query,
+                                          @Param("rawQuery") String rawQuery,
+                                          @Param("limit") int limit,
+                                          @Param("cursor") Instant cursor);
+
+    @Query(value = """
+            SELECT COUNT(p.id)
+            FROM projects p
+            WHERE p.is_deleted = false
+              AND p.visibility = 'PUBLIC'
+              AND (
+                    to_tsvector('english',
+                        COALESCE(p.title, '') || ' ' ||
+                        COALESCE(p.description, '') || ' ' ||
+                        COALESCE(p.location, '') || ' ' ||
+                        COALESCE(CAST(p.project_type AS TEXT), '') || ' ' ||
+                        COALESCE(CAST(p.project_status AS TEXT), '')
+                    ) @@ plainto_tsquery('english', :query)
+                    OR LOWER(p.title) ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                    OR LOWER(p.location) ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                  )
+            """,
+            nativeQuery = true)
+    long countSearchProjectsPaginated(@Param("query") String query,
+                                      @Param("rawQuery") String rawQuery);
+
+
     @Query(value = """
             SELECT COUNT(u.id)
             FROM users u
@@ -230,6 +280,34 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
             nativeQuery = true)
     long countSearchProjectsByPersonName(@Param("query") String query,
                                          @Param("rawQuery") String rawQuery);
+
+    // ─── FALLBACK: projects by person name (paginated, cursor-based) ──────────
+
+    @Query(value = """
+            SELECT DISTINCT p.*
+            FROM projects p
+            LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.is_deleted = false
+            LEFT JOIN users u ON u.id = p.owner_id OR u.id = pm.user_id
+            WHERE p.is_deleted = false
+              AND p.visibility = 'PUBLIC'
+              AND p.created_at < :cursor
+              AND (
+                    to_tsvector('english',
+                        COALESCE(u.first_name, '') || ' ' ||
+                        COALESCE(u.middle_name, '') || ' ' ||
+                        COALESCE(u.last_name, '')
+                    ) @@ plainto_tsquery('english', :query)
+                    OR LOWER(CONCAT(u.first_name, ' ', COALESCE(u.middle_name, ''), ' ', u.last_name))
+                        ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                  )
+            ORDER BY p.created_at DESC
+            LIMIT :limit
+            """,
+            nativeQuery = true)
+    List<Project> searchProjectsByPersonNamePaginated(@Param("query") String query,
+                                                      @Param("rawQuery") String rawQuery,
+                                                      @Param("limit") int limit,
+                                                      @Param("cursor") Instant cursor);
 
 
     @Query(value = """

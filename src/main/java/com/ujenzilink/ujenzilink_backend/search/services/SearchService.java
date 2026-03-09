@@ -7,9 +7,17 @@ import com.ujenzilink.ujenzilink_backend.posts.models.Post;
 import com.ujenzilink.ujenzilink_backend.posts.models.PostImage;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostImageRepository;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectListResponse;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
+import com.ujenzilink.ujenzilink_backend.projects.models.ProjectStage;
 import com.ujenzilink.ujenzilink_backend.projects.models.StagePhoto;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectCommentRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectFollowRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectLikeRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectStageRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.StagePhotoRepository;
+import com.ujenzilink.ujenzilink_backend.projects.utils.ProjectUtils;
 import com.ujenzilink.ujenzilink_backend.search.dtos.*;
 import com.ujenzilink.ujenzilink_backend.search.repositories.SearchRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
@@ -23,6 +31,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Base64;
@@ -45,6 +55,21 @@ public class SearchService {
 
     @Autowired
     private ProjectRepository projectRepository;
+
+    @Autowired
+    private ProjectStageRepository projectStageRepository;
+
+    @Autowired
+    private ProjectMemberRepository projectMemberRepository;
+
+    @Autowired
+    private ProjectFollowRepository projectFollowRepository;
+
+    @Autowired
+    private ProjectLikeRepository projectLikeRepository;
+
+    @Autowired
+    private ProjectCommentRepository projectCommentRepository;
 
     @Autowired
     private PostRepository postRepository;
@@ -235,6 +260,95 @@ public class SearchService {
     }
 
     @Transactional(readOnly = true)
+    public ApiCustomResponse<ProjectSearchPageResponse> searchProjectsPaginated(String query, String cursor, Integer limit) {
+
+        // ── Auth check ──────────────────────────────────────────────────────
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        // ── Require non-empty query ──────────────────────────────────────────
+        if (query == null || query.isBlank()) {
+            return new ApiCustomResponse<>(null, "Search query must not be blank", HttpStatus.BAD_REQUEST.value());
+        }
+
+        String trimmed = query.trim();
+        if (trimmed.length() < 2) {
+            return new ApiCustomResponse<>(null, "Search query must be at least 2 characters", HttpStatus.BAD_REQUEST.value());
+        }
+        if (trimmed.length() > 200) {
+            return new ApiCustomResponse<>(null, "Search query must not exceed 200 characters", HttpStatus.BAD_REQUEST.value());
+        }
+
+        String sanitised = trimmed.replaceAll("[!&|<>():*]", " ").trim();
+        if (sanitised.isEmpty()) {
+            return new ApiCustomResponse<>(null, "Search query contains no valid characters", HttpStatus.BAD_REQUEST.value());
+        }
+
+        int effectiveLimit = (limit == null || limit < 1) ? DEFAULT_LIMIT : Math.min(limit, MAX_LIMIT);
+
+        // ── Decode cursor ────────────────────────────────────────────────────
+        Instant cursorTime = Instant.now();
+        if (cursor != null && !cursor.isEmpty()) {
+            try {
+                String decodedJson = new String(Base64.getDecoder().decode(cursor));
+                ObjectMapper mapper = new ObjectMapper();
+                @SuppressWarnings("unchecked")
+                Map<String, Object> cursorData = mapper.readValue(decodedJson, Map.class);
+                if (cursorData.containsKey("timestamp")) {
+                    cursorTime = Instant.parse((String) cursorData.get("timestamp"));
+                }
+            } catch (Exception e) {
+                return new ApiCustomResponse<>(null, "Invalid cursor format", HttpStatus.BAD_REQUEST.value());
+            }
+        }
+
+        // ── Fetch limit + 1 to determine hasMore ─────────────────────────────
+        List<Project> projects = searchRepository.searchProjectsPaginated(sanitised, sanitised, effectiveLimit + 1, cursorTime);
+
+        boolean hasMore = projects.size() > effectiveLimit;
+        if (hasMore) {
+            projects = projects.subList(0, effectiveLimit);
+        }
+
+        // ── Fallback: if primary search returned nothing, search by person name ──
+        long totalProjects;
+        if (projects.isEmpty()) {
+            projects = searchRepository.searchProjectsByPersonNamePaginated(sanitised, sanitised, effectiveLimit + 1, cursorTime);
+            hasMore = projects.size() > effectiveLimit;
+            if (hasMore) {
+                projects = projects.subList(0, effectiveLimit);
+            }
+            totalProjects = projects.isEmpty() ? 0 : searchRepository.countSearchProjectsByPersonName(sanitised, sanitised);
+        } else {
+            totalProjects = searchRepository.countSearchProjectsPaginated(sanitised, sanitised);
+        }
+
+        // ── Map to ProjectListResponse ────────────────────────────────────────
+        List<ProjectListResponse> projectResponses = projects.stream()
+                .map(this::mapProjectToProjectListResponse)
+                .collect(java.util.stream.Collectors.toList());
+
+        // ── Generate next cursor ─────────────────────────────────────────────
+        String nextCursor = null;
+        if (hasMore && !projects.isEmpty()) {
+            try {
+                Project lastProject = projects.get(projects.size() - 1);
+                String cursorJson = String.format("{\"timestamp\":\"%s\"}", lastProject.getCreatedAt().toString());
+                nextCursor = Base64.getEncoder().encodeToString(cursorJson.getBytes());
+            } catch (Exception e) {
+                // Ignore cursor generation errors
+            }
+        }
+
+        ProjectSearchPageResponse pageResponse = new ProjectSearchPageResponse(projectResponses, nextCursor, hasMore, totalProjects);
+
+        return new ApiCustomResponse<>(pageResponse, "Project search results retrieved successfully", HttpStatus.OK.value());
+    }
+
+
+    @Transactional(readOnly = true)
     public ApiCustomResponse<SearchResponse> getSampleData() {
         // ── Auth check ──────────────────────────────────────────────────────
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
@@ -269,6 +383,68 @@ public class SearchService {
     }
 
     // ─── Mapper helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Reusable helper: maps a Project entity to a ProjectListResponse.
+     * Mirrors the mapping logic in ProjectService.getAllProjects.
+     */
+    private ProjectListResponse mapProjectToProjectListResponse(Project project) {
+        User creator = project.getCreatedBy();
+        String creatorName = creator.getFullName();
+        CreatorInfoDTO creatorInfo = new CreatorInfoDTO(
+                creator.getId(), creatorName, resolveUsername(creator), resolveProfilePicture(creator, creatorName));
+
+        int memberCount = projectMemberRepository.findByProjectAndIsDeletedFalse(project).size();
+
+        List<ProjectStage> stages = projectStageRepository.findByProjectOrderByCreatedAtAsc(project);
+        List<String> projectImages = new ArrayList<>();
+        List<ProjectStage> reversedStages = new ArrayList<>(stages);
+        Collections.reverse(reversedStages);
+        for (ProjectStage stage : reversedStages) {
+            if (projectImages.size() >= 3) break;
+            List<StagePhoto> stagePhotos = stagePhotoRepository.findByStageOrderByPhotoOrder(stage);
+            for (StagePhoto photo : stagePhotos) {
+                if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
+                    projectImages.add(photo.getImage().getUrl());
+                    if (projectImages.size() >= 3) break;
+                }
+            }
+        }
+
+        String currentStage;
+        if (!stages.isEmpty()) {
+            ProjectStage activeStage = stages.stream()
+                    .filter(s -> s.getStatus().name().contains("IN_PROGRESS")
+                            || s.getStatus().name().equals("PLANNING_PERMITS"))
+                    .findFirst()
+                    .orElse(stages.get(stages.size() - 1));
+            currentStage = ProjectUtils.formatEnumName(activeStage.getStatus().name());
+        } else {
+            currentStage = ProjectUtils.formatEnumName("PLANNING_PERMITS");
+        }
+
+        int followCount   = (int) projectFollowRepository.countByProjectAndIsActiveTrue(project);
+        int likesCount    = (int) projectLikeRepository.countByProject(project);
+        int commentsCount = (int) projectCommentRepository.countByProjectAndIsDeletedFalse(project);
+
+        return new ProjectListResponse(
+                project.getId(),
+                project.getTitle(),
+                project.getProjectType(),
+                project.getProjectStatus(),
+                project.getLocation(),
+                project.getCreatedAt(),
+                creatorInfo,
+                memberCount,
+                projectImages,
+                project.getEstimatedBudget(),
+                project.getCurrency(),
+                likesCount,
+                commentsCount,
+                followCount,
+                currentStage);
+    }
+
 
     private SearchPeopleResult mapUserToSearchResult(User user) {
         String name = user.getFullName();
