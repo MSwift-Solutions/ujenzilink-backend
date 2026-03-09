@@ -69,6 +69,9 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
     List<User> findAllUsersPaginated(@Param("limit") int limit,
                                      @Param("cursor") Instant cursor);
 
+    @Query(value = "SELECT COUNT(id) FROM users WHERE is_deleted = false AND is_enabled = true", nativeQuery = true)
+    long countAllActiveUsers();
+
     @Query(value = """
             SELECT u.*
             FROM users u

@@ -222,7 +222,14 @@ public class SearchService {
             }
         }
 
-        PeoplePageResponse pageResponse = new PeoplePageResponse(people, nextCursor, hasMore);
+        long totalPeople;
+        if (isQueryEmpty) {
+            totalPeople = searchRepository.countAllActiveUsers();
+        } else {
+            totalPeople = searchRepository.countSearchUsers(sanitised, sanitised);
+        }
+
+        PeoplePageResponse pageResponse = new PeoplePageResponse(people, nextCursor, hasMore, totalPeople);
 
         return new ApiCustomResponse<>(pageResponse, "Paginated people retrieved successfully", HttpStatus.OK.value());
     }
