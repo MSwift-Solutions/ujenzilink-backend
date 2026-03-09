@@ -388,6 +388,66 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
             nativeQuery = true)
     long countSearchPostsByPersonName(@Param("query") String query,
                                       @Param("rawQuery") String rawQuery);
+    // ─── POSTS (paginated search) ──────────────────────────────────────────────
+
+    @Query(value = """
+            SELECT po.*
+            FROM posts po
+            WHERE po.is_deleted = false
+              AND po.created_at < :cursor
+              AND (
+                    to_tsvector('english', COALESCE(po.content, ''))
+                        @@ plainto_tsquery('english', :query)
+                    OR LOWER(po.content) ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                  )
+            ORDER BY po.created_at DESC
+            LIMIT :limit
+            """,
+            nativeQuery = true)
+    List<Post> searchPostsPaginated(@Param("query") String query,
+                                    @Param("rawQuery") String rawQuery,
+                                    @Param("limit") int limit,
+                                    @Param("cursor") Instant cursor);
+
+    @Query(value = """
+            SELECT COUNT(po.id)
+            FROM posts po
+            WHERE po.is_deleted = false
+              AND (
+                    to_tsvector('english', COALESCE(po.content, ''))
+                        @@ plainto_tsquery('english', :query)
+                    OR LOWER(po.content) ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                  )
+            """,
+            nativeQuery = true)
+    long countSearchPostsPaginated(@Param("query") String query,
+                                   @Param("rawQuery") String rawQuery);
+
+    // ─── FALLBACK: posts by person name (paginated) ──────────────────────────
+
+    @Query(value = """
+            SELECT po.*
+            FROM posts po
+            JOIN users u ON u.id = po.creator_user_id
+            WHERE po.is_deleted = false
+              AND po.created_at < :cursor
+              AND (
+                    to_tsvector('english',
+                        COALESCE(u.first_name, '') || ' ' ||
+                        COALESCE(u.middle_name, '') || ' ' ||
+                        COALESCE(u.last_name, '')
+                    ) @@ plainto_tsquery('english', :query)
+                    OR LOWER(CONCAT(u.first_name, ' ', COALESCE(u.middle_name, ''), ' ', u.last_name))
+                        ILIKE LOWER(CONCAT('%', :rawQuery, '%'))
+                  )
+            ORDER BY po.created_at DESC
+            LIMIT :limit
+            """,
+            nativeQuery = true)
+    List<Post> searchPostsByPersonNamePaginated(@Param("query") String query,
+                                                @Param("rawQuery") String rawQuery,
+                                                @Param("limit") int limit,
+                                                @Param("cursor") Instant cursor);
 
     // ─── RANDOM SAMPLES ──────────────────────────────────────────────────────
 

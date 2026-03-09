@@ -6,6 +6,7 @@ import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.posts.models.Post;
 import com.ujenzilink.ujenzilink_backend.posts.models.PostImage;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostImageRepository;
+import com.ujenzilink.ujenzilink_backend.posts.dtos.PostListResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectListResponse;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
@@ -347,6 +348,96 @@ public class SearchService {
         return new ApiCustomResponse<>(pageResponse, "Project search results retrieved successfully", HttpStatus.OK.value());
     }
 
+    // ─── POSTS SEARCH (PAGINATED) ───────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public ApiCustomResponse<PostSearchPageResponse> searchPostsPaginated(
+            String query,
+            String cursor,
+            Integer limit) {
+
+        // ── Auth validation ──────────────────────────────────────────────────
+        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "Unauthorized access", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        // ── Input & limit validation ─────────────────────────────────────────
+        if (query == null || query.trim().isEmpty()) {
+            return new ApiCustomResponse<>(null, "Search query cannot be empty", HttpStatus.BAD_REQUEST.value());
+        }
+
+        String sanitised = query.trim().replaceAll("\\s+", " ");
+        if (sanitised.length() < 2) {
+            return new ApiCustomResponse<>(null, "Search query must be at least 2 characters", HttpStatus.BAD_REQUEST.value());
+        }
+        if (sanitised.length() > 100) {
+            return new ApiCustomResponse<>(null, "Search query too long (max 100 chars)", HttpStatus.BAD_REQUEST.value());
+        }
+
+        int effectiveLimit = (limit == null || limit < 1) ? 20 : limit;
+        if (effectiveLimit > 100) effectiveLimit = 100;
+
+        // ── Decode cursor ────────────────────────────────────────────────────
+        Instant cursorTime = Instant.now();
+        if (cursor != null && !cursor.trim().isEmpty()) {
+            try {
+                String decodedJson = new String(Base64.getDecoder().decode(cursor));
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                @SuppressWarnings("unchecked")
+                Map<String, Object> cursorData = mapper.readValue(decodedJson, Map.class);
+
+                if (cursorData.containsKey("timestamp")) {
+                    cursorTime = Instant.parse((String) cursorData.get("timestamp"));
+                }
+            } catch (Exception e) {
+                return new ApiCustomResponse<>(null, "Invalid cursor format", HttpStatus.BAD_REQUEST.value());
+            }
+        }
+
+        // ── Fetch limit + 1 to determine hasMore ─────────────────────────────
+        List<Post> posts = searchRepository.searchPostsPaginated(sanitised, sanitised, effectiveLimit + 1, cursorTime);
+
+        boolean hasMore = posts.size() > effectiveLimit;
+        if (hasMore) {
+            posts = posts.subList(0, effectiveLimit);
+        }
+
+        // ── Fallback: if primary search returned 0, search by person name ────
+        long totalPosts;
+        if (posts.isEmpty()) {
+            posts = searchRepository.searchPostsByPersonNamePaginated(sanitised, sanitised, effectiveLimit + 1, cursorTime);
+            hasMore = posts.size() > effectiveLimit;
+            if (hasMore) {
+                posts = posts.subList(0, effectiveLimit);
+            }
+            totalPosts = posts.isEmpty() ? 0 : searchRepository.countSearchPostsByPersonName(sanitised, sanitised);
+        } else {
+            totalPosts = searchRepository.countSearchPostsPaginated(sanitised, sanitised);
+        }
+
+        // ── Map results to PostListResponse ──────────────────────────────────
+        List<PostListResponse> postResponses = posts.stream()
+                .map(this::mapPostToPostListResponse)
+                .collect(java.util.stream.Collectors.toList());
+
+        // ── Generate next cursor ─────────────────────────────────────────────
+        String nextCursor = null;
+        if (hasMore && !posts.isEmpty()) {
+            try {
+                Post lastPost = posts.get(posts.size() - 1);
+                String cursorJson = String.format("{\"timestamp\":\"%s\"}", lastPost.getCreatedAt().toString());
+                nextCursor = Base64.getEncoder().encodeToString(cursorJson.getBytes());
+            } catch (Exception e) {
+                // Ignore cursor generation errors
+            }
+        }
+
+        PostSearchPageResponse pageResponse = new PostSearchPageResponse(postResponses, nextCursor, hasMore, totalPosts);
+
+        return new ApiCustomResponse<>(pageResponse, "Post search results retrieved successfully", HttpStatus.OK.value());
+    }
+
 
     @Transactional(readOnly = true)
     public ApiCustomResponse<SearchResponse> getSampleData() {
@@ -460,6 +551,36 @@ public class SearchService {
                 user.getLocation(),
                 user.getSkills(),
                 user.getLastSuccessfulLogin());
+    }
+
+    /**
+     * Reusable helper: maps a Post entity to a PostListResponse.
+     * Mirrors the mapping logic in PostService.mapToPostListResponse.
+     */
+    private PostListResponse mapPostToPostListResponse(Post post) {
+        User creator = post.getCreator();
+        String creatorName = creator.getFullName();
+        String username = resolveUsername(creator);
+        String profilePictureUrl = resolveProfilePicture(creator, creatorName);
+        CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creator.getId(), creatorName, username, profilePictureUrl);
+
+        List<String> images = postImageRepository.findByPostOrderByImageOrderAsc(post).stream()
+                .map(pi -> pi.getImage().getUrl())
+                .toList();
+
+        return new PostListResponse(
+                post.getId(),
+                post.getContent(),
+                post.getCreatedAt(),
+                post.getUpdatedAt(),
+                post.isEdited(),
+                creatorInfo,
+                images,
+                post.getLikesCount(),
+                post.getCommentsCount(),
+                post.getBookmarksCount(),
+                post.getViews(),
+                post.getImpressions());
     }
 
     private SearchProjectResult mapProjectToSearchResult(Project project) {
