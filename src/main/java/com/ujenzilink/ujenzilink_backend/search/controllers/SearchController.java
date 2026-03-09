@@ -38,7 +38,7 @@ public class SearchController {
 
     @GetMapping("/people")
     public ResponseEntity<ApiCustomResponse<PeoplePageResponse>> searchPeople(
-            @RequestParam(name = "q") String q,
+            @RequestParam(name = "q", required = false) String q,
             @RequestParam(name = "cursor", required = false) String cursor,
             @RequestParam(name = "limit", required = false, defaultValue = "10") Integer limit) {
 

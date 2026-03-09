@@ -62,6 +62,19 @@ public interface SearchRepository extends JpaRepository<User, UUID> {
             WHERE u.is_deleted = false
               AND u.is_enabled = true
               AND u.date_of_creation < :cursor
+            ORDER BY u.date_of_creation DESC
+            LIMIT :limit
+            """,
+            nativeQuery = true)
+    List<User> findAllUsersPaginated(@Param("limit") int limit,
+                                     @Param("cursor") Instant cursor);
+
+    @Query(value = """
+            SELECT u.*
+            FROM users u
+            WHERE u.is_deleted = false
+              AND u.is_enabled = true
+              AND u.date_of_creation < :cursor
               AND (
                     to_tsvector('english',
                         COALESCE(u.first_name, '') || ' ' ||

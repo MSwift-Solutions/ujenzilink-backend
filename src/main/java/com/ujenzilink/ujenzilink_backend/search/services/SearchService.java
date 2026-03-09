@@ -135,19 +135,19 @@ public class SearchService {
         }
 
         // ── Validate query ──────────────────────────────────────────────────
-        if (query == null || query.isBlank()) {
-            return new ApiCustomResponse<>(null, "Search query must not be blank", HttpStatus.BAD_REQUEST.value());
+        // For the full people list, we allow empty query.
+        String sanitised = "";
+        boolean isQueryEmpty = true;
+        
+        if (query != null && !query.isBlank()) {
+            String trimmed = query.trim();
+            if (trimmed.length() > 200) {
+                return new ApiCustomResponse<>(null, "Search query must not exceed 200 characters", HttpStatus.BAD_REQUEST.value());
+            }
+            sanitised = trimmed.replaceAll("[!&|<>():*]", " ").trim();
+            isQueryEmpty = sanitised.isEmpty();
         }
 
-        String trimmed = query.trim();
-        if (trimmed.length() < 2) {
-            return new ApiCustomResponse<>(null, "Search query must be at least 2 characters", HttpStatus.BAD_REQUEST.value());
-        }
-        if (trimmed.length() > 200) {
-            return new ApiCustomResponse<>(null, "Search query must not exceed 200 characters", HttpStatus.BAD_REQUEST.value());
-        }
-
-        String sanitised = trimmed.replaceAll("[!&|<>():*]", " ").trim();
         int effectiveLimit = (limit == null || limit < 1) ? DEFAULT_LIMIT : Math.min(limit, MAX_LIMIT);
 
         Instant cursorTime = Instant.now();
@@ -166,7 +166,12 @@ public class SearchService {
         }
 
         // Fetch limit + 1 to determine if there are more
-        List<User> users = searchRepository.searchUsersPaginated(sanitised, sanitised, effectiveLimit + 1, cursorTime);
+        List<User> users;
+        if (isQueryEmpty) {
+            users = searchRepository.findAllUsersPaginated(effectiveLimit + 1, cursorTime);
+        } else {
+            users = searchRepository.searchUsersPaginated(sanitised, sanitised, effectiveLimit + 1, cursorTime);
+        }
         
         boolean hasMore = users.size() > effectiveLimit;
         if (hasMore) {
