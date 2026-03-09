@@ -14,6 +14,8 @@ import com.ujenzilink.ujenzilink_backend.search.dtos.*;
 import com.ujenzilink.ujenzilink_backend.search.repositories.SearchRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostRepository;
+import com.ujenzilink.ujenzilink_backend.user_mgt.models.Bio;
+import com.ujenzilink.ujenzilink_backend.user_mgt.repositories.BioRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -46,6 +48,9 @@ public class SearchService {
 
     @Autowired
     private PostRepository postRepository;
+
+    @Autowired
+    private BioRepository bioRepository;
 
     @Autowired
     private SecurityUtil securityUtil;
@@ -182,7 +187,13 @@ public class SearchService {
             int projCount = (int) projectRepository.countByOwner_IdAndIsDeletedFalse(u.getId());
             int postCount = (int) postRepository.countByCreator_IdAndIsDeletedFalse(u.getId());
             
-            String roleStr = (u.getRole() != null) ? u.getRole().name() : "USER";
+            // Get professional info from Bio
+            Bio bio = bioRepository.findByUser(u).orElse(new Bio());
+            String roleStr = (bio.getTitle() != null && !bio.getTitle().isBlank()) 
+                    ? bio.getTitle() 
+                    : "";
+            int yearsInConstruction = (bio.getYearsOfExperience() != null) ? bio.getYearsOfExperience() : 0;
+
             String avatarUrl = resolveProfilePicture(u, u.getFullName());
             String loc = (u.getLocation() != null) ? u.getLocation() : "";
             
@@ -195,8 +206,8 @@ public class SearchService {
                     loc,
                     projCount,
                     postCount,
-                    u.getBio(),
-                    0 // yearsInConstruction
+                    bio.getBio(),
+                    yearsInConstruction
             );
         }).toList();
 
