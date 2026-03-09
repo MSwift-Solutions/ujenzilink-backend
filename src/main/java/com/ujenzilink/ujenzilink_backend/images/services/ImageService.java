@@ -84,6 +84,52 @@ public class ImageService {
         }
 
         @Transactional
+        public ApiCustomResponse<String> changeProfilePicture(MultipartFile file) {
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+
+                if (userOpt.isEmpty()) {
+                        return new ApiCustomResponse<>(
+                                        null,
+                                        "User not authenticated or not found.",
+                                        HttpStatus.UNAUTHORIZED.value());
+                }
+
+                User user = userOpt.get();
+
+                if (!user.getIsEnabled()) {
+                        return new ApiCustomResponse<>(
+                                        null,
+                                        "Account not confirmed. Please confirm your account before changing your profile picture.",
+                                        HttpStatus.FORBIDDEN.value());
+                }
+
+                ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
+
+                CloudinaryUploadResponse uploadResponse = cloudinaryService.uploadImage(file);
+
+                Image profileImage = new Image();
+                profileImage.setUrl(uploadResponse.secureUrl());
+                profileImage.setFilename(metadata.filename());
+                profileImage.setFileType(metadata.fileType());
+                profileImage.setFileSize(metadata.fileSize());
+                profileImage.setWidth(uploadResponse.width());
+                profileImage.setHeight(uploadResponse.height());
+                profileImage.setUser(user);
+
+                profileImage = imageRepository.save(profileImage);
+
+                // Note: We are only updating the reference. The old image remains in the
+                // database.
+                user.setProfilePicture(profileImage);
+                userRepository.save(user);
+
+                return new ApiCustomResponse<>(
+                                uploadResponse.secureUrl(),
+                                "Profile picture changed successfully.",
+                                HttpStatus.OK.value());
+        }
+
+        @Transactional
         public ApiCustomResponse<Void> deleteImage(UUID imageId) {
                 Optional<User> userOpt = securityUtil.getAuthenticatedUser();
 

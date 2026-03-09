@@ -32,6 +32,17 @@ public class ImageController {
                 .body(response);
     }
 
+    @PatchMapping(value = "/change-profile-picture", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiCustomResponse<String>> changeProfilePicture(
+            @RequestPart("profilePicture") MultipartFile file) {
+
+        ApiCustomResponse<String> response = imageService.changeProfilePicture(file);
+
+        return ResponseEntity
+                .status(response.statusCode())
+                .body(response);
+    }
+
     @DeleteMapping("/{imageId}")
     public ResponseEntity<ApiCustomResponse<Void>> deleteImage(@PathVariable UUID imageId) {
         ApiCustomResponse<Void> response = imageService.deleteImage(imageId);
