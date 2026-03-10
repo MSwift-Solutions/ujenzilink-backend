@@ -32,7 +32,7 @@ public class Project {
     }
 
     @GetMapping
-    public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse>> getAllProjects(
+    public ResponseEntity<ApiCustomResponse<ProjectPageResponse>> getAllProjects(
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false, defaultValue = "20") Integer size) {
 
@@ -47,8 +47,15 @@ public class Project {
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
+    @GetMapping("/{projectId}/summary")
+    public ResponseEntity<ApiCustomResponse<ProjectListResponse>> getProjectById(
+            @PathVariable UUID projectId) {
+        ApiCustomResponse<ProjectListResponse> response = projectService.getProjectById(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
     @GetMapping("/my-projects")
-    public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse>> getMyProjects(
+    public ResponseEntity<ApiCustomResponse<ProjectPageResponse>> getMyProjects(
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false, defaultValue = "20") Integer size) {
 

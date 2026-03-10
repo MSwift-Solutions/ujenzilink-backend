@@ -396,6 +396,93 @@ public class ProjectService {
         }
 
         @Transactional
+        public ApiCustomResponse<ProjectListResponse> getProjectById(UUID projectId) {
+                Project project = projectRepository.findById(projectId).orElse(null);
+                if (project == null || project.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                // Get creator information
+                User creator = project.getCreatedBy();
+                String creatorName = creator.getFullName();
+                String profilePictureUrl = (creator.getProfilePicture() != null)
+                                ? creator.getProfilePicture().getUrl()
+                                : "https://ui-avatars.com/api/?name=" + creatorName.replace(" ", "+")
+                                                + "&background=random";
+                String username = (creator.getUserHandle() != null && !creator.getUserHandle().isEmpty())
+                                ? creator.getUserHandle()
+                                : creator.getEmail();
+                CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creator.getId(), creatorName, username,
+                                profilePictureUrl);
+
+                // Get member count
+                int memberCount = projectMemberRepository.findByProjectAndIsDeletedFalse(project).size();
+
+                // Get stages for current stage + images
+                List<ProjectStage> stages = projectStageRepository.findByProjectOrderByCreatedAtAsc(project);
+
+                List<String> projectImages = new ArrayList<>();
+
+                // Aggregate top 3 latest images from stages
+                List<ProjectStage> reversedStages = new ArrayList<>(stages);
+                Collections.reverse(reversedStages);
+
+                for (ProjectStage stage : reversedStages) {
+                        if (projectImages.size() >= 3)
+                                break;
+                        List<StagePhoto> stagePhotos = stagePhotoRepository.findByStageOrderByPhotoOrder(stage);
+                        for (StagePhoto photo : stagePhotos) {
+                                if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
+                                        projectImages.add(photo.getImage().getUrl());
+                                        if (projectImages.size() >= 3)
+                                                break;
+                                }
+                        }
+                }
+
+                // Determine current stage
+                String currentStage;
+                if (!stages.isEmpty()) {
+                        ProjectStage activeStage = stages.stream()
+                                        .filter(s -> s.getStatus().name().contains("IN_PROGRESS")
+                                                        || s.getStatus().name().equals("PLANNING_PERMITS"))
+                                        .findFirst()
+                                        .orElse(stages.get(stages.size() - 1));
+                        currentStage = ProjectUtils.formatEnumName(activeStage.getStatus().name());
+                } else {
+                        currentStage = ProjectUtils.formatEnumName(ConstructionStage.PLANNING_PERMITS.name());
+                }
+
+                // Get follow count
+                int followCount = (int) projectFollowRepository.countByProjectAndIsActiveTrue(project);
+
+                // Get likes count
+                int likesCount = (int) projectLikeRepository.countByProject(project);
+
+                // Get comments count
+                int commentsCount = (int) projectCommentRepository.countByProjectAndIsDeletedFalse(project);
+
+                ProjectListResponse response = new ProjectListResponse(
+                                project.getId(),
+                                project.getTitle(),
+                                project.getProjectType(),
+                                project.getProjectStatus(),
+                                project.getLocation(),
+                                project.getCreatedAt(),
+                                creatorInfo,
+                                memberCount,
+                                projectImages,
+                                project.getEstimatedBudget(),
+                                project.getCurrency(),
+                                likesCount,
+                                commentsCount,
+                                followCount,
+                                currentStage);
+
+                return new ApiCustomResponse<>(response, "Project retrieved successfully", HttpStatus.OK.value());
+        }
+
+        @Transactional
         public ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse> getAllProjects(
                         String cursor, Integer size) {
                 // Validate and set defaults
