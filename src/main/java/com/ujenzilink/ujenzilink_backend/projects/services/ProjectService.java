@@ -1,6 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.projects.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
+import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -84,6 +85,9 @@ public class ProjectService {
 
         @Autowired
         private NotificationService notificationService;
+
+        @Autowired
+        private UserRepository userRepository;
 
         @Transactional
         public ApiCustomResponse<ProjectDetailsResponse> getProjectDetails(UUID projectId) {
@@ -850,6 +854,199 @@ public class ProjectService {
                 return new ApiCustomResponse<>(
                                 pageResponse,
                                 "My projects retrieved successfully",
+                                HttpStatus.OK.value());
+        }
+
+        @Transactional
+        public ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse> getUserProjects(
+                        UUID userId, String cursor, Integer size) {
+
+                // Look up the target user
+                User targetUser = userRepository.findById(userId).orElse(null);
+                if (targetUser == null) {
+                        return new ApiCustomResponse<>(
+                                        null,
+                                        "User not found.",
+                                        HttpStatus.NOT_FOUND.value());
+                }
+
+                // Validate and set defaults
+                if (size == null || size < 1) {
+                        size = 20;
+                }
+                if (size > 100) {
+                        size = 100;
+                }
+
+                // Decode cursor to get timestamp
+                Instant cursorTime = null;
+                if (cursor != null && !cursor.isEmpty()) {
+                        try {
+                                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
+                                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson,
+                                                new TypeReference<java.util.Map<String, Object>>() {
+                                                });
+                                String timestamp = (String) cursorData.get("timestamp");
+                                cursorTime = Instant.parse(timestamp);
+                        } catch (Exception e) {
+                                return new ApiCustomResponse<>(null, "Invalid cursor format",
+                                                HttpStatus.BAD_REQUEST.value());
+                        }
+                }
+
+                // Fetch projects the target user created
+                List<Project> createdProjects = projectRepository.findByCreatedByAndIsDeletedFalse(targetUser);
+
+                // Fetch projects the target user is a member of
+                List<Project> memberProjects = projectMemberRepository
+                                .findByUserAndIsDeletedFalse(targetUser)
+                                .stream()
+                                .map(ProjectMember::getProject)
+                                .filter(p -> !p.isDeleted())
+                                .collect(Collectors.toList());
+
+                // Merge both lists, de-duplicating by project ID
+                Map<UUID, Project> projectMap = new LinkedHashMap<>();
+                for (Project p : createdProjects) {
+                        projectMap.put(p.getId(), p);
+                }
+                for (Project p : memberProjects) {
+                        projectMap.putIfAbsent(p.getId(), p);
+                }
+
+                // Apply cursor filter
+                Instant finalCursorTime = cursorTime;
+                List<Project> projects = projectMap.values().stream()
+                                .filter(p -> finalCursorTime == null || p.getCreatedAt().isBefore(finalCursorTime))
+                                .collect(Collectors.toList());
+
+                // Add pseudo-random but consistent sort
+                projects.sort((p1, p2) -> {
+                        int hash1 = Math.abs(p1.getId().hashCode() % 1000);
+                        int hash2 = Math.abs(p2.getId().hashCode() % 1000);
+                        int hashCompare = Integer.compare(hash1, hash2);
+                        return hashCompare != 0 ? hashCompare : p2.getCreatedAt().compareTo(p1.getCreatedAt());
+                });
+
+                // Paginate: check if there are more
+                boolean hasMore = projects.size() > size;
+                if (hasMore) {
+                        projects = projects.subList(0, size);
+                }
+
+                // Increment impressions in bulk
+                if (!projects.isEmpty()) {
+                        List<UUID> projectIds = projects.stream().map(Project::getId).toList();
+                        projectRepository.incrementImpressionsInBulk(projectIds);
+                }
+
+                List<ProjectListResponse> projectResponses = new ArrayList<>();
+
+                for (Project project : projects) {
+                        // Get creator information
+                        User creator = project.getCreatedBy();
+                        String creatorName = creator.getFullName();
+                        String profilePictureUrl = (creator.getProfilePicture() != null)
+                                        ? creator.getProfilePicture().getUrl()
+                                        : "https://ui-avatars.com/api/?name=" + creatorName.replace(" ", "+")
+                                                        + "&background=random";
+                        String username = (creator.getUserHandle() != null && !creator.getUserHandle().isEmpty())
+                                        ? creator.getUserHandle()
+                                        : creator.getEmail();
+                        CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creator.getId(), creatorName, username,
+                                        profilePictureUrl);
+
+                        // Get member count
+                        int memberCount = projectMemberRepository.findByProjectAndIsDeletedFalse(project).size();
+
+                        // Get current stage
+                        String currentStage = null;
+                        List<ProjectStage> stages = projectStageRepository
+                                        .findByProjectOrderByCreatedAtAsc(project);
+
+                        int commentsCount = 0;
+                        int likesCount = 0;
+                        List<String> projectImages = new ArrayList<>();
+
+                        // Aggregate data from all stages (collect top 3 latest images)
+                        List<ProjectStage> reversedStages = new ArrayList<>(stages);
+                        Collections.reverse(reversedStages);
+
+                        for (ProjectStage stage : reversedStages) {
+                                if (projectImages.size() >= 3)
+                                        break;
+                                List<StagePhoto> stagePhotos = stagePhotoRepository.findByStageOrderByPhotoOrder(stage);
+                                for (StagePhoto photo : stagePhotos) {
+                                        if (photo.getImage() != null && !photo.getImage().getIsDeleted()) {
+                                                projectImages.add(photo.getImage().getUrl());
+                                                if (projectImages.size() >= 3)
+                                                        break;
+                                        }
+                                }
+                        }
+                        if (!stages.isEmpty()) {
+                                ProjectStage activeStage = stages.stream()
+                                                .filter(s -> s.getStatus().name().contains("IN_PROGRESS")
+                                                                || s.getStatus().name().equals("PLANNING_PERMITS"))
+                                                .findFirst()
+                                                .orElse(stages.get(stages.size() - 1));
+                                String stageEnumName = activeStage.getStatus().name();
+                                currentStage = ProjectUtils.formatEnumName(stageEnumName);
+                        } else {
+                                currentStage = ProjectUtils.formatEnumName(ConstructionStage.PLANNING_PERMITS.name());
+                        }
+
+                        // Get follow count
+                        int followCount = (int) projectFollowRepository.countByProjectAndIsActiveTrue(project);
+
+                        // Get project likes count
+                        likesCount = (int) projectLikeRepository.countByProject(project);
+
+                        // Get project comments count
+                        commentsCount = (int) projectCommentRepository.countByProjectAndIsDeletedFalse(project);
+
+                        // Build response
+                        ProjectListResponse response = new ProjectListResponse(
+                                        project.getId(),
+                                        project.getTitle(),
+                                        project.getProjectType(),
+                                        project.getProjectStatus(),
+                                        project.getLocation(),
+                                        project.getCreatedAt(),
+                                        creatorInfo,
+                                        memberCount,
+                                        projectImages,
+                                        project.getEstimatedBudget(),
+                                        project.getCurrency(),
+                                        likesCount,
+                                        commentsCount,
+                                        followCount,
+                                        currentStage);
+
+                        projectResponses.add(response);
+                }
+
+                // Generate next cursor using last project's timestamp
+                String nextCursor = null;
+                if (hasMore && !projects.isEmpty()) {
+                        try {
+                                Project lastProject = projects.get(projects.size() - 1);
+                                String cursorJson = String.format("{\"timestamp\":\"%s\"}",
+                                                lastProject.getCreatedAt().toString());
+                                nextCursor = java.util.Base64.getEncoder()
+                                                .encodeToString(cursorJson.getBytes());
+                        } catch (Exception e) {
+                                // If cursor generation fails, just don't include it
+                        }
+                }
+
+                com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse pageResponse = new com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse(
+                                projectResponses, nextCursor, hasMore);
+
+                return new ApiCustomResponse<>(
+                                pageResponse,
+                                "User projects retrieved successfully",
                                 HttpStatus.OK.value());
         }
 

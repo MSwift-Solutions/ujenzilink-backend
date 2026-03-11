@@ -70,6 +70,23 @@ public class Project {
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiCustomResponse<ProjectPageResponse>> getUserProjects(
+            @PathVariable UUID userId,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false, defaultValue = "20") Integer size) {
+
+        // Validate size
+        if (size < 1 || size > 100) {
+            return ResponseEntity.badRequest().body(
+                    new ApiCustomResponse<>(null, "Size must be between 1 and 100", 400));
+        }
+
+        ApiCustomResponse<ProjectPageResponse> response = projectService
+                .getUserProjects(userId, cursor, size);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
     @GetMapping("/followed-projects")
     public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse>> getFollowedProjects(
             @RequestParam(required = false) String cursor,
