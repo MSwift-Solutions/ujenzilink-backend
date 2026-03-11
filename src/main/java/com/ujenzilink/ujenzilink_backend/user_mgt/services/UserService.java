@@ -5,6 +5,7 @@ import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostRepository;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.*;
 import com.ujenzilink.ujenzilink_backend.user_mgt.models.Bio;
@@ -28,6 +29,9 @@ public class UserService {
 
     @Autowired
     private ProjectRepository projectRepository;
+
+    @Autowired
+    private ProjectMemberRepository projectMemberRepository;
 
     @Autowired
     private PostRepository postRepository;
@@ -440,7 +444,18 @@ public class UserService {
     }
 
     private ApiCustomResponse<UserStatsResponse> getUserStats(User user) {
-        long totalProjects = projectRepository.countByOwner_IdAndIsDeletedFalse(user.getId());
+        // Collect project IDs the user owns
+        java.util.Set<java.util.UUID> projectIds = new java.util.HashSet<>();
+        projectRepository.findByOwnerAndIsDeletedFalse(user)
+                .forEach(p -> projectIds.add(p.getId()));
+
+        // Also collect project IDs the user is a member of (covers added-to projects)
+        projectMemberRepository.findByUserAndIsDeletedFalse(user)
+                .stream()
+                .map(m -> m.getProject().getId())
+                .forEach(projectIds::add);
+
+        long totalProjects = projectIds.size();
         long totalPosts = postRepository.countByCreator_IdAndIsDeletedFalse(user.getId());
 
         UserStatsResponse stats = new UserStatsResponse(totalPosts, totalProjects);
