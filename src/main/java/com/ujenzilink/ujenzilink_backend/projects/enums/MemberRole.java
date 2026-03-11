@@ -8,5 +8,8 @@ public enum MemberRole {
     ARCHITECT,
     ENGINEER,
     CLIENT,
+    FOREMAN,
+    SURVEYOR,
+    SUPPLIER,
     VIEWER
 }

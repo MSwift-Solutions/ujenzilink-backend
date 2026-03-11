@@ -1058,13 +1058,19 @@ public class ProjectService {
                                                 ProjectUtils.formatEnumName(postType.name())))
                                 .toList();
 
+                List<DropdownResponse> memberRoles = Arrays.stream(MemberRole.values())
+                                .map(role -> new DropdownResponse(role.name(),
+                                                ProjectUtils.formatEnumName(role.name())))
+                                .toList();
+
                 ProjectDropdownsResponse response = new ProjectDropdownsResponse(
                                 types,
                                 statuses,
                                 visibilities,
                                 budgetVisibilities,
                                 constructionStages,
-                                postTypes);
+                                postTypes,
+                                memberRoles);
 
                 return new ApiCustomResponse<>(response, "Project dropdowns retrieved successfully",
                                 HttpStatus.OK.value());
