@@ -97,7 +97,8 @@ public class UserMgt {
     public ResponseEntity<ApiCustomResponse<String>> addMember(
             @PathVariable UUID projectId,
             @RequestBody AddMemberRequest request) {
-        ApiCustomResponse<String> response = projectUserMgtService.addMember(projectId, request.userId());
+        ApiCustomResponse<String> response = projectUserMgtService.addMember(projectId, request.userId(),
+                request.role());
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 

@@ -293,7 +293,7 @@ public class UserMgtService {
         return new ApiCustomResponse<>(results, "Team members retrieved successfully", HttpStatus.OK.value());
     }
 
-    public ApiCustomResponse<String> addMember(UUID projectId, UUID userId) {
+    public ApiCustomResponse<String> addMember(UUID projectId, UUID userId, MemberRole role) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
         if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
@@ -320,12 +320,17 @@ public class UserMgtService {
         member.setProject(project);
         member.setUser(memberToAdd);
         member.setAddedBy(currentUser);
-        member.setRole(MemberRole.OWNER);
+        member.setRole(role != null ? role : MemberRole.VIEWER);
+
+        // Set permissions based on role
+        boolean isPrivileged = member.getRole() == MemberRole.OWNER || 
+                              member.getRole() == MemberRole.PROJECT_MANAGER;
+        
         member.setCanViewProject(true);
-        member.setCanManageStages(true);
-        member.setCanCreatePosts(true);
+        member.setCanManageStages(isPrivileged);
+        member.setCanCreatePosts(isPrivileged || member.getRole() == MemberRole.CONTRACTOR);
         member.setCanUploadDocuments(true);
-        member.setCanManageMembers(true);
+        member.setCanManageMembers(member.getRole() == MemberRole.OWNER);
 
         projectMemberRepository.save(member);
 
