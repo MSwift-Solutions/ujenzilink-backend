@@ -1,6 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.posts.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
+import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse;
@@ -53,6 +54,9 @@ public class PostService {
 
     @Autowired
     private SecurityUtil securityUtil;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private com.ujenzilink.ujenzilink_backend.posts.repositories.PostBookmarkRepository postBookmarkRepository;
@@ -251,6 +255,68 @@ public class PostService {
 
         PostPageResponse pageResponse = new PostPageResponse(postResponses, nextCursor, hasMore);
         return new ApiCustomResponse<>(pageResponse, "My posts retrieved successfully", HttpStatus.OK.value());
+    }
+
+    @Transactional
+    public ApiCustomResponse<PostPageResponse> getUserPosts(java.util.UUID userId, String cursor, Integer size) {
+        // Resolve the target user
+        User targetUser = userRepository.findById(userId).orElse(null);
+        if (targetUser == null || targetUser.getIsDeleted()) {
+            return new ApiCustomResponse<>(null, "User not found.", HttpStatus.NOT_FOUND.value());
+        }
+
+        if (size == null || size < 1)
+            size = 20;
+        if (size > 100)
+            size = 100;
+
+        Instant cursorTime = null;
+        if (cursor != null && !cursor.isEmpty()) {
+            try {
+                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson, java.util.Map.class);
+                String timestamp = (String) cursorData.get("timestamp");
+                cursorTime = Instant.parse(timestamp);
+            } catch (Exception e) {
+                return new ApiCustomResponse<>(null, "Invalid cursor format", HttpStatus.BAD_REQUEST.value());
+            }
+        }
+
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        Pageable pageable = PageRequest.of(0, size + 1, sort);
+
+        List<Post> posts;
+        if (cursorTime != null) {
+            posts = postRepository.findByCreatorAndIsDeletedFalseAndCreatedAtBefore(targetUser, cursorTime, pageable);
+        } else {
+            posts = postRepository.findByCreatorAndIsDeletedFalse(targetUser, pageable);
+        }
+
+        boolean hasMore = posts.size() > size;
+        if (hasMore)
+            posts = posts.subList(0, size);
+
+        // Increment impressions in bulk
+        if (!posts.isEmpty()) {
+            java.util.List<java.util.UUID> postIds = posts.stream().map(Post::getId).toList();
+            postRepository.incrementImpressionsInBulk(postIds);
+        }
+
+        List<PostListResponse> postResponses = posts.stream().map(this::mapToPostListResponse).toList();
+
+        String nextCursor = null;
+        if (hasMore && !posts.isEmpty()) {
+            try {
+                Post lastPost = posts.get(posts.size() - 1);
+                String cursorJson = String.format("{\"timestamp\":\"%s\"}", lastPost.getCreatedAt().toString());
+                nextCursor = java.util.Base64.getEncoder().encodeToString(cursorJson.getBytes());
+            } catch (Exception e) {
+            }
+        }
+
+        PostPageResponse pageResponse = new PostPageResponse(postResponses, nextCursor, hasMore);
+        return new ApiCustomResponse<>(pageResponse, "User posts retrieved successfully", HttpStatus.OK.value());
     }
 
     private PostListResponse mapToPostListResponse(Post post) {
