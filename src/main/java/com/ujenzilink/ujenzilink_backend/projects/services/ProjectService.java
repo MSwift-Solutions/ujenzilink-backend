@@ -696,22 +696,33 @@ public class ProjectService {
                         }
                 }
 
-                // Query database - fetch size + 1 to check if more exist
-                org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(
-                                org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
-                org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0,
-                                size + 1, sort);
+                // Fetch projects the user created
+                List<Project> createdProjects = projectRepository.findByCreatedByAndIsDeletedFalse(currentUser);
 
-                List<Project> projects;
-                if (cursorTime != null) {
-                        projects = projectRepository.findByCreatedByAndIsDeletedFalseAndCreatedAtBefore(
-                                        currentUser, cursorTime, pageable);
-                } else {
-                        projects = projectRepository.findByCreatedByAndIsDeletedFalse(
-                                        currentUser, pageable);
+                // Fetch projects the user is a member of
+                List<Project> memberProjects = projectMemberRepository
+                                .findByUserAndIsDeletedFalse(currentUser)
+                                .stream()
+                                .map(ProjectMember::getProject)
+                                .filter(p -> !p.isDeleted())
+                                .collect(Collectors.toList());
+
+                // Merge both lists, de-duplicating by project ID
+                Map<UUID, Project> projectMap = new LinkedHashMap<>();
+                for (Project p : createdProjects) {
+                        projectMap.put(p.getId(), p);
+                }
+                for (Project p : memberProjects) {
+                        projectMap.putIfAbsent(p.getId(), p);
                 }
 
-                // Add randomization (pseudo-random but consistent per project ID)
+                // Apply cursor filter
+                Instant finalCursorTime = cursorTime;
+                List<Project> projects = projectMap.values().stream()
+                                .filter(p -> finalCursorTime == null || p.getCreatedAt().isBefore(finalCursorTime))
+                                .collect(Collectors.toList());
+
+                // Add pseudo-random but consistent sort (same as other list endpoints)
                 projects.sort((p1, p2) -> {
                         int hash1 = Math.abs(p1.getId().hashCode() % 1000);
                         int hash2 = Math.abs(p2.getId().hashCode() % 1000);
@@ -719,7 +730,7 @@ public class ProjectService {
                         return hashCompare != 0 ? hashCompare : p2.getCreatedAt().compareTo(p1.getCreatedAt());
                 });
 
-                // Determine if there are more projects
+                // Paginate: check if there are more
                 boolean hasMore = projects.size() > size;
                 if (hasMore) {
                         projects = projects.subList(0, size);
