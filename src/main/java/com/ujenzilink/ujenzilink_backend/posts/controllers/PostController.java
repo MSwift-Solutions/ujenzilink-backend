@@ -99,9 +99,9 @@ public class PostController {
                 return ResponseEntity.status(response.statusCode()).body(response);
         }
 
-        @GetMapping("/user/{userId}")
+        @GetMapping("/user/{email}")
         public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostPageResponse>> getUserPosts(
-                        @PathVariable java.util.UUID userId,
+                        @PathVariable String email,
                         @RequestParam(required = false) String cursor,
                         @RequestParam(required = false, defaultValue = "20") Integer size) {
 
@@ -111,7 +111,7 @@ public class PostController {
                 }
 
                 ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostPageResponse> response = postService
-                                .getUserPosts(userId, cursor, size);
+                                .getUserPosts(email, cursor, size);
                 return ResponseEntity.status(response.statusCode()).body(response);
         }
 

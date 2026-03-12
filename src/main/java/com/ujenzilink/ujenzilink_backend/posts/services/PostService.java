@@ -258,9 +258,9 @@ public class PostService {
     }
 
     @Transactional
-    public ApiCustomResponse<PostPageResponse> getUserPosts(java.util.UUID userId, String cursor, Integer size) {
+    public ApiCustomResponse<PostPageResponse> getUserPosts(String email, String cursor, Integer size) {
         // Resolve the target user
-        User targetUser = userRepository.findById(userId).orElse(null);
+        User targetUser = userRepository.findFirstByEmail(email);
         if (targetUser == null || targetUser.getIsDeleted()) {
             return new ApiCustomResponse<>(null, "User not found.", HttpStatus.NOT_FOUND.value());
         }

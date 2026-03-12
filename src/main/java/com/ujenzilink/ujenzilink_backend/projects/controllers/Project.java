@@ -70,9 +70,9 @@ public class Project {
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
-    @GetMapping("/user/{userId}")
+    @GetMapping("/user/{email}")
     public ResponseEntity<ApiCustomResponse<ProjectPageResponse>> getUserProjects(
-            @PathVariable UUID userId,
+            @PathVariable String email,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false, defaultValue = "20") Integer size) {
 
@@ -83,7 +83,7 @@ public class Project {
         }
 
         ApiCustomResponse<ProjectPageResponse> response = projectService
-                .getUserProjects(userId, cursor, size);
+                .getUserProjects(email, cursor, size);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 

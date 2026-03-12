@@ -859,10 +859,10 @@ public class ProjectService {
 
         @Transactional
         public ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse> getUserProjects(
-                        UUID userId, String cursor, Integer size) {
+                        String email, String cursor, Integer size) {
 
                 // Look up the target user
-                User targetUser = userRepository.findById(userId).orElse(null);
+                User targetUser = userRepository.findFirstByEmail(email);
                 if (targetUser == null) {
                         return new ApiCustomResponse<>(
                                         null,
