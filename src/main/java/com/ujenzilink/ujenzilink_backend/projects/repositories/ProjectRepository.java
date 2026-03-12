@@ -38,7 +38,7 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
         @org.springframework.data.jpa.repository.Query("SELECT p FROM Project p JOIN FETCH p.createdBy c LEFT JOIN FETCH c.profilePicture WHERE " +
                         "(p.createdBy = :user OR EXISTS (SELECT 1 FROM ProjectMember pm WHERE pm.project = p AND pm.user = :user AND pm.isDeleted = false)) " +
                         "AND p.isDeleted = false " +
-                        "AND (:cursorTime IS NULL OR p.createdAt < :cursorTime)")
+                        "AND p.createdAt < :cursorTime")
         List<Project> findByUserInvolvedWithCursor(
                         @org.springframework.data.repository.query.Param("user") User user,
                         @org.springframework.data.repository.query.Param("cursorTime") Instant cursorTime,
