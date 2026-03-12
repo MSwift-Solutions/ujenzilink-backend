@@ -32,11 +32,24 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
         List<Project> findByVisibilityAndIsDeletedFalse(
                         ProjectVisibility visibility, Pageable pageable);
 
-        List<Project> findByCreatedByAndIsDeletedFalseAndCreatedAtBefore(
-                        User createdBy, Instant cursor, Pageable pageable);
-
         List<Project> findByCreatedByAndIsDeletedFalse(
                         User createdBy, Pageable pageable);
+
+        @org.springframework.data.jpa.repository.Query("SELECT p FROM Project p JOIN FETCH p.createdBy c LEFT JOIN FETCH c.profilePicture WHERE " +
+                        "(p.createdBy = :user OR EXISTS (SELECT 1 FROM ProjectMember pm WHERE pm.project = p AND pm.user = :user AND pm.isDeleted = false)) " +
+                        "AND p.isDeleted = false " +
+                        "AND (:cursorTime IS NULL OR p.createdAt < :cursorTime)")
+        List<Project> findByUserInvolvedWithCursor(
+                        @org.springframework.data.repository.query.Param("user") User user,
+                        @org.springframework.data.repository.query.Param("cursorTime") Instant cursorTime,
+                        Pageable pageable);
+
+        @org.springframework.data.jpa.repository.Query("SELECT p FROM Project p JOIN FETCH p.createdBy c LEFT JOIN FETCH c.profilePicture WHERE " +
+                        "(p.createdBy = :user OR EXISTS (SELECT 1 FROM ProjectMember pm WHERE pm.project = p AND pm.user = :user AND pm.isDeleted = false)) " +
+                        "AND p.isDeleted = false")
+        List<Project> findByUserInvolved(
+                        @org.springframework.data.repository.query.Param("user") User user,
+                        Pageable pageable);
 
         @org.springframework.data.jpa.repository.Modifying
         @org.springframework.data.jpa.repository.Query("UPDATE Project p SET p.impressions = p.impressions + 1 WHERE p.id IN :projectIds")

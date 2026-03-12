@@ -163,9 +163,9 @@ public class PostService {
 
         List<Post> posts;
         if (cursorTime != null) {
-            posts = postRepository.findByIsDeletedFalseAndCreatedAtBefore(cursorTime, pageable);
+            posts = postRepository.findByIsDeletedFalseAndCreatedAtBeforeWithCreator(cursorTime, pageable);
         } else {
-            posts = postRepository.findByIsDeletedFalse(pageable);
+            posts = postRepository.findByIsDeletedFalseWithCreator(pageable);
         }
 
         boolean hasMore = posts.size() > size;
@@ -226,9 +226,10 @@ public class PostService {
 
         List<Post> posts;
         if (cursorTime != null) {
-            posts = postRepository.findByCreatorAndIsDeletedFalseAndCreatedAtBefore(currentUser, cursorTime, pageable);
+            posts = postRepository.findByCreatorAndIsDeletedFalseAndCreatedAtBeforeWithCreator(currentUser, cursorTime,
+                    pageable);
         } else {
-            posts = postRepository.findByCreatorAndIsDeletedFalse(currentUser, pageable);
+            posts = postRepository.findByCreatorAndIsDeletedFalseWithCreator(currentUser, pageable);
         }
 
         boolean hasMore = posts.size() > size;
@@ -288,9 +289,10 @@ public class PostService {
 
         List<Post> posts;
         if (cursorTime != null) {
-            posts = postRepository.findByCreatorAndIsDeletedFalseAndCreatedAtBefore(targetUser, cursorTime, pageable);
+            posts = postRepository.findByCreatorAndIsDeletedFalseAndCreatedAtBeforeWithCreator(targetUser, cursorTime,
+                    pageable);
         } else {
-            posts = postRepository.findByCreatorAndIsDeletedFalse(targetUser, pageable);
+            posts = postRepository.findByCreatorAndIsDeletedFalseWithCreator(targetUser, pageable);
         }
 
         boolean hasMore = posts.size() > size;

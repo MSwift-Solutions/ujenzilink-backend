@@ -700,31 +700,18 @@ public class ProjectService {
                         }
                 }
 
-                // Fetch projects the user created
-                List<Project> createdProjects = projectRepository.findByCreatedByAndIsDeletedFalse(currentUser);
+                // Query database - fetch size + 1 to check if more exist
+                org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+                org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0,
+                                size + 1, sort);
 
-                // Fetch projects the user is a member of
-                List<Project> memberProjects = projectMemberRepository
-                                .findByUserAndIsDeletedFalse(currentUser)
-                                .stream()
-                                .map(ProjectMember::getProject)
-                                .filter(p -> !p.isDeleted())
-                                .collect(Collectors.toList());
-
-                // Merge both lists, de-duplicating by project ID
-                Map<UUID, Project> projectMap = new LinkedHashMap<>();
-                for (Project p : createdProjects) {
-                        projectMap.put(p.getId(), p);
+                List<Project> projects;
+                if (cursorTime != null) {
+                        projects = projectRepository.findByUserInvolvedWithCursor(currentUser, cursorTime, pageable);
+                } else {
+                        projects = projectRepository.findByUserInvolved(currentUser, pageable);
                 }
-                for (Project p : memberProjects) {
-                        projectMap.putIfAbsent(p.getId(), p);
-                }
-
-                // Apply cursor filter
-                Instant finalCursorTime = cursorTime;
-                List<Project> projects = projectMap.values().stream()
-                                .filter(p -> finalCursorTime == null || p.getCreatedAt().isBefore(finalCursorTime))
-                                .collect(Collectors.toList());
 
                 // Add pseudo-random but consistent sort (same as other list endpoints)
                 projects.sort((p1, p2) -> {
@@ -895,31 +882,18 @@ public class ProjectService {
                         }
                 }
 
-                // Fetch projects the target user created
-                List<Project> createdProjects = projectRepository.findByCreatedByAndIsDeletedFalse(targetUser);
+                // Query database - fetch size + 1 to check if more exist
+                org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+                org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0,
+                                size + 1, sort);
 
-                // Fetch projects the target user is a member of
-                List<Project> memberProjects = projectMemberRepository
-                                .findByUserAndIsDeletedFalse(targetUser)
-                                .stream()
-                                .map(ProjectMember::getProject)
-                                .filter(p -> !p.isDeleted())
-                                .collect(Collectors.toList());
-
-                // Merge both lists, de-duplicating by project ID
-                Map<UUID, Project> projectMap = new LinkedHashMap<>();
-                for (Project p : createdProjects) {
-                        projectMap.put(p.getId(), p);
+                List<Project> projects;
+                if (cursorTime != null) {
+                        projects = projectRepository.findByUserInvolvedWithCursor(targetUser, cursorTime, pageable);
+                } else {
+                        projects = projectRepository.findByUserInvolved(targetUser, pageable);
                 }
-                for (Project p : memberProjects) {
-                        projectMap.putIfAbsent(p.getId(), p);
-                }
-
-                // Apply cursor filter
-                Instant finalCursorTime = cursorTime;
-                List<Project> projects = projectMap.values().stream()
-                                .filter(p -> finalCursorTime == null || p.getCreatedAt().isBefore(finalCursorTime))
-                                .collect(Collectors.toList());
 
                 // Add pseudo-random but consistent sort
                 projects.sort((p1, p2) -> {
