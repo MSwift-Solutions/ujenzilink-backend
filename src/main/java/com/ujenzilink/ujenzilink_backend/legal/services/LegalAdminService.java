@@ -44,6 +44,11 @@ public class LegalAdminService {
         if (activeTerms != null) {
             oldVersion = activeTerms.getVersion();
             oldContent = activeTerms.getContent();
+            
+            if (oldContent.trim().equals(newContent.trim())) {
+                throw new IllegalArgumentException("No changes were made to the document.");
+            }
+            
             termsRepo.deactivateAll(); // Disables existing terms
         }
 
@@ -87,6 +92,11 @@ public class LegalAdminService {
         if (activePrivacy != null) {
             oldVersion = activePrivacy.getVersion();
             oldContent = activePrivacy.getContent();
+            
+            if (oldContent.trim().equals(newContent.trim())) {
+                throw new IllegalArgumentException("No changes were made to the document.");
+            }
+            
             privacyRepo.deactivateAll(); // Disables existing privacy policy
         }
 
