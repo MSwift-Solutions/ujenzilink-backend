@@ -138,9 +138,9 @@ public class LegalAdminService {
         }
 
         String[] parts = oldVersion.split("\\.");
-        int major = parts.length > 0 ? Integer.parseInt(parts[0]) : 1;
-        int minor = parts.length > 1 ? Integer.parseInt(parts[1]) : 0;
-        int patch = parts.length > 2 ? Integer.parseInt(parts[2]) : 0;
+        int major = Integer.parseInt(parts[0]);
+        int minor = Integer.parseInt(parts[1]);
+        int patch = Integer.parseInt(parts[2]);
 
         Set<String> words1 = new HashSet<>(Arrays.asList(oldText.toLowerCase().split("\\W+")));
         Set<String> words2 = new HashSet<>(Arrays.asList(newText.toLowerCase().split("\\W+")));
@@ -153,17 +153,17 @@ public class LegalAdminService {
 
         double similarityScore = union.isEmpty() ? 1.0 : (double) intersection.size() / union.size();
 
-        // Major change
-        if (similarityScore < 0.7) {
+        // Major change (large rewrite)
+        if (similarityScore < 0.6) {
             return (major + 1) + ".0.0";
         }
 
-        // Minor change
-        if (similarityScore < 0.9) {
+        // Minor change (section added/removed)
+        if (similarityScore < 0.85) {
             return major + "." + (minor + 1) + ".0";
         }
 
-        // Small change -> patch increment
+        // Small change (typo, punctuation, small edits)
         return major + "." + minor + "." + (patch + 1);
     }
 }
