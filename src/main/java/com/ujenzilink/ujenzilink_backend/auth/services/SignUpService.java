@@ -110,7 +110,6 @@ public class SignUpService {
         user.setSignupMethod(SignupMethod.DEFAULT);
 
         userRepository.save(user);
-
         String token = generateToken(user);
 
         EmailNotificationDTO emailDetails = new EmailNotificationDTO(
