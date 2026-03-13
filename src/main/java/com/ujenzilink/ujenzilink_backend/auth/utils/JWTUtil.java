@@ -38,6 +38,11 @@ public class JWTUtil {
         if (userDetails instanceof User user) {
             builder.claim("userId", user.getId());
         }
+        
+        // Add the role so we can distinguish Admin tokens from standard User tokens
+        if (userDetails.getAuthorities() != null && !userDetails.getAuthorities().isEmpty()) {
+            builder.claim("role", userDetails.getAuthorities().iterator().next().getAuthority());
+        }
 
         return builder.signWith(signingKey)
                 .compact();
@@ -45,6 +50,10 @@ public class JWTUtil {
 
     public String extractUserName(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    public String extractRole(String token) {
+        return extractClaim(token, claims -> claims.get("role", String.class));
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {

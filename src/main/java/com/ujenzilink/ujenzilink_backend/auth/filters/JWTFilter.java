@@ -1,5 +1,6 @@
 package com.ujenzilink.ujenzilink_backend.auth.filters;
 
+import com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminAuthService;
 import com.ujenzilink.ujenzilink_backend.auth.services.SignInService;
 import com.ujenzilink.ujenzilink_backend.auth.utils.JWTUtil;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -25,13 +26,16 @@ import java.io.IOException;
 public class JWTFilter extends OncePerRequestFilter {
     private final JWTUtil jwtUtil;
     private final SignInService signInService;
+    private final AdminAuthService adminAuthService;
     private final HandlerExceptionResolver resolver;
 
     public JWTFilter(JWTUtil jwtUtil,
                      SignInService signInService,
+                     AdminAuthService adminAuthService,
                      @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
         this.jwtUtil = jwtUtil;
         this.signInService = signInService;
+        this.adminAuthService = adminAuthService;
         this.resolver = resolver;
     }
 
@@ -47,7 +51,14 @@ public class JWTFilter extends OncePerRequestFilter {
                 String username = jwtUtil.extractUserName(token);
 
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = signInService.loadUserByUsername(username);
+                    String role = jwtUtil.extractRole(token);
+                    UserDetails userDetails;
+
+                    if ("ROLE_SUPER_ADMIN".equals(role) || "ROLE_ADMIN".equals(role)) {
+                        userDetails = adminAuthService.loadUserByUsername(username);
+                    } else {
+                        userDetails = signInService.loadUserByUsername(username);
+                    }
 
                     if (jwtUtil.isTokenValid(token, userDetails)) {
                         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
