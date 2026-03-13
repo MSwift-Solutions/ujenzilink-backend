@@ -12,10 +12,11 @@ import java.util.UUID;
 
 @Repository
 public interface TermsAndConditionsVersionRepository extends JpaRepository<TermsAndConditionsVersion, UUID> {
+    @Query("SELECT v FROM TermsAndConditionsVersion v WHERE v.termsAndConditions.id = :termsAndConditionsId ORDER BY v.revisionNumber DESC")
+    List<TermsAndConditionsVersion> findByTermsAndConditionsIdOrderByRevisionNumberDesc(@Param("termsAndConditionsId") UUID termsAndConditionsId);
 
-    List<TermsAndConditionsVersion> findByTermsAndConditionsIdOrderByRevisionNumberDesc(UUID termsAndConditionsId);
-
-    Optional<TermsAndConditionsVersion> findByTermsAndConditionsIdAndVersion(UUID termsAndConditionsId, String version);
+    @Query("SELECT v FROM TermsAndConditionsVersion v WHERE v.termsAndConditions.id = :termsAndConditionsId AND v.version = :version")
+    Optional<TermsAndConditionsVersion> findByTermsAndConditionsIdAndVersion(@Param("termsAndConditionsId") UUID termsAndConditionsId, @Param("version") String version);
 
     @Query("SELECT v FROM TermsAndConditionsVersion v " +
            "WHERE v.termsAndConditions.id = :termsAndConditionsId " +
@@ -23,5 +24,6 @@ public interface TermsAndConditionsVersionRepository extends JpaRepository<Terms
     Optional<TermsAndConditionsVersion> findLatestByTermsAndConditionsId(
             @Param("termsAndConditionsId") UUID termsAndConditionsId);
 
-    long countByTermsAndConditionsId(UUID termsAndConditionsId);
+    @Query("SELECT COUNT(v) FROM TermsAndConditionsVersion v WHERE v.termsAndConditions.id = :termsAndConditionsId")
+    long countByTermsAndConditionsId(@Param("termsAndConditionsId") UUID termsAndConditionsId);
 }
