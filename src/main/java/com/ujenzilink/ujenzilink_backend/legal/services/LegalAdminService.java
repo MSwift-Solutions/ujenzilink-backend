@@ -132,8 +132,9 @@ public class LegalAdminService {
     }
 
     private String calculateNextVersion(String oldText, String newText, String oldVersion, boolean isFirst) {
+
         if (isFirst) {
-            return "1.0.0"; // First document ever is always 1.0.0
+            return "1.0.0";
         }
 
         String[] parts = oldVersion.split("\\.");
@@ -141,7 +142,6 @@ public class LegalAdminService {
         int minor = parts.length > 1 ? Integer.parseInt(parts[1]) : 0;
         int patch = parts.length > 2 ? Integer.parseInt(parts[2]) : 0;
 
-        // Use a Jaccard similarity index based on words to calculate exactly how much changed
         Set<String> words1 = new HashSet<>(Arrays.asList(oldText.toLowerCase().split("\\W+")));
         Set<String> words2 = new HashSet<>(Arrays.asList(newText.toLowerCase().split("\\W+")));
 
@@ -153,12 +153,17 @@ public class LegalAdminService {
 
         double similarityScore = union.isEmpty() ? 1.0 : (double) intersection.size() / union.size();
 
-        // If similarity is less than 0.8 (meaning >20% of the distinct words were added/removed/changed), it's a major change
-        if (similarityScore < 0.8) {
+        // Major change
+        if (similarityScore < 0.7) {
             return (major + 1) + ".0.0";
-        } else {
-            // Otherwise, minor change
+        }
+
+        // Minor change
+        if (similarityScore < 0.9) {
             return major + "." + (minor + 1) + ".0";
         }
+
+        // Small change -> patch increment
+        return major + "." + minor + "." + (patch + 1);
     }
 }
