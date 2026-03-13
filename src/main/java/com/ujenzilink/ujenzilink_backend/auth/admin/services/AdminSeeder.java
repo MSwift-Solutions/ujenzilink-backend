@@ -15,6 +15,10 @@ public class AdminSeeder implements ApplicationRunner {
     private static final String ADMIN_PASSWORD = "Admin@2024!Secure";
     private static final String ADMIN_NAME     = "Super Admin";
 
+//    {
+//        "email": "admin@ujenzilink.com",
+//            "password": "Admin@2024!Secure"
+//    }
     private final AdminUserRepository adminUserRepository;
     private final PasswordEncoder passwordEncoder;
 
