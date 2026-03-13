@@ -13,9 +13,11 @@ import java.util.UUID;
 @Repository
 public interface PrivacyPolicyVersionRepository extends JpaRepository<PrivacyPolicyVersion, UUID> {
 
-    List<PrivacyPolicyVersion> findByPrivacyPolicyIdOrderByRevisionNumberDesc(UUID privacyPolicyId);
+    @Query("SELECT v FROM PrivacyPolicyVersion v WHERE v.privacyPolicy.id = :privacyPolicyId ORDER BY v.revisionNumber DESC")
+    List<PrivacyPolicyVersion> findByPrivacyPolicyIdOrderByRevisionNumberDesc(@Param("privacyPolicyId") UUID privacyPolicyId);
 
-    Optional<PrivacyPolicyVersion> findByPrivacyPolicyIdAndVersion(UUID privacyPolicyId, String version);
+    @Query("SELECT v FROM PrivacyPolicyVersion v WHERE v.privacyPolicy.id = :privacyPolicyId AND v.version = :version")
+    Optional<PrivacyPolicyVersion> findByPrivacyPolicyIdAndVersion(@Param("privacyPolicyId") UUID privacyPolicyId, @Param("version") String version);
 
     @Query("SELECT v FROM PrivacyPolicyVersion v " +
            "WHERE v.privacyPolicy.id = :privacyPolicyId " +
@@ -23,5 +25,6 @@ public interface PrivacyPolicyVersionRepository extends JpaRepository<PrivacyPol
     Optional<PrivacyPolicyVersion> findLatestByPrivacyPolicyId(
             @Param("privacyPolicyId") UUID privacyPolicyId);
 
-    long countByPrivacyPolicyId(UUID privacyPolicyId);
+    @Query("SELECT COUNT(v) FROM PrivacyPolicyVersion v WHERE v.privacyPolicy.id = :privacyPolicyId")
+    long countByPrivacyPolicyId(@Param("privacyPolicyId") UUID privacyPolicyId);
 }
