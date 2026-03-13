@@ -19,6 +19,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import java.util.List;
 
 @Configuration
@@ -67,8 +69,30 @@ public class WebSecurityConfiguration {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
+    public DaoAuthenticationProvider userAuthenticationProvider(
+            UserDetailsService signInService,
+            PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(signInService);
+        provider.setPasswordEncoder(passwordEncoder);
+        return provider;
+    }
+
+    @Bean
+    public DaoAuthenticationProvider adminAuthenticationProvider(
+            com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminAuthService adminAuthService,
+            PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(adminAuthService);
+        provider.setPasswordEncoder(passwordEncoder);
+        return provider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(
+            DaoAuthenticationProvider userAuthenticationProvider,
+            DaoAuthenticationProvider adminAuthenticationProvider) {
+        return new org.springframework.security.authentication.ProviderManager(
+                java.util.Arrays.asList(userAuthenticationProvider, adminAuthenticationProvider)
+        );
     }
 
     @Bean

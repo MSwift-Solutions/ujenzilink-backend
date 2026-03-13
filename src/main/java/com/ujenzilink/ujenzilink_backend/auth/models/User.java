@@ -117,7 +117,7 @@ public class User implements UserDetails {
     // Spring Security Methods
     @Override
     public @NonNull Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        return Collections.singletonList(new SimpleGrantedAuthority(role.name()));
     }
 
     @Override

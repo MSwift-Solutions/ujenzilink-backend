@@ -17,14 +17,14 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
 
     private final AdminAuthService adminAuthService;
-    private final PasswordEncoder passwordEncoder;
+    private final org.springframework.security.authentication.AuthenticationManager authenticationManager;
     private final JWTUtil jwtUtil;
 
     public AdminController(AdminAuthService adminAuthService,
-                           PasswordEncoder passwordEncoder,
+                           org.springframework.security.authentication.AuthenticationManager authenticationManager,
                            JWTUtil jwtUtil) {
         this.adminAuthService = adminAuthService;
-        this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
     }
 
@@ -34,23 +34,17 @@ public class AdminController {
             HttpServletRequest httpRequest) {
 
         String email = request.email().toLowerCase();
-        AdminUser admin;
 
         try {
-            admin = (AdminUser) adminAuthService.loadUserByUsername(email);
-            
-            if (!passwordEncoder.matches(request.password(), admin.getPassword())) {
-                throw new BadCredentialsException("Invalid credentials.");
-            }
-            
-            if (!admin.isEnabled()) {
-                throw new BadCredentialsException("Admin account is disabled.");
-            }
-            
+            authenticationManager.authenticate(
+                    new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(email, request.password())
+            );
         } catch (Exception e) {
             adminAuthService.recordLoginFailure(email, e.getMessage(), httpRequest);
-            throw new BadCredentialsException("Invalid credentials.");
+            throw new org.springframework.security.authentication.BadCredentialsException("Invalid credentials.");
         }
+
+        AdminUser admin = (AdminUser) adminAuthService.loadUserByUsername(email);
 
         String jwt = jwtUtil.generateToken(admin);
 
