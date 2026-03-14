@@ -99,6 +99,22 @@ public class PostController {
                 return ResponseEntity.status(response.statusCode()).body(response);
         }
 
+        @GetMapping("/user/{email}")
+        public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostPageResponse>> getUserPosts(
+                        @PathVariable String email,
+                        @RequestParam(required = false) String cursor,
+                        @RequestParam(required = false, defaultValue = "20") Integer size) {
+
+                if (size < 1 || size > 100) {
+                        return ResponseEntity.badRequest().body(
+                                        new ApiCustomResponse<>(null, "Size must be between 1 and 100", 400));
+                }
+
+                ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostPageResponse> response = postService
+                                .getUserPosts(email, cursor, size);
+                return ResponseEntity.status(response.statusCode()).body(response);
+        }
+
         @GetMapping("/{postId}")
         public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.posts.dtos.PostListResponse>> getEditablePostData(
                         @PathVariable java.util.UUID postId) {

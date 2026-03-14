@@ -19,11 +19,26 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     List<Post> findByCreatorAndIsDeletedFalse(User creator);
 
-    List<Post> findByIsDeletedFalseAndCreatedAtBefore(Instant cursor, Pageable pageable);
+    @org.springframework.data.jpa.repository.Query("SELECT p FROM Post p JOIN FETCH p.creator c LEFT JOIN FETCH c.profilePicture WHERE p.isDeleted = false AND p.createdAt < :cursor")
+    List<Post> findByIsDeletedFalseAndCreatedAtBeforeWithCreator(
+            @org.springframework.data.repository.query.Param("cursor") Instant cursor,
+            Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query("SELECT p FROM Post p JOIN FETCH p.creator c LEFT JOIN FETCH c.profilePicture WHERE p.isDeleted = false")
+    List<Post> findByIsDeletedFalseWithCreator(Pageable pageable);
 
     List<Post> findByIsDeletedFalse(Pageable pageable);
 
-    List<Post> findByCreatorAndIsDeletedFalseAndCreatedAtBefore(User creator, Instant cursor, Pageable pageable);
+    @org.springframework.data.jpa.repository.Query("SELECT p FROM Post p JOIN FETCH p.creator c LEFT JOIN FETCH c.profilePicture WHERE p.creator = :creator AND p.isDeleted = false AND p.createdAt < :cursor")
+    List<Post> findByCreatorAndIsDeletedFalseAndCreatedAtBeforeWithCreator(
+            @org.springframework.data.repository.query.Param("creator") User creator,
+            @org.springframework.data.repository.query.Param("cursor") Instant cursor,
+            Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query("SELECT p FROM Post p JOIN FETCH p.creator c LEFT JOIN FETCH c.profilePicture WHERE p.creator = :creator AND p.isDeleted = false")
+    List<Post> findByCreatorAndIsDeletedFalseWithCreator(
+            @org.springframework.data.repository.query.Param("creator") User creator,
+            Pageable pageable);
 
     List<Post> findByCreatorAndIsDeletedFalse(User creator, Pageable pageable);
 

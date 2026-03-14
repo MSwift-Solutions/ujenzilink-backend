@@ -32,7 +32,7 @@ public class Project {
     }
 
     @GetMapping
-    public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse>> getAllProjects(
+    public ResponseEntity<ApiCustomResponse<ProjectPageResponse>> getAllProjects(
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false, defaultValue = "20") Integer size) {
 
@@ -47,8 +47,15 @@ public class Project {
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
+    @GetMapping("/{projectId}/summary")
+    public ResponseEntity<ApiCustomResponse<ProjectListResponse>> getProjectById(
+            @PathVariable UUID projectId) {
+        ApiCustomResponse<ProjectListResponse> response = projectService.getProjectById(projectId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
     @GetMapping("/my-projects")
-    public ResponseEntity<ApiCustomResponse<com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPageResponse>> getMyProjects(
+    public ResponseEntity<ApiCustomResponse<ProjectPageResponse>> getMyProjects(
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false, defaultValue = "20") Integer size) {
 
@@ -60,6 +67,23 @@ public class Project {
 
         ApiCustomResponse<ProjectPageResponse> response = projectService
                 .getMyProjects(cursor, size);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/user/{email}")
+    public ResponseEntity<ApiCustomResponse<ProjectPageResponse>> getUserProjects(
+            @PathVariable String email,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false, defaultValue = "20") Integer size) {
+
+        // Validate size
+        if (size < 1 || size > 100) {
+            return ResponseEntity.badRequest().body(
+                    new ApiCustomResponse<>(null, "Size must be between 1 and 100", 400));
+        }
+
+        ApiCustomResponse<ProjectPageResponse> response = projectService
+                .getUserProjects(email, cursor, size);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 

@@ -181,7 +181,7 @@ public class ChatService {
                         : other.getEmail();
                 String profilePictureUrl = (other.getProfilePicture() != null)
                         ? other.getProfilePicture().getUrl()
-                        : "https://i.pravatar.cc/150?u=" + username;
+                        : "https://ui-avatars.com/api/?name=" + name.replace(" ", "+") + "&background=6366f1&color=fff&size=128";
 
                 chatUser = new ConversationSummaryDTO.ChatUserDTO(
                         name,
@@ -766,7 +766,7 @@ public class ChatService {
             return new ConversationSummaryDTO.ChatUserDTO(
                     "Deleted User",
                     "deleted",
-                    "https://i.pravatar.cc/150?u=deleted",
+                    "https://ui-avatars.com/api/?name=Deleted+User&background=6366f1&color=fff&size=128",
                     false);
         }
 
@@ -776,7 +776,7 @@ public class ChatService {
                 : user.getEmail();
         String profilePictureUrl = (user.getProfilePicture() != null)
                 ? user.getProfilePicture().getUrl()
-                : "https://i.pravatar.cc/150?u=" + (username != null ? username : "unknown");
+                : "https://ui-avatars.com/api/?name=" + (!name.isEmpty() ? name.replace(" ", "+") : "User") + "&background=6366f1&color=fff&size=128";
 
         return new ConversationSummaryDTO.ChatUserDTO(
                 name,

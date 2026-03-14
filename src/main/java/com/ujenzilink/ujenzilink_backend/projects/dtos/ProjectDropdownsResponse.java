@@ -8,5 +8,6 @@ public record ProjectDropdownsResponse(
                 List<DropdownResponse> visibilities,
                 List<DropdownResponse> budgetVisibilities,
                 List<DropdownResponse> constructionStages,
-                List<DropdownResponse> postTypes) {
+                List<DropdownResponse> postTypes,
+                List<DropdownResponse> memberRoles) {
 }
