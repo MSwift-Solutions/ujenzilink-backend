@@ -1,4 +1,4 @@
-package com.ujenzilink.ujenzilink_backend.images.services;
+package com.ujenzilink.ujenzilink_backend.user_mgt.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
@@ -9,6 +9,8 @@ import com.ujenzilink.ujenzilink_backend.images.dtos.ImageMetadata;
 import com.ujenzilink.ujenzilink_backend.images.dtos.ProfileImageResponse;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
+import com.ujenzilink.ujenzilink_backend.images.services.CloudinaryService;
+import com.ujenzilink.ujenzilink_backend.images.services.ImageValidationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class ImageService {
+public class ProfileImageService {
 
         private final ImageRepository imageRepository;
         private final UserRepository userRepository;
@@ -26,7 +28,7 @@ public class ImageService {
         private final CloudinaryService cloudinaryService;
         private final SecurityUtil securityUtil;
 
-        public ImageService(
+        public ProfileImageService(
                         ImageRepository imageRepository,
                         UserRepository userRepository,
                         ImageValidationService imageValidationService,

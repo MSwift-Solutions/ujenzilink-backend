@@ -3,6 +3,7 @@ package com.ujenzilink.ujenzilink_backend.images.services;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Transformation;
 import com.cloudinary.utils.ObjectUtils;
+import com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,8 +19,8 @@ public class CloudinaryService {
         this.cloudinary = cloudinary;
     }
 
-    public com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse uploadImage(MultipartFile file,
-            String folder) {
+    public CloudinaryUploadResponse uploadImage(MultipartFile file,
+                                                String folder) {
         try {
             Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap(
