@@ -179,7 +179,7 @@ public class SignUpService {
                 user.getEmail(),
                 user.getFirstName(),
                 null);
-        resendNotificationService.sendSuccessfulCreationEmail(emailDetails, user);
+        resendNotificationService.sendSignUpNotificationEmail(user.getEmail(), user.getFirstName(), user);
 
         // Create sign-up success notification
         notificationService.createNotification(
