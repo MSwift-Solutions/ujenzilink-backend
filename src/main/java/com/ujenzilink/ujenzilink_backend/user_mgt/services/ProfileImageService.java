@@ -6,7 +6,7 @@ import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.ImageMetadata;
-import com.ujenzilink.ujenzilink_backend.images.dtos.ProfileImageResponse;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.ProfileImageResponse;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
 import com.ujenzilink.ujenzilink_backend.images.services.CloudinaryService;

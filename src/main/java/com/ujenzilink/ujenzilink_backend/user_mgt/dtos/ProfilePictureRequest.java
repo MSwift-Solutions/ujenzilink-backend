@@ -1,4 +1,4 @@
-package com.ujenzilink.ujenzilink_backend.images.dtos;
+package com.ujenzilink.ujenzilink_backend.user_mgt.dtos;
 
 import jakarta.validation.constraints.NotBlank;
 

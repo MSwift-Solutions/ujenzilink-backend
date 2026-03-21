@@ -1,7 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.user_mgt.controllers;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.images.dtos.ProfileImageResponse;
+import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.ProfileImageResponse;
 import com.ujenzilink.ujenzilink_backend.user_mgt.services.ProfileImageService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
