@@ -68,10 +68,6 @@ public class R2StorageService {
         }
     }
 
-    public R2UploadResponse upload(MultipartFile file) {
-        return upload(file, "ujenzilink/uploads");
-    }
-
     private String extractExtension(String filename) {
         int lastDot = filename.lastIndexOf(".");
         if (lastDot == -1) return "jpg"; // fallback
