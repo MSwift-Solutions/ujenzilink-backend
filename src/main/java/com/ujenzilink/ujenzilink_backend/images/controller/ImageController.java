@@ -1,4 +1,4 @@
-package com.ujenzilink.ujenzilink_backend.images.constroller;
+package com.ujenzilink.ujenzilink_backend.images.controller;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.ProfileImageResponse;
