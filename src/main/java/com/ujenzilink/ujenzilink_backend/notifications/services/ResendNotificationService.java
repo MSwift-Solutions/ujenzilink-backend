@@ -75,6 +75,11 @@ public class ResendNotificationService {
         sendEmail(email, "Account Locked", body, user, EmailTypes.ACCOUNT_LOCKED);
     }
 
+    public void sendAccountDeletionEmail(String email, String name, User user) {
+        String body = EmailTemplates.getAccountDeletionEmail(name);
+        sendEmail(email, "Account Deletion Initiated", body, user, EmailTypes.ACCOUNT_DELETION);
+    }
+
     private void sendEmail(String to, String subject, String htmlContent, User user, EmailTypes emailType) {
 
         //TODO fix to email to the one on resend till we buy domain name

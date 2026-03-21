@@ -4,9 +4,10 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
-import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
+import com.ujenzilink.ujenzilink_backend.notifications.services.ResendNotificationService;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.*;
 import com.ujenzilink.ujenzilink_backend.user_mgt.models.Bio;
 import com.ujenzilink.ujenzilink_backend.user_mgt.repositories.BioRepository;
@@ -36,6 +37,9 @@ public class UserService {
     @Autowired
     private PostRepository postRepository;
 
+    @Autowired
+    private ResendNotificationService resendNotificationService;
+
     public UserService(UserRepository userRepository, BioRepository bioRepository, SecurityUtil securityUtil) {
         this.userRepository = userRepository;
         this.bioRepository = bioRepository;
@@ -56,6 +60,9 @@ public class UserService {
         user.setIsDeleted(true);
         user.setDeletedAt(Instant.now());
         userRepository.save(user);
+
+        // Send deletion initiation email
+        resendNotificationService.sendAccountDeletionEmail(user.getEmail(), user.getFirstName(), user);
 
         return new ApiCustomResponse<>(
                 "User deleted successfully",
