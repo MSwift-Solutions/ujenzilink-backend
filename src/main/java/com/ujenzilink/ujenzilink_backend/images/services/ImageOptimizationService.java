@@ -1,6 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.images.services;
 
 import net.coobird.thumbnailator.Thumbnails;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
@@ -8,15 +9,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
 
+@Service
 public class ImageOptimizationService {
+
     private static final int MAX_WIDTH = 2000;
     private static final int MAX_HEIGHT = 2000;
     private static final float JPEG_QUALITY = 0.85f;
 
+    private final ImageValidationService imageValidationService;
+
+    public ImageOptimizationService(ImageValidationService imageValidationService) {
+        this.imageValidationService = imageValidationService;
+    }
+
     public byte[] optimize(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Image file is required.");
-        }
+        imageValidationService.validateAndExtractMetadata(file);
 
         String contentType = file.getContentType();
         if (contentType == null) {
