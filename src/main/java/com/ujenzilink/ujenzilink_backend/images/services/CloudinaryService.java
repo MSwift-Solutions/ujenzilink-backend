@@ -36,14 +36,14 @@ public class CloudinaryService {
                                     .width(2000)
                                     .crop("limit")));
 
-            return com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse.from(uploadResult);
+            return CloudinaryUploadResponse.from(uploadResult);
         } catch (IOException e) {
             throw new RuntimeException("Cloudinary upload failed: " + e.getMessage());
         }
     }
 
     // Default upload to profile-pictures for backward compatibility
-    public com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse uploadImage(MultipartFile file) {
+    public CloudinaryUploadResponse uploadImage(MultipartFile file) {
         return uploadImage(file, "ujenzilink/profile-pictures");
     }
 }
