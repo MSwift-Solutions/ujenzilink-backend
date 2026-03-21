@@ -11,6 +11,8 @@ import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.VerificationTokenRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.JWTUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
+import com.ujenzilink.ujenzilink_backend.notifications.services.ResendNotificationService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,9 +31,9 @@ public class SignUpService {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private com.ujenzilink.ujenzilink_backend.notifications.services.EmailNotificationService emailNotificationService;
+    private ResendNotificationService resendNotificationService;
     @Autowired
-    private com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService notificationService;
+    private NotificationService notificationService;
     @Autowired
     private VerificationTokenRepository verificationTokenRepository;
     @Autowired
@@ -116,7 +118,7 @@ public class SignUpService {
                 signUpRequest.email(),
                 signUpRequest.firstName(),
                 token);
-        emailNotificationService.sendConfirmationEmail(emailDetails, user);
+        resendNotificationService.sendConfirmationEmail(emailDetails, user);
 
         return new ApiCustomResponse<>(
                 null,
@@ -177,7 +179,7 @@ public class SignUpService {
                 user.getEmail(),
                 user.getFirstName(),
                 null);
-        emailNotificationService.sendSuccessfulCreationEmail(emailDetails, user);
+        resendNotificationService.sendSuccessfulCreationEmail(emailDetails, user);
 
         // Create sign-up success notification
         notificationService.createNotification(
@@ -237,7 +239,7 @@ public class SignUpService {
                 user.getEmail(),
                 user.getFirstName(),
                 token);
-        emailNotificationService.sendConfirmationEmail(emailDetails, user);
+        resendNotificationService.sendConfirmationEmail(emailDetails, user);
 
         updateResendTracking(user);
 

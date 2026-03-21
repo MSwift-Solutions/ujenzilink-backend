@@ -3,26 +3,22 @@ package com.ujenzilink.ujenzilink_backend.projects.services;
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
+import com.ujenzilink.ujenzilink_backend.chats.services.ChatService;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectFollowDTO;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectMemberDTO;
-import com.ujenzilink.ujenzilink_backend.projects.dtos.TeamMemberSearchDTO;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
+import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
+import com.ujenzilink.ujenzilink_backend.notifications.services.ResendNotificationService;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.*;
+import com.ujenzilink.ujenzilink_backend.projects.enums.MemberRole;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectFollow;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectLike;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectMember;
-import com.ujenzilink.ujenzilink_backend.projects.enums.MemberRole;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectFollowRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectLikeRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
-import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
-import com.ujenzilink.ujenzilink_backend.notifications.services.EmailNotificationService;
-import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
-import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
-import com.ujenzilink.ujenzilink_backend.chats.services.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -60,7 +56,7 @@ public class UserMgtService {
     private NotificationService notificationService;
 
     @Autowired
-    private EmailNotificationService emailNotificationService;
+    private ResendNotificationService resendNotificationService;
 
     @Autowired
     private ChatService chatService;
@@ -348,7 +344,7 @@ public class UserMgtService {
                 null);
 
         // Send email notification
-        emailNotificationService.sendProjectInvitationEmail(
+        resendNotificationService.sendProjectInvitationEmail(
                 memberToAdd.getEmail(),
                 memberToAdd.getFirstName(),
                 project.getTitle(),
