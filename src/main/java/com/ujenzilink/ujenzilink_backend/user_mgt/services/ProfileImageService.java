@@ -4,13 +4,14 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.ImageMetadata;
+import com.ujenzilink.ujenzilink_backend.images.dtos.R2UploadResponse;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.ProfileImageResponse;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
-import com.ujenzilink.ujenzilink_backend.images.services.CloudinaryService;
 import com.ujenzilink.ujenzilink_backend.images.services.ImageValidationService;
+import com.ujenzilink.ujenzilink_backend.images.services.R2StorageService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,19 +26,22 @@ public class ProfileImageService {
         private final ImageRepository imageRepository;
         private final UserRepository userRepository;
         private final ImageValidationService imageValidationService;
-        private final CloudinaryService cloudinaryService;
+        private final R2StorageService r2StorageService;
         private final SecurityUtil securityUtil;
+
+        @Value("${folders.profile-pictures}")
+        private String profilePicturesFolder;
 
         public ProfileImageService(
                         ImageRepository imageRepository,
                         UserRepository userRepository,
                         ImageValidationService imageValidationService,
-                        CloudinaryService cloudinaryService,
+                        R2StorageService r2StorageService,
                         SecurityUtil securityUtil) {
                 this.imageRepository = imageRepository;
                 this.userRepository = userRepository;
                 this.imageValidationService = imageValidationService;
-                this.cloudinaryService = cloudinaryService;
+                this.r2StorageService = r2StorageService;
                 this.securityUtil = securityUtil;
         }
 
@@ -63,15 +67,19 @@ public class ProfileImageService {
 
                 ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
 
-                CloudinaryUploadResponse uploadResponse = cloudinaryService.uploadImage(file);
+                String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg";
+                String extension = originalName.substring(originalName.lastIndexOf(".") + 1);
 
+                String folder = profilePicturesFolder + "/" + user.getId();
+                String fileName = "avatar-" + UUID.randomUUID().toString() + "." + extension;
+                R2UploadResponse uploadResponse = r2StorageService.upload(file, folder, fileName);
+
+                System.out.println(uploadResponse);
                 Image profileImage = new Image();
-                profileImage.setUrl(uploadResponse.secureUrl());
+                profileImage.setUrl(uploadResponse.key());
                 profileImage.setFilename(metadata.filename());
                 profileImage.setFileType(metadata.fileType());
                 profileImage.setFileSize(metadata.fileSize());
-                profileImage.setWidth(uploadResponse.width());
-                profileImage.setHeight(uploadResponse.height());
                 profileImage.setUser(user);
 
                 profileImage = imageRepository.save(profileImage);
@@ -80,7 +88,7 @@ public class ProfileImageService {
                 userRepository.save(user);
 
                 return new ApiCustomResponse<>(
-                                uploadResponse.secureUrl(),
+                                uploadResponse.key(),
                                 "Profile picture uploaded successfully.",
                                 HttpStatus.OK.value());
         }
@@ -107,26 +115,30 @@ public class ProfileImageService {
 
                 ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
 
-                CloudinaryUploadResponse uploadResponse = cloudinaryService.uploadImage(file);
+                String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg";
+                String extension = originalName.substring(originalName.lastIndexOf(".") + 1);
+
+                String folder = profilePicturesFolder + "/" + user.getId();
+                String fileName = "avatar-" + UUID.randomUUID().toString() + "." + extension;
+                R2UploadResponse uploadResponse = r2StorageService.upload(file, folder, fileName);
+
+                System.out.println(uploadResponse);
 
                 Image profileImage = new Image();
-                profileImage.setUrl(uploadResponse.secureUrl());
+                profileImage.setUrl(uploadResponse.key());
                 profileImage.setFilename(metadata.filename());
                 profileImage.setFileType(metadata.fileType());
                 profileImage.setFileSize(metadata.fileSize());
-                profileImage.setWidth(uploadResponse.width());
-                profileImage.setHeight(uploadResponse.height());
                 profileImage.setUser(user);
 
                 profileImage = imageRepository.save(profileImage);
 
-                // Note: We are only updating the reference. The old image remains in the
-                // database.
+                // Note: We are only updating the reference. The old image remains in the database.
                 user.setProfilePicture(profileImage);
                 userRepository.save(user);
 
                 return new ApiCustomResponse<>(
-                                uploadResponse.secureUrl(),
+                                uploadResponse.key(),
                                 "Profile picture changed successfully.",
                                 HttpStatus.OK.value());
         }

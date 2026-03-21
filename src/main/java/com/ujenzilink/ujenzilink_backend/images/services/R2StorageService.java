@@ -2,6 +2,7 @@ package com.ujenzilink.ujenzilink_backend.images.services;
 
 import com.ujenzilink.ujenzilink_backend.configs.R2StorageProperties;
 import com.ujenzilink.ujenzilink_backend.images.dtos.R2UploadResponse;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -11,6 +12,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 import java.time.Instant;
 import java.util.UUID;
 
+@Service
 public class R2StorageService {
     private final S3Client s3Client;
     private final R2StorageProperties r2Props;
@@ -24,7 +26,7 @@ public class R2StorageService {
         this.optimizationService = optimizationService;
     }
 
-    public R2UploadResponse upload(MultipartFile file, String folder) {
+    public R2UploadResponse upload(MultipartFile file, String folder, String fileName) {
         try {
             byte[] optimizedBytes = optimizationService.optimize(file);
 
@@ -32,8 +34,9 @@ public class R2StorageService {
                     ? file.getOriginalFilename()
                     : "image";
 
-            String extension = extractExtension(originalName);
-            String key = folder + "/" + UUID.randomUUID() + "." + extension;
+            // Allow the caller service to dictate the exact fileName (e.g. {userId}/avatar-{uuid}.jpg)
+            // or we just join folder + "/" + fileName
+            String key = folder + "/" + fileName;
 
             String contentType = file.getContentType() != null
                     ? file.getContentType()
@@ -66,11 +69,5 @@ public class R2StorageService {
         } catch (Exception e) {
             throw new RuntimeException("R2 upload failed: " + e.getMessage(), e);
         }
-    }
-
-    private String extractExtension(String filename) {
-        int lastDot = filename.lastIndexOf(".");
-        if (lastDot == -1) return "jpg"; // fallback
-        return filename.substring(lastDot + 1);
     }
 }
