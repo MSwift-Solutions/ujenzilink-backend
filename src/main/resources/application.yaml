@@ -60,3 +60,8 @@ r2:
   bucket-name: ${R2_BUCKET_NAME}
   public-url: ${R2_PUBLIC_URL}
   endpoint: ${ENDPOINT}
+
+folders:
+  profile-pictures: ujenzilink/profile-pictures
+  post-images: ujenzilink/posts
+  project-stage-images: ujenzilink/project-stages
