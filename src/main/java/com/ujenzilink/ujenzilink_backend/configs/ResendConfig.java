@@ -19,9 +19,15 @@ public class ResendConfig {
         this.apiKey = apiKey;
     }
 
+    private String fromEmail;
+
+    public String getFromEmail() { return fromEmail; }
+    public void setFromEmail(String fromEmail) { this.fromEmail = fromEmail; }
+
     @Bean
     public WebClient resendWebClient() {
-        if (apiKey == null) {
+        
+        if (apiKey == null || apiKey.trim().isEmpty()) {
             throw new IllegalStateException(
                     "Resend configuration is missing. Please configure resend.api-key in application.yaml");
         }
