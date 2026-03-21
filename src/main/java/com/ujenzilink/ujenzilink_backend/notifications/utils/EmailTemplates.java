@@ -81,7 +81,7 @@ public class EmailTemplates {
                 "Your account will be deleted permanently after <span class=\"text-slate-900 font-bold\">14 days</span>. " +
                 "Until then, you can reclaim your account by logging back in.<br><br>" +
                 "If you did not initiate this request, please secure your account immediately.<br><br>" +
-                "Best regards,<br><br>" +
+                "Best regards,\n\n" +
                 "~Musa";
     }
 }
