@@ -84,4 +84,13 @@ public class EmailTemplates {
                 "Best regards,\n\n" +
                 "~Musa";
     }
+
+    public static String getAccountDeletionRevertEmail(String name) {
+        return "Dear " + name.toUpperCase() + ",<br><br>" +
+                "We are pleased to inform you that your account deletion request has been successfully reverted by an administrator.<br><br>" +
+                "Your account is now fully restored, and you can continue to use our services as usual.<br><br>" +
+                "If you have any questions, please feel free to reach out to our support team.<br><br>" +
+                "Best regards,<br><br>" +
+                "~Musa";
+    }
 }

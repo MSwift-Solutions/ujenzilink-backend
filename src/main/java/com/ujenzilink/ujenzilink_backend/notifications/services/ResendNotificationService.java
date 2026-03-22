@@ -80,6 +80,11 @@ public class ResendNotificationService {
         sendEmail(email, "Account Deletion Initiated", body, user, EmailTypes.ACCOUNT_DELETION);
     }
 
+    public void sendAccountDeletionRevertEmail(String email, String name, User user) {
+        String body = EmailTemplates.getAccountDeletionRevertEmail(name);
+        sendEmail(email, "Account Deletion Reverted", body, user, EmailTypes.ACCOUNT_DELETION_REVERT);
+    }
+
     private void sendEmail(String to, String subject, String htmlContent, User user, EmailTypes emailType) {
 
         //TODO fix to email to the one on resend till we buy domain name
