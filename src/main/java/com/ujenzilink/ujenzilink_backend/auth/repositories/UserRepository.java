@@ -30,4 +30,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             "OR LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
             "AND u.isDeleted = false AND u.isEnabled = true")
     List<User> searchUsers(@Param("searchTerm") String searchTerm, Pageable pageable);
+
+    List<User> findByIsDeletedTrueOrderByDeletedAtDesc();
 }
