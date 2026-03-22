@@ -33,6 +33,9 @@ public interface UserActivityRepository extends JpaRepository<UserActivity, UUID
     // Count activities by multiple types for a user
     long countByUser_IdAndActivityTypeIn(UUID userId, List<ActivityType> activityTypes);
 
-    // Get activities for a specific date
+    // Get activities for a user for a specific date
     List<UserActivity> findByUser_IdAndActivityDate(UUID userId, LocalDate date);
+
+    @Query("SELECT COUNT(DISTINCT ua.user.id) FROM UserActivity ua WHERE ua.activityDate = :date")
+    long countActiveUsersByDate(@Param("date") LocalDate date);
 }

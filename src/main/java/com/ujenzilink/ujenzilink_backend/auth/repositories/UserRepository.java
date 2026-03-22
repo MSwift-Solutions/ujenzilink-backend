@@ -32,4 +32,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     List<User> searchUsers(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     List<User> findByIsDeletedTrueOrderByDeletedAtDesc();
+
+    long countByIsDeletedFalse();
+
+    long countByIsDeletedTrue();
+
+    long countByDateOfCreationAfter(Instant date);
 }

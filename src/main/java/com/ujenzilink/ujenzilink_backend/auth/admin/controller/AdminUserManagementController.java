@@ -1,5 +1,6 @@
 package com.ujenzilink.ujenzilink_backend.auth.admin.controller;
 
+import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.AdminMetricsResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.UserDeletionRequestResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminUserManagementService;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
@@ -20,6 +21,12 @@ public class AdminUserManagementController {
 
     public AdminUserManagementController(AdminUserManagementService adminUserManagementService) {
         this.adminUserManagementService = adminUserManagementService;
+    }
+
+    @GetMapping("/metrics")
+    public ResponseEntity<ApiCustomResponse<AdminMetricsResponse>> getMetrics() {
+        ApiCustomResponse<AdminMetricsResponse> response = adminUserManagementService.getAdminMetrics();
+        return ResponseEntity.status(response.statusCode()).body(response);
     }
 
     @GetMapping("/deletion-requests")
