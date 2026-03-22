@@ -101,7 +101,7 @@ public class ResendNotificationService {
             boolean sentSuccessfully = response != null && response.getStatusCode().is2xxSuccessful();
 
             if (sentSuccessfully) {
-                log.info("Email sent successfully to {} with type {}", to, emailType);
+                //log.info("Email sent successfully to {} with type {}", to, emailType);
                 logEmail(to, emailType, htmlContent, user);
             } else {
                 log.warn("Email was not sent successfully to {} with type {}", to, emailType);
