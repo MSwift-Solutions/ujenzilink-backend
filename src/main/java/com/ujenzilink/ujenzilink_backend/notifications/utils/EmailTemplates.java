@@ -74,4 +74,14 @@ public class EmailTemplates {
                 "Best regards,\n\n" +
                 "~Musa";
     }
+
+    public static String getAccountDeletionEmail(String name) {
+        return "Dear " + name.toUpperCase() + ",<br><br>" +
+                "This action will initiate the permanent deletion of your account. All your data will be erased after 14 days.<br><br>" +
+                "Your account will be deleted permanently after <span class=\"text-slate-900 font-bold\">14 days</span>. " +
+                "Until then, you can reclaim your account by logging back in.<br><br>" +
+                "If you did not initiate this request, please secure your account immediately.<br><br>" +
+                "Best regards,\n\n" +
+                "~Musa";
+    }
 }

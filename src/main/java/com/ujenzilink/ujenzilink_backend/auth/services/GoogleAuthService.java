@@ -11,6 +11,8 @@ import com.ujenzilink.ujenzilink_backend.auth.utils.JWTUtil;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
+import com.ujenzilink.ujenzilink_backend.notifications.services.ResendNotificationService;
 import com.ujenzilink.ujenzilink_backend.user_mgt.enums.ActivityType;
 import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +52,10 @@ public class GoogleAuthService {
     private ActivityService activityService;
 
     @Autowired
-    private com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService notificationService;
+    private NotificationService notificationService;
+
+    @Autowired
+    private ResendNotificationService resendNotificationService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -75,6 +80,7 @@ public class GoogleAuthService {
 
             if (user == null) {
                 user = createGoogleUser(email, firstName, lastName, pictureUrl);
+                resendNotificationService.sendSignUpNotificationEmail(user.getEmail(), user.getFirstName(), user);
             } else {
                 if (user.getIsDeleted()) {
                     return new ApiCustomResponse<>(

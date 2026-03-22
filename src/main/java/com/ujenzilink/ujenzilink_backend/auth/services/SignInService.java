@@ -2,12 +2,16 @@ package com.ujenzilink.ujenzilink_backend.auth.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
+import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
+import com.ujenzilink.ujenzilink_backend.notifications.services.ResendNotificationService;
 import com.ujenzilink.ujenzilink_backend.user_mgt.enums.ActivityType;
 import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,17 +22,17 @@ import java.time.Instant;
 public class SignInService implements UserDetailsService {
     private final UserRepository userRepository;
     private final ActivityService activityService;
-    private final com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService notificationService;
-    private final com.ujenzilink.ujenzilink_backend.notifications.services.EmailNotificationService emailNotificationService;
+    private final NotificationService notificationService;
+    private final ResendNotificationService resendNotificationService;
 
     public SignInService(UserRepository userRepository,
-            ActivityService activityService,
-            com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService notificationService,
-            com.ujenzilink.ujenzilink_backend.notifications.services.EmailNotificationService emailNotificationService) {
+                         ActivityService activityService,
+                         NotificationService notificationService,
+                         ResendNotificationService resendNotificationService) {
         this.userRepository = userRepository;
         this.activityService = activityService;
         this.notificationService = notificationService;
-        this.emailNotificationService = emailNotificationService;
+        this.resendNotificationService = resendNotificationService;
     }
 
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -78,10 +82,10 @@ public class SignInService implements UserDetailsService {
             notificationService.createNotification(
                     user,
                     null,
-                    com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType.SIGNIN_SUCCESS,
+                    NotificationType.SIGNIN_SUCCESS,
                     "New Sign-in",
                     "You signed in successfully.",
-                    com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority.MEDIUM,
+                    NotificationPriority.MEDIUM,
                     false,
                     null,
                     null);
@@ -100,16 +104,16 @@ public class SignInService implements UserDetailsService {
                 user.setIsLocked(true);
 
                 // Send critical email
-                emailNotificationService.sendAccountLockedEmail(user.getEmail(), user.getFirstName(), user);
+                resendNotificationService.sendAccountLockedEmail(user.getEmail(), user.getFirstName(), user);
 
                 // Create in-app notification
                 notificationService.createNotification(
                         user,
                         null,
-                        com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType.ACCOUNT_SECURITY,
+                        NotificationType.ACCOUNT_SECURITY,
                         "Account Locked",
                         "Your account has been locked due to too many failed login attempts.",
-                        com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority.URGENT,
+                        NotificationPriority.URGENT,
                         false,
                         null,
                         null);

@@ -4,11 +4,11 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryUploadResponse;
+import com.ujenzilink.ujenzilink_backend.images.dtos.R2UploadResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.ImageMetadata;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
-import com.ujenzilink.ujenzilink_backend.images.services.CloudinaryService;
+import com.ujenzilink.ujenzilink_backend.images.services.R2StorageService;
 import com.ujenzilink.ujenzilink_backend.images.services.ImageValidationService;
 import com.ujenzilink.ujenzilink_backend.posts.dtos.*;
 import com.ujenzilink.ujenzilink_backend.posts.models.Post;
@@ -19,6 +19,7 @@ import com.ujenzilink.ujenzilink_backend.posts.utils.PostUtils;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -50,7 +51,10 @@ public class PostService {
     private ImageValidationService imageValidationService;
 
     @Autowired
-    private CloudinaryService cloudinaryService;
+    private R2StorageService r2StorageService;
+
+    @Value("${folders.post-images}")
+    private String postImagesFolder;
 
     @Autowired
     private SecurityUtil securityUtil;
@@ -101,15 +105,18 @@ public class PostService {
                     continue;
 
                 ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
-                CloudinaryUploadResponse uploadResponse = cloudinaryService.uploadImage(file, "ujenzilink/post-images");
+
+                String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg";
+                String folder = postImagesFolder + "/" + savedPost.getId();
+                String fileName = java.util.UUID.randomUUID().toString() + "-" + originalName;
+
+                R2UploadResponse uploadResponse = r2StorageService.upload(file, folder, fileName);
 
                 Image image = new Image();
-                image.setUrl(uploadResponse.secureUrl());
+                image.setUrl(uploadResponse.key());
                 image.setFilename(metadata.filename());
                 image.setFileType(metadata.fileType());
                 image.setFileSize(metadata.fileSize());
-                image.setWidth(uploadResponse.width());
-                image.setHeight(uploadResponse.height());
                 image.setUser(user);
                 image = imageRepository.save(image);
 
@@ -423,15 +430,18 @@ public class PostService {
                     continue;
 
                 ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
-                CloudinaryUploadResponse uploadResponse = cloudinaryService.uploadImage(file, "ujenzilink/post-images");
+
+                String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg";
+                String folder = postImagesFolder + "/" + post.getId();
+                String fileName = java.util.UUID.randomUUID().toString() + "-" + originalName;
+
+                R2UploadResponse uploadResponse = r2StorageService.upload(file, folder, fileName);
 
                 Image image = new Image();
-                image.setUrl(uploadResponse.secureUrl());
+                image.setUrl(uploadResponse.key());
                 image.setFilename(metadata.filename());
                 image.setFileType(metadata.fileType());
                 image.setFileSize(metadata.fileSize());
-                image.setWidth(uploadResponse.width());
-                image.setHeight(uploadResponse.height());
                 image.setUser(currentUser);
                 image = imageRepository.save(image);
 

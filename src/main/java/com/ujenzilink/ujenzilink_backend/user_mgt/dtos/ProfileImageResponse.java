@@ -1,4 +1,4 @@
-package com.ujenzilink.ujenzilink_backend.images.dtos;
+package com.ujenzilink.ujenzilink_backend.user_mgt.dtos;
 
 import java.time.Instant;
 import java.util.UUID;

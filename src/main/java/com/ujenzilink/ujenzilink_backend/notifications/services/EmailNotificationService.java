@@ -20,7 +20,7 @@ public class EmailNotificationService {
         this.emailRepository = emailRepository;
     }
 
-    public void sendConfirmationEmail(EmailNotificationDTO emailDetails, User user) {
+    private void sendConfirmationEmail(EmailNotificationDTO emailDetails, User user) {
         try {
             String body = EmailTemplates.getVerificationCodeEmail(emailDetails.name(), emailDetails.token());
             sendEmail(emailDetails.email(), "Customer", body, user, EmailTypes.VERIFICATION_CODE);
@@ -29,38 +29,38 @@ public class EmailNotificationService {
         }
     }
 
-    public void sendSuccessfulCreationEmail(EmailNotificationDTO emailDetails, User user) {
+    private void sendSuccessfulCreationEmail(EmailNotificationDTO emailDetails, User user) {
         String body = EmailTemplates.getWelcomeEmail(emailDetails.name());
         sendEmail(emailDetails.email(), "Customer", body, user, EmailTypes.WELCOME_EMAIL);
     }
 
-    public void sendPassChangeEmail(EmailNotificationDTO emailDetails, User user) {
+    private void sendPassChangeEmail(EmailNotificationDTO emailDetails, User user) {
         String body = EmailTemplates.getPasswordChangedEmail(emailDetails.name());
         sendEmail(emailDetails.email(), "Customer", body, user, EmailTypes.PASSWORD_CHANGED);
     }
 
-    public void sendPassResetEmail(EmailNotificationDTO emailDetails, User user) {
+    private void sendPassResetEmail(EmailNotificationDTO emailDetails, User user) {
         String body = EmailTemplates.getPasswordResetEmail(emailDetails.name(), emailDetails.token());
         sendEmail(emailDetails.email(), "Customer", body, user, EmailTypes.PASSWORD_RESET);
     }
 
-    public void sendSignInNotificationEmail(String email, String name, String loginTime, User user) {
+    private void sendSignInNotificationEmail(String email, String name, String loginTime, User user) {
         String body = EmailTemplates.getSignInNotificationEmail(name, loginTime);
         sendEmail(email, "Sign-in Notification", body, user, EmailTypes.SIGNIN_NOTIFICATION);
     }
 
-    public void sendSignUpNotificationEmail(String email, String name, User user) {
+    private void sendSignUpNotificationEmail(String email, String name, User user) {
         String body = EmailTemplates.getSignUpNotificationEmail(name);
         sendEmail(email, "Welcome to UJENZI LINK", body, user, EmailTypes.SIGNUP_NOTIFICATION);
     }
 
-    public void sendProjectInvitationEmail(String email, String name, String projectName, String inviterName,
+    private void sendProjectInvitationEmail(String email, String name, String projectName, String inviterName,
             User user) {
         String body = EmailTemplates.getProjectInvitationEmail(name, projectName, inviterName);
         sendEmail(email, "Project Invitation: " + projectName, body, user, EmailTypes.PROJECT_INVITATION);
     }
 
-    public void sendAccountLockedEmail(String email, String name, User user) {
+    private void sendAccountLockedEmail(String email, String name, User user) {
         String body = EmailTemplates.getAccountLockedEmail(name);
         sendEmail(email, "Account Locked", body, user, EmailTypes.ACCOUNT_LOCKED);
     }
