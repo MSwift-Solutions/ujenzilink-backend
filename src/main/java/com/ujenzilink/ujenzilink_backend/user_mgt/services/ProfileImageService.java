@@ -74,13 +74,20 @@ public class ProfileImageService {
                 String fileName = "avatar-" + UUID.randomUUID().toString() + "." + extension;
                 R2UploadResponse uploadResponse = r2StorageService.upload(file, folder, fileName);
 
-                System.out.println(uploadResponse);
                 Image profileImage = new Image();
                 profileImage.setUrl(uploadResponse.key());
                 profileImage.setFilename(metadata.filename());
                 profileImage.setFileType(metadata.fileType());
                 profileImage.setFileSize(metadata.fileSize());
                 profileImage.setUser(user);
+
+                // Delete old image from R2 if it exists
+                if (user.getProfilePicture() != null) {
+                        String oldKey = user.getProfilePicture().getUrl(); // The key is stored in the url field
+                        if (r2StorageService.deleteImageWithVerification(oldKey)) {
+                                throw new RuntimeException("Failed to delete old profile picture from R2. Rolling back.");
+                        }
+                }
 
                 profileImage = imageRepository.save(profileImage);
 
@@ -122,14 +129,20 @@ public class ProfileImageService {
                 String fileName = "avatar-" + UUID.randomUUID().toString() + "." + extension;
                 R2UploadResponse uploadResponse = r2StorageService.upload(file, folder, fileName);
 
-                System.out.println(uploadResponse);
-
                 Image profileImage = new Image();
                 profileImage.setUrl(uploadResponse.key());
                 profileImage.setFilename(metadata.filename());
                 profileImage.setFileType(metadata.fileType());
                 profileImage.setFileSize(metadata.fileSize());
                 profileImage.setUser(user);
+
+                // Delete old image from R2 if it exists
+                if (user.getProfilePicture() != null) {
+                        String oldKey = user.getProfilePicture().getUrl();
+                        if (r2StorageService.deleteImageWithVerification(oldKey)) {
+                                throw new RuntimeException("Failed to delete old profile picture from R2. Rolling back.");
+                        }
+                }
 
                 profileImage = imageRepository.save(profileImage);
 
@@ -175,6 +188,12 @@ public class ProfileImageService {
                 image.setIsDeleted(true);
                 image.setDeletedAt(java.time.Instant.now());
                 imageRepository.save(image);
+
+                // Delete from R2 storage
+                String key = image.getUrl();
+                if (r2StorageService.deleteImageWithVerification(key)) {
+                        throw new RuntimeException("Failed to delete image from R2. Rolling back.");
+                }
 
                 if (user.getProfilePicture() != null && user.getProfilePicture().getId().equals(imageId)) {
                         user.setProfilePicture(null);
