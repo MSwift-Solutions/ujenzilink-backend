@@ -33,12 +33,12 @@ WORKDIR /home/appuser/app
 COPY --from=build --chown=appuser /app/target/ujenzilink-backend-0.0.1-SNAPSHOT.jar app.jar
 
 # Render injects a PORT environment variable at runtime.
-# We default to 8080 if PORT is not set (useful for local Docker testing).
-ENV PORT=8080
+# Render's default is 10000; override in the Render Dashboard if needed.
+ENV PORT=10000
 
 # Expose the port — Render reads this to route traffic correctly
 EXPOSE $PORT
 
 # Use shell form so the $PORT environment variable is expanded at runtime.
-# Spring Boot receives the port via --server.port, overriding application.properties.
-ENTRYPOINT ["sh", "-c", "java -jar app.jar --server.port=${PORT}"]
+# Bind explicitly to 0.0.0.0 so Render's load balancer can forward traffic to this container.
+ENTRYPOINT ["sh", "-c", "java -jar app.jar --server.port=${PORT} --server.address=0.0.0.0"]
