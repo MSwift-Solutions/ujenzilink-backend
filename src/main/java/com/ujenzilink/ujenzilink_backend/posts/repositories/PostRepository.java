@@ -48,4 +48,6 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @org.springframework.data.jpa.repository.Query("UPDATE Post p SET p.impressions = p.impressions + 1 WHERE p.id IN :postIds")
     void incrementImpressionsInBulk(
             @org.springframework.data.repository.query.Param("postIds") java.util.Collection<UUID> postIds);
+
+    long countByIsDeletedFalse();
 }

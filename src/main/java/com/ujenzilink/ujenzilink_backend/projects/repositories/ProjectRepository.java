@@ -59,4 +59,6 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
         @org.springframework.data.jpa.repository.Modifying
         @org.springframework.data.jpa.repository.Query("UPDATE Project p SET p.views = p.views + 1 WHERE p.id = :projectId")
         void incrementViews(@org.springframework.data.repository.query.Param("projectId") UUID projectId);
+
+        long countByIsDeletedFalse();
 }

@@ -1,4 +1,4 @@
-package com.ujenzilink.ujenzilink_backend.auth.admin.controller;
+package com.ujenzilink.ujenzilink_backend.auth.admin.dtos;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
