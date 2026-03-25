@@ -41,4 +41,4 @@ EXPOSE $PORT
 
 # Use shell form so the $PORT environment variable is expanded at runtime.
 # Spring Boot receives the port via --server.port, overriding application.properties.
-ENTRYPOINT ["sh", "-c", "java -jar app.jar --server.port=${PORT}"]
+ENTRYPOINT ["sh", "-c", "java -jar app.jar --server.port=${PORT}"]
