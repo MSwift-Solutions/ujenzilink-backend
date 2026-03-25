@@ -98,9 +98,7 @@ public class WebSecurityConfiguration {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-                "*",
-                "https://ujenzilink-frontend.mangabomoses.workers.dev")); // Avoid "*" in production
+        config.setAllowedOriginPatterns(List.of("*")); // Avoid "*" in production
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept"));
         config.setAllowCredentials(true);
