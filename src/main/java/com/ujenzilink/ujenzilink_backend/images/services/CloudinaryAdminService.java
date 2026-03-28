@@ -1,31 +1,32 @@
 package com.ujenzilink.ujenzilink_backend.images.services;
 
-import com.cloudinary.Cloudinary;
-import com.cloudinary.api.ApiResponse;
-import com.cloudinary.utils.ObjectUtils;
+import com.ujenzilink.ujenzilink_backend.configs.R2StorageProperties;
 import com.ujenzilink.ujenzilink_backend.images.dtos.CloudinaryResourceDTO;
 import com.ujenzilink.ujenzilink_backend.images.dtos.HangingResourcesResponse;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
+import com.ujenzilink.ujenzilink_backend.posts.repositories.PostImageRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.StagePhotoRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class CloudinaryAdminService {
 
-    private final Cloudinary cloudinary;
     private final ImageRepository imageRepository;
-    private final com.ujenzilink.ujenzilink_backend.posts.repositories.PostImageRepository postImageRepository;
-    private final com.ujenzilink.ujenzilink_backend.projects.repositories.StagePhotoRepository stagePhotoRepository;
-
-    @Value("${cloudinary.root-folder:ujenzilink}")
-    private String cloudinaryRoot;
+    private final PostImageRepository postImageRepository;
+    private final StagePhotoRepository stagePhotoRepository;
+    private final S3Client s3Client;
+    private final R2StorageProperties r2Props;
 
     @Value("${folders.profile-pictures}")
     private String profilePicturesFolder;
@@ -36,84 +37,71 @@ public class CloudinaryAdminService {
     @Value("${folders.project-stage-images}")
     private String projectStageImagesFolder;
 
-    public CloudinaryAdminService(Cloudinary cloudinary,
-            ImageRepository imageRepository,
-            com.ujenzilink.ujenzilink_backend.posts.repositories.PostImageRepository postImageRepository,
-            com.ujenzilink.ujenzilink_backend.projects.repositories.StagePhotoRepository stagePhotoRepository) {
-        this.cloudinary = cloudinary;
+    public CloudinaryAdminService(ImageRepository imageRepository,
+                                 PostImageRepository postImageRepository,
+                                 StagePhotoRepository stagePhotoRepository,
+                                 S3Client s3Client,
+                                 R2StorageProperties r2Props) {
         this.imageRepository = imageRepository;
         this.postImageRepository = postImageRepository;
         this.stagePhotoRepository = stagePhotoRepository;
+        this.s3Client = s3Client;
+        this.r2Props = r2Props;
     }
 
-    // --- User Profile Pictures ---
+    // --- User Profile Pictures (R2) ---
     public HangingResourcesResponse getOrphanedProfilePictures() {
-        return getHangingResourcesWithType(cloudinaryRoot + "/" + profilePicturesFolder, "USERS", "ORPHANED");
+        return getHangingResourcesWithTypeR2(profilePicturesFolder, "USERS", "ORPHANED");
     }
 
     public HangingResourcesResponse getFlaggedProfilePictures() {
-        return getHangingResourcesWithType(cloudinaryRoot + "/" + profilePicturesFolder, "USERS", "FLAGGED");
+        return getHangingResourcesWithTypeR2(profilePicturesFolder, "USERS", "FLAGGED");
     }
 
     public HangingResourcesResponse getParentDeletedProfilePictures() {
-        return getHangingResourcesWithType(cloudinaryRoot + "/" + profilePicturesFolder, "USERS", "PARENT_DELETED");
+        return getHangingResourcesWithTypeR2(profilePicturesFolder, "USERS", "PARENT_DELETED");
     }
 
-    // --- Post Images ---
+    // --- Post Images (R2) ---
     public HangingResourcesResponse getOrphanedPostImages() {
-        return getHangingResourcesWithType(cloudinaryRoot + "/" + postImagesFolder, "POSTS", "ORPHANED");
+        return getHangingResourcesWithTypeR2(postImagesFolder, "POSTS", "ORPHANED");
     }
 
     public HangingResourcesResponse getFlaggedPostImages() {
-        return getHangingResourcesWithType(cloudinaryRoot + "/" + postImagesFolder, "POSTS", "FLAGGED");
+        return getHangingResourcesWithTypeR2(postImagesFolder, "POSTS", "FLAGGED");
     }
 
     public HangingResourcesResponse getParentDeletedPostImages() {
-        return getHangingResourcesWithType(cloudinaryRoot + "/" + postImagesFolder, "POSTS", "PARENT_DELETED");
+        return getHangingResourcesWithTypeR2(postImagesFolder, "POSTS", "PARENT_DELETED");
     }
 
-    // --- Project Stage Images ---
+    // --- Project Stage Images (R2) ---
     public HangingResourcesResponse getOrphanedProjectImages() {
-        return getHangingResourcesWithType(cloudinaryRoot + "/" + projectStageImagesFolder, "PROJECTS", "ORPHANED");
+        return getHangingResourcesWithTypeR2(projectStageImagesFolder, "PROJECTS", "ORPHANED");
     }
 
     public HangingResourcesResponse getFlaggedProjectImages() {
-        return getHangingResourcesWithType(cloudinaryRoot + "/" + projectStageImagesFolder, "PROJECTS", "FLAGGED");
+        return getHangingResourcesWithTypeR2(projectStageImagesFolder, "PROJECTS", "FLAGGED");
     }
 
     public HangingResourcesResponse getParentDeletedProjectImages() {
-        return getHangingResourcesWithType(cloudinaryRoot + "/" + projectStageImagesFolder, "PROJECTS", "PARENT_DELETED");
+        return getHangingResourcesWithTypeR2(projectStageImagesFolder, "PROJECTS", "PARENT_DELETED");
     }
 
-    @Deprecated
-    public HangingResourcesResponse getHangingProfilePictures() {
-        return getOrphanedProfilePictures();
-    }
-
-    @Deprecated
-    public HangingResourcesResponse getHangingPostImages() {
-        return getOrphanedPostImages();
-    }
-
-    @Deprecated
-    public HangingResourcesResponse getHangingProjectStageImages() {
-        return getOrphanedProjectImages();
-    }
-
-    private HangingResourcesResponse getHangingResourcesWithType(String folderPrefix, String category, String reasonType) {
+    private HangingResourcesResponse getHangingResourcesWithTypeR2(String folderPrefix, String category, String reasonType) {
         try {
-            List<Map<String, Object>> cloudinaryResources = fetchAllCloudinaryResources(folderPrefix);
+            List<S3Object> r2Objects = fetchAllR2Objects(folderPrefix);
             List<CloudinaryResourceDTO> hangingResources = new ArrayList<>();
             long totalSize = 0;
 
-            for (Map<String, Object> resource : cloudinaryResources) {
-                String secureUrl = (String) resource.get("secure_url");
-                String publicId = (String) resource.get("public_id");
-                String format = (String) resource.get("format");
-                Long bytes = ((Number) resource.get("bytes")).longValue();
-                Instant createdAt = Instant.parse((String) resource.get("created_at"));
+            for (S3Object s3Object : r2Objects) {
+                String key = s3Object.key();
+                String url = r2Props.publicUrl() + "/" + key;
+                String format = key.contains(".") ? key.substring(key.lastIndexOf(".") + 1) : "unknown";
+                long size = s3Object.size();
+                Instant createdAt = s3Object.lastModified();
 
-                Optional<Image> imageOpt = imageRepository.findByUrl(publicId);
+                Optional<Image> imageOpt = imageRepository.findByUrl(key);
 
                 boolean isHanging = false;
                 String currentReason = "";
@@ -121,7 +109,7 @@ public class CloudinaryAdminService {
                 if (imageOpt.isEmpty()) {
                     if (reasonType.equalsIgnoreCase("ORPHANED")) {
                         isHanging = true;
-                        currentReason = "ORPHANED: No database record found.";
+                        currentReason = "ORPHANED: No database record found in R2.";
                     }
                 } else {
                     Image image = imageOpt.get();
@@ -153,12 +141,12 @@ public class CloudinaryAdminService {
                 }
 
                 if (isHanging) {
-                    totalSize += bytes;
+                    totalSize += size;
                     hangingResources.add(new CloudinaryResourceDTO(
-                            publicId,
-                            secureUrl,
+                            key,
+                            url,
                             format,
-                            bytes,
+                            size,
                             createdAt,
                             currentReason));
                 }
@@ -170,36 +158,28 @@ public class CloudinaryAdminService {
                     totalSize);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch categorized hanging resources: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to fetch R2 categorized hanging resources: " + e.getMessage(), e);
         }
     }
 
-
-    private List<Map<String, Object>> fetchAllCloudinaryResources(String folderPrefix) throws Exception {
-        List<Map<String, Object>> allResources = new ArrayList<>();
-        String nextCursor = null;
+    private List<S3Object> fetchAllR2Objects(String prefix) {
+        List<S3Object> allObjects = new ArrayList<>();
+        String continuationToken = null;
 
         do {
-            Map<String, Object> options = ObjectUtils.asMap(
-                    "type", "upload",
-                    "prefix", folderPrefix,
-                    "max_results", 500
-            );
-            if (nextCursor != null) {
-                options.put("next_cursor", nextCursor);
+            ListObjectsV2Request.Builder builder = ListObjectsV2Request.builder()
+                    .bucket(r2Props.bucketName())
+                    .prefix(prefix);
+
+            if (continuationToken != null) {
+                builder.continuationToken(continuationToken);
             }
 
-            ApiResponse response = cloudinary.api().resources(options);
-            
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> resources = (List<Map<String, Object>>) response.get("resources");
-            if (resources != null) {
-                allResources.addAll(resources);
-            }
+            ListObjectsV2Response response = s3Client.listObjectsV2(builder.build());
+            allObjects.addAll(response.contents());
+            continuationToken = response.nextContinuationToken();
+        } while (continuationToken != null);
 
-            nextCursor = (String) response.get("next_cursor");
-        } while (nextCursor != null);
-
-        return allResources;
+        return allObjects;
     }
 }
