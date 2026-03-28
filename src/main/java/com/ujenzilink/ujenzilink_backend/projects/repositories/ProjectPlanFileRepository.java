@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface ProjectPlanFileRepository extends JpaRepository<ProjectPlanFile, UUID> {
     List<ProjectPlanFile> findByPlan_IdAndIsDeletedFalseOrderByUploadedAtDesc(UUID planId);
+    List<ProjectPlanFile> findByPlan_IdAndIsDeletedFalse(UUID planId);
 }

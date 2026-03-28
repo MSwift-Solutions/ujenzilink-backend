@@ -174,23 +174,6 @@ public class ProjectPlanFileService {
                 HttpStatus.CREATED.value());
     }
 
-    public ApiCustomResponse<Void> deletePlanFile(UUID fileId) {
-        User currentUser = securityUtil.getAuthenticatedUser().orElse(null);
-        if (currentUser == null) {
-            return new ApiCustomResponse<>(null, "Unauthorized.", HttpStatus.UNAUTHORIZED.value());
-        }
-
-        ProjectPlanFile planFile = planFileRepository.findById(fileId).orElse(null);
-        if (planFile == null || planFile.isDeleted()) {
-            return new ApiCustomResponse<>(null, "Plan file not found.", HttpStatus.NOT_FOUND.value());
-        }
-
-        planFile.setDeleted(true);
-        planFileRepository.save(planFile);
-
-        return new ApiCustomResponse<>(null, "File deleted successfully.", HttpStatus.OK.value());
-    }
-
     public ApiCustomResponse<Boolean> hasUserPaidForPlan(UUID planId) {
         User currentUser = securityUtil.getAuthenticatedUser().orElse(null);
         if (currentUser == null) {
@@ -294,6 +277,38 @@ public class ProjectPlanFileService {
         planRepository.save(plan);
 
         return new ApiCustomResponse<>(null, "Plan updated successfully.", HttpStatus.OK.value());
+    }
+
+    @Transactional
+    public ApiCustomResponse<Void> deletePlan(UUID planId) {
+        User currentUser = securityUtil.getAuthenticatedUser().orElse(null);
+        if (currentUser == null) {
+            return new ApiCustomResponse<>(null, "Unauthorized.", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        ProjectPlan plan = planRepository.findById(planId).orElse(null);
+        if (plan == null || plan.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Project plan not found.", HttpStatus.NOT_FOUND.value());
+        }
+
+        // Only project owner or plan creator can delete
+        if (!plan.getProject().getOwner().getId().equals(currentUser.getId()) &&
+            !plan.getCreatedBy().getId().equals(currentUser.getId())) {
+            return new ApiCustomResponse<>(null, "Forbidden: Only owner/creator can delete.", HttpStatus.FORBIDDEN.value());
+        }
+
+        // Soft delete the plan
+        plan.setDeleted(true);
+        planRepository.save(plan);
+
+        // Soft delete all associated files
+        List<ProjectPlanFile> files = planFileRepository.findByPlan_IdAndIsDeletedFalse(planId);
+        for (ProjectPlanFile file : files) {
+            file.setDeleted(true);
+            planFileRepository.save(file);
+        }
+
+        return new ApiCustomResponse<>(null, "Project plan deleted successfully.", HttpStatus.OK.value());
     }
 
     // ── Private helpers ─────────────────────────────────────────────────────

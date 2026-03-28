@@ -68,9 +68,9 @@ public class ProjectPlanController {
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
-    @DeleteMapping("/files/{fileId}")
-    public ResponseEntity<ApiCustomResponse<Void>> deletePlanFile(@PathVariable UUID fileId) {
-        ApiCustomResponse<Void> response = planFileService.deletePlanFile(fileId);
+    @DeleteMapping("/{planId}")
+    public ResponseEntity<ApiCustomResponse<Void>> deletePlan(@PathVariable UUID planId) {
+        ApiCustomResponse<Void> response = planFileService.deletePlan(planId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }
