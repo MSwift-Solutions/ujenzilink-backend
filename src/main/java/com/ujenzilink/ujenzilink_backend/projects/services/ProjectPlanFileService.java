@@ -1,23 +1,28 @@
 package com.ujenzilink.ujenzilink_backend.projects.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
+import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
+import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.configs.R2StorageProperties;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.PlanFileResponse;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanFileFormat;
+import com.ujenzilink.ujenzilink_backend.projects.enums.PlanVisibility;
+import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectPlan;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectPlanFile;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectPlanFileRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectPlanRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
@@ -50,108 +55,138 @@ public class ProjectPlanFileService {
 
     private final S3Client s3Client;
     private final R2StorageProperties r2Props;
+    private final ProjectRepository projectRepository;
     private final ProjectPlanRepository planRepository;
     private final ProjectPlanFileRepository planFileRepository;
+    private final SecurityUtil securityUtil;
 
     @Value("${folders.project-floor-plans}")
     private String floorPlansFolder;
 
     public ProjectPlanFileService(S3Client s3Client,
                                   R2StorageProperties r2Props,
+                                  ProjectRepository projectRepository,
                                   ProjectPlanRepository planRepository,
-                                  ProjectPlanFileRepository planFileRepository) {
+                                  ProjectPlanFileRepository planFileRepository,
+                                  SecurityUtil securityUtil) {
         this.s3Client = s3Client;
         this.r2Props = r2Props;
+        this.projectRepository = projectRepository;
         this.planRepository = planRepository;
         this.planFileRepository = planFileRepository;
+        this.securityUtil = securityUtil;
     }
 
-    public ProjectPlanFile uploadFile(UUID planId,
-                                      MultipartFile file,
-                                      String displayLabel,
-                                      String version,
-                                      User uploadedBy) {
-        ProjectPlan plan = planRepository.findById(planId)
-                .orElseThrow(() -> new IllegalArgumentException("Project plan not found: " + planId));
+    public ApiCustomResponse<PlanFileResponse> createPlanAndUploadFile(UUID projectId,
+                                                                       MultipartFile file,
+                                                                       String name,
+                                                                       String description,
+                                                                       BigDecimal price,
+                                                                       PlanVisibility visibility,
+                                                                       String displayLabel) {
+        User uploader = securityUtil.getAuthenticatedUser().orElse(null);
+        if (uploader == null) {
+            return new ApiCustomResponse<>(null, "Unauthorized.", HttpStatus.UNAUTHORIZED.value());
+        }
 
-        validateFile(file);
+        Project project = projectRepository.findById(projectId).orElse(null);
+        if (project == null || project.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Project not found.", HttpStatus.NOT_FOUND.value());
+        }
+
+        // Handle version internally
+        String internalVersion = "1.0";
+
+        String validationError = validateFile(file);
+        if (validationError != null) {
+            return new ApiCustomResponse<>(null, validationError, HttpStatus.BAD_REQUEST.value());
+        }
 
         String ext = getExtension(file.getOriginalFilename());
         PlanFileFormat format = EXT_TO_FORMAT.get(ext);
         String contentType = EXT_TO_CONTENT_TYPE.getOrDefault(ext, "application/octet-stream");
-
         String key = floorPlansFolder + "/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
 
         byte[] bytes;
         try {
             bytes = file.getBytes();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read file: " + e.getMessage(), e);
+            return new ApiCustomResponse<>(null, "Failed to read file: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
         }
 
-        PutObjectRequest request = PutObjectRequest.builder()
-                .bucket(r2Props.bucketName())
-                .key(key)
-                .contentType(contentType)
-                .contentLength((long) bytes.length)
-                .build();
+        try {
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(r2Props.bucketName())
+                            .key(key)
+                            .contentType(contentType)
+                            .contentLength((long) bytes.length)
+                            .build(),
+                    RequestBody.fromBytes(bytes));
+        } catch (Exception e) {
+            return new ApiCustomResponse<>(null, "R2 upload failed: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
 
-        s3Client.putObject(request, RequestBody.fromBytes(bytes));
+        ProjectPlan plan = new ProjectPlan();
+        plan.setProject(project);
+        plan.setName(name);
+        plan.setDescription(description);
+        plan.setPrice(price != null ? price : BigDecimal.ZERO);
+        plan.setCurrency("KES");
+        plan.setVisibility(visibility != null ? visibility : PlanVisibility.PRIVATE);
+        // Free plans don't strictly require a purchase record, or a 0 amount is logged.
+        plan.setRequiresPurchase(plan.getPrice().compareTo(BigDecimal.ZERO) > 0);
+        plan.setCreatedBy(uploader);
+
+        ProjectPlan savedPlan = planRepository.save(plan);
 
         ProjectPlanFile planFile = new ProjectPlanFile();
-        planFile.setPlan(plan);
+        planFile.setPlan(savedPlan);
         planFile.setFileName(file.getOriginalFilename());
         planFile.setFileStorageKey(key);
         planFile.setFileSize((long) bytes.length);
         planFile.setFormat(format);
-        planFile.setDisplayLabel(displayLabel);
-        planFile.setVersion(version);
-        planFile.setUploadedBy(uploadedBy);
+        planFile.setDisplayLabel(displayLabel != null ? displayLabel : name);
+        planFile.setVersion(internalVersion);
+        planFile.setUploadedBy(uploader);
 
-        return planFileRepository.save(planFile);
+        ProjectPlanFile savedFile = planFileRepository.save(planFile);
+
+        return new ApiCustomResponse<>(
+                PlanFileResponse.from(savedFile, r2Props.publicUrl()),
+                "Plan and file uploaded successfully.",
+                HttpStatus.CREATED.value());
     }
 
-    public List<ProjectPlanFile> uploadFiles(UUID planId,
-                                              List<MultipartFile> files,
-                                              User uploadedBy) {
-        List<ProjectPlanFile> saved = new ArrayList<>();
-        for (MultipartFile file : files) {
-            saved.add(uploadFile(planId, file, null, null, uploadedBy));
+    public ApiCustomResponse<Void> deletePlanFile(UUID fileId) {
+        User currentUser = securityUtil.getAuthenticatedUser().orElse(null);
+        if (currentUser == null) {
+            return new ApiCustomResponse<>(null, "Unauthorized.", HttpStatus.UNAUTHORIZED.value());
         }
-        return saved;
-    }
 
-    public void deleteFile(UUID fileId) {
-        ProjectPlanFile planFile = planFileRepository.findById(fileId)
-                .orElseThrow(() -> new IllegalArgumentException("Plan file not found: " + fileId));
-
-        s3Client.deleteObject(DeleteObjectRequest.builder()
-                .bucket(r2Props.bucketName())
-                .key(planFile.getFileStorageKey())
-                .build());
+        ProjectPlanFile planFile = planFileRepository.findById(fileId).orElse(null);
+        if (planFile == null || planFile.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Plan file not found.", HttpStatus.NOT_FOUND.value());
+        }
 
         planFile.setDeleted(true);
         planFileRepository.save(planFile);
+
+        return new ApiCustomResponse<>(null, "File deleted successfully.", HttpStatus.OK.value());
     }
 
-    public List<ProjectPlanFile> getFilesForPlan(UUID planId) {
-        return planFileRepository.findByPlan_IdAndIsDeletedFalseOrderByUploadedAtDesc(planId);
-    }
+    // ── Private helpers ─────────────────────────────────────────────────────
 
-    // ── Private helpers ────────────────────────────────────────────────────
-
-    private void validateFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File must not be empty.");
-        }
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("File exceeds the 50MB limit.");
-        }
+    private String validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) return "File must not be empty.";
+        if (file.getSize() > MAX_FILE_SIZE) return "File exceeds the 50MB limit.";
         String ext = getExtension(file.getOriginalFilename());
         if (!EXT_TO_FORMAT.containsKey(ext)) {
-            throw new IllegalArgumentException(
-                    "Unsupported format: ." + ext + ". Allowed: PDF, DWG, DXF, IFC, RVT, JPG, JPEG, PNG.");
+            return "Unsupported format: ." + ext + ". Allowed: PDF, DWG, DXF, IFC, RVT, JPG, JPEG, PNG.";
         }
+        return null;
     }
 
     private String getExtension(String filename) {
