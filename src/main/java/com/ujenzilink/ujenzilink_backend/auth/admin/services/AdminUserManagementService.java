@@ -1,6 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.auth.admin.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.AdminMetricsResponse;
+import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.UnverifiedUserResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.UserDeletionRequestResponse;
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
@@ -126,6 +127,69 @@ public class AdminUserManagementService {
         return new ApiCustomResponse<>(
                 "User deletion reverted successfully",
                 "User account has been restored",
+                HttpStatus.OK.value()
+        );
+    }
+
+    public ApiCustomResponse<List<UnverifiedUserResponse>> getUnverifiedUsers() {
+        List<User> unverifiedUsers = userRepository.findByIsEnabledFalseAndIsDeletedFalseOrderByDateOfCreationDesc();
+
+        List<UnverifiedUserResponse> responseDtos = unverifiedUsers.stream()
+                .map(user -> new UnverifiedUserResponse(
+                        user.getId(),
+                        user.getFullName(),
+                        user.getEmail(),
+                        user.getUserHandle(),
+                        user.getDateOfCreation(),
+                        user.getProfilePicture() != null ? user.getProfilePicture().getUrl() : null
+                ))
+                .collect(Collectors.toList());
+
+        return new ApiCustomResponse<>(
+                responseDtos,
+                "Unverified users retrieved successfully",
+                HttpStatus.OK.value()
+        );
+    }
+
+    public ApiCustomResponse<String> verifyUserByAdmin(UUID userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User not found.",
+                    HttpStatus.NOT_FOUND.value()
+            );
+        }
+
+        User user = userOpt.get();
+
+        if (user.getIsEnabled()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "User account is already verified.",
+                    HttpStatus.BAD_REQUEST.value()
+            );
+        }
+
+        if (user.getIsDeleted()) {
+            return new ApiCustomResponse<>(
+                    null,
+                    "Cannot verify a deleted account.",
+                    HttpStatus.BAD_REQUEST.value()
+            );
+        }
+
+        user.setIsEnabled(true);
+        user.setConfirmedAt(Instant.now());
+        userRepository.save(user);
+
+        resendNotificationService.sendAdminVerifiedEmail(user.getEmail(), user.getFirstName(), user);
+
+        return new ApiCustomResponse<>(
+                null,
+                "User account has been verified successfully.",
                 HttpStatus.OK.value()
         );
     }

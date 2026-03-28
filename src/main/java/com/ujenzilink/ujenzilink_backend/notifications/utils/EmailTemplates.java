@@ -94,4 +94,13 @@ public class EmailTemplates {
                 "Best regards,<br><br>" +
                 "~Musa";
     }
+
+    public static String getAdminVerifiedEmail(String name) {
+        return "Dear " + name.toUpperCase() + ",\n\n" +
+                "Great news! Your account on UJENZI LINK has been manually verified by one of our administrators.\n\n" +
+                "You can now log in and start using all features of the platform.\n\n" +
+                "If you have any questions or need assistance getting started, feel free to reach out to our support team.\n\n" +
+                "Best regards,\n\n" +
+                "~Musa";
+    }
 }

@@ -89,6 +89,11 @@ public class ResendNotificationService {
         sendEmail(email, "Account Deletion Reverted", body, user, EmailTypes.ACCOUNT_DELETION_REVERT);
     }
 
+    public void sendAdminVerifiedEmail(String email, String name, User user) {
+        String body = EmailTemplates.getAdminVerifiedEmail(name);
+        sendEmail(email, "Account Verified by Administrator", body, user, EmailTypes.ADMIN_VERIFIED);
+    }
+
     private void sendEmail(String to, String subject, String htmlContent, User user, EmailTypes emailType) {
 
         //TODO fix to email to the one on resend till we buy domain name

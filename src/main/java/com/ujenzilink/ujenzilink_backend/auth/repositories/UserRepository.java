@@ -39,4 +39,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     long countByIsDeletedTrue();
 
     long countByDateOfCreationAfter(Instant date);
+
+    List<User> findByIsEnabledFalseAndIsDeletedFalseOrderByDateOfCreationDesc();
 }

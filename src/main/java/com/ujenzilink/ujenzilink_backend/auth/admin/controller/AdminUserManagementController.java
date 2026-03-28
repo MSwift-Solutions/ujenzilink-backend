@@ -1,6 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.auth.admin.controller;
 
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.AdminMetricsResponse;
+import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.UnverifiedUserResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.UserDeletionRequestResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminUserManagementService;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
@@ -38,6 +39,18 @@ public class AdminUserManagementController {
     @PostMapping("/revert-deletion/{userId}")
     public ResponseEntity<ApiCustomResponse<String>> revertDeletion(@PathVariable UUID userId) {
         ApiCustomResponse<String> response = adminUserManagementService.revertUserDeletion(userId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/unverified")
+    public ResponseEntity<ApiCustomResponse<List<UnverifiedUserResponse>>> getUnverifiedUsers() {
+        ApiCustomResponse<List<UnverifiedUserResponse>> response = adminUserManagementService.getUnverifiedUsers();
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @PostMapping("/verify/{userId}")
+    public ResponseEntity<ApiCustomResponse<String>> verifyUser(@PathVariable UUID userId) {
+        ApiCustomResponse<String> response = adminUserManagementService.verifyUserByAdmin(userId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }
