@@ -185,36 +185,36 @@ public class ProjectPlanFileService {
             return new ApiCustomResponse<>(null, "Project plan not found.", HttpStatus.NOT_FOUND.value());
         }
 
-        // If plan is public, anyone can view it
+        // 1. PUBLIC visibility: free for everyone
         if (plan.getVisibility() == PlanVisibility.PUBLIC) {
-            return new ApiCustomResponse<>(true, "Plan is public and can be viewed by anyone.", HttpStatus.OK.value());
+            return new ApiCustomResponse<>(true, "Plan is public and accessible to everyone.", HttpStatus.OK.value());
         }
 
-        // Project creator and Plan creator automatically have access
+        // 2. Owner/Creator: always has access regardless of visibility
         if (plan.getProject().getOwner().getId().equals(currentUser.getId()) ||
             plan.getCreatedBy().getId().equals(currentUser.getId())) {
-            return new ApiCustomResponse<>(true, "User is the owner/creator and has access.", HttpStatus.OK.value());
+            return new ApiCustomResponse<>(true, "Owner/Creator has unrestricted access.", HttpStatus.OK.value());
         }
 
-        // If plan is members only, check if user is a member (no purchase required)
+        // 3. MEMBERS visibility: free for project members
         if (plan.getVisibility() == PlanVisibility.MEMBERS) {
             boolean isMember = projectMemberRepository.existsByProjectAndUserAndIsDeletedFalse(plan.getProject(), currentUser);
             if (isMember) {
-                return new ApiCustomResponse<>(true, "User is a project member and has access.", HttpStatus.OK.value());
-            } else {
-                return new ApiCustomResponse<>(false, "User is not a member of this project.", HttpStatus.OK.value());
+                return new ApiCustomResponse<>(true, "Project member has access.", HttpStatus.OK.value());
             }
+            // If not a member, we still fall through to the purchase check in case they've bought it privately
         }
 
-        // For the sake of "has paid", if it does not require a purchase, we check if they are authorized
+        // 4. PRIVATE visibility (or non-member for MEMBERS plan): check for a purchase
+        // Note: For plans explicitly marked as free (requiresPurchase=false), we grant access.
         if (!plan.isRequiresPurchase()) {
-             return new ApiCustomResponse<>(true, "Plan is free.", HttpStatus.OK.value());
+             return new ApiCustomResponse<>(true, "Plan is free and accessible.", HttpStatus.OK.value());
         }
 
-        // Only private plans needing purchase end up here.
+        // Final check: confirm if payment has been COMPLETED
         boolean hasPaid = purchaseRepository.existsByPlanIdAndBuyerIdAndStatus(planId, currentUser.getId(), PlanPurchaseStatus.COMPLETED);
         
-        return new ApiCustomResponse<>(hasPaid, hasPaid ? "User has paid for this plan." : "User has not paid for this plan.", HttpStatus.OK.value());
+        return new ApiCustomResponse<>(hasPaid, hasPaid ? "Access granted via purchase." : "Access denied: Purchase required.", HttpStatus.OK.value());
     }
 
     public ApiCustomResponse<List<ProjectPlanBasicDTO>> getProjectPlans(UUID projectId) {
