@@ -67,6 +67,7 @@ folders:
   profile-pictures: profile-pictures
   post-images: posts
   project-stage-images: project-stages
+  project-floor-plans: floor-plans
 
 app:
   frontend-url: http://localhost:4200
