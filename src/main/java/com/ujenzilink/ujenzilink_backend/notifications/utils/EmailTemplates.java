@@ -2,11 +2,12 @@ package com.ujenzilink.ujenzilink_backend.notifications.utils;
 
 public class EmailTemplates {
 
-    public static String getVerificationCodeEmail(String name, String token) {
+    public static String getVerificationCodeEmail(String name, String token, String email, String frontendUrl) {
+        String confirmationLink = frontendUrl + "/auth/confirm?token=" + token + "&email=" + email;
         return "Dear " + name.toUpperCase() + ",\n\n" +
                 "Thanks for registering. Please confirm your account using the code or link below:\n" +
                 "Code: " + token + "\n" +
-                "Link: http://localhost:8080/auth/confirm?token=" + token +
+                "Link: " + confirmationLink +
                 "\n\nNote: The confirmation token and link expires in 15 minutes.\n\n" +
                 "Best,\nMusa";
     }
