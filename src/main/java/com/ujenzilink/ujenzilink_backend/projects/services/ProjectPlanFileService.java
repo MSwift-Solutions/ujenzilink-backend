@@ -5,6 +5,7 @@ import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.configs.R2StorageProperties;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.PlanFileResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPlanBasicDTO;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanFileFormat;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanPurchaseStatus;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanVisibility;
@@ -26,7 +27,9 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Service
@@ -227,6 +230,21 @@ public class ProjectPlanFileService {
         boolean hasPaid = purchaseRepository.existsByPlanIdAndBuyerIdAndStatus(planId, currentUser.getId(), PlanPurchaseStatus.COMPLETED);
         
         return new ApiCustomResponse<>(hasPaid, hasPaid ? "User has paid for this plan." : "User has not paid for this plan.", HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<List<ProjectPlanBasicDTO>> getProjectPlans(UUID projectId) {
+        Project project = projectRepository.findById(projectId).orElse(null);
+        if (project == null || project.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Project not found.", HttpStatus.NOT_FOUND.value());
+        }
+
+        List<ProjectPlan> plans = planRepository.findByProject_IdAndIsDeletedFalseOrderByCreatedAtDesc(projectId);
+
+        List<ProjectPlanBasicDTO> dtos = plans.stream()
+                .map(plan -> new ProjectPlanBasicDTO(plan.getId(), plan.getName(), plan.getPrice()))
+                .collect(Collectors.toList());
+
+        return new ApiCustomResponse<>(dtos, "Project plans retrieved successfully.", HttpStatus.OK.value());
     }
 
     // ── Private helpers ─────────────────────────────────────────────────────

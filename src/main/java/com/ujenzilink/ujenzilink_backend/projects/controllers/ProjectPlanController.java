@@ -2,6 +2,7 @@ package com.ujenzilink.ujenzilink_backend.projects.controllers;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.PlanFileResponse;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPlanBasicDTO;
 import com.ujenzilink.ujenzilink_backend.projects.services.ProjectPlanFileService;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanVisibility;
 import org.springframework.http.MediaType;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -35,6 +37,12 @@ public class ProjectPlanController {
         ApiCustomResponse<PlanFileResponse> response =
                 planFileService.createPlanAndUploadFile(projectId, file, name, description, price, visibility, displayLabel);
 
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/project/{projectId}")
+    public ResponseEntity<ApiCustomResponse<List<ProjectPlanBasicDTO>>> getProjectPlans(@PathVariable UUID projectId) {
+        ApiCustomResponse<List<ProjectPlanBasicDTO>> response = planFileService.getProjectPlans(projectId);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
