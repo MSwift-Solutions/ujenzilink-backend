@@ -8,12 +8,6 @@ logging:
     org.springframework: WARN
     org.hibernate.SQL: ERROR
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-
 spring:
   servlet:
     multipart:
