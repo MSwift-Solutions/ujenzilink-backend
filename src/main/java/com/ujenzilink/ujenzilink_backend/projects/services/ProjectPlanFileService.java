@@ -6,6 +6,7 @@ import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.configs.R2StorageProperties;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.PlanFileResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPlanBasicDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.EditProjectPlanRequest;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanFileFormat;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanPurchaseStatus;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanVisibility;
@@ -24,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -245,6 +247,53 @@ public class ProjectPlanFileService {
                 .collect(Collectors.toList());
 
         return new ApiCustomResponse<>(dtos, "Project plans retrieved successfully.", HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<EditProjectPlanRequest> getEditablePlanData(UUID planId) {
+        ProjectPlan plan = planRepository.findById(planId).orElse(null);
+        if (plan == null || plan.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Project plan not found.", HttpStatus.NOT_FOUND.value());
+        }
+
+        EditProjectPlanRequest data = new EditProjectPlanRequest(
+                plan.getName(),
+                plan.getDescription(),
+                plan.getPrice(),
+                plan.getVisibility()
+        );
+
+        return new ApiCustomResponse<>(data, "Editable plan data retrieved successfully.", HttpStatus.OK.value());
+    }
+
+    @Transactional
+    public ApiCustomResponse<Void> editPlan(UUID planId, EditProjectPlanRequest request) {
+        User currentUser = securityUtil.getAuthenticatedUser().orElse(null);
+        if (currentUser == null) {
+            return new ApiCustomResponse<>(null, "Unauthorized.", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        ProjectPlan plan = planRepository.findById(planId).orElse(null);
+        if (plan == null || plan.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Project plan not found.", HttpStatus.NOT_FOUND.value());
+        }
+
+        // Only project owner or plan creator can edit
+        if (!plan.getProject().getOwner().getId().equals(currentUser.getId()) &&
+            !plan.getCreatedBy().getId().equals(currentUser.getId())) {
+            return new ApiCustomResponse<>(null, "Forbidden: Only owner/creator can edit.", HttpStatus.FORBIDDEN.value());
+        }
+
+        if (request.name() != null) plan.setName(request.name());
+        if (request.description() != null) plan.setDescription(request.description());
+        if (request.price() != null) {
+            plan.setPrice(request.price());
+            plan.setRequiresPurchase(plan.getPrice().compareTo(BigDecimal.ZERO) > 0);
+        }
+        if (request.visibility() != null) plan.setVisibility(request.visibility());
+
+        planRepository.save(plan);
+
+        return new ApiCustomResponse<>(null, "Plan updated successfully.", HttpStatus.OK.value());
     }
 
     // ── Private helpers ─────────────────────────────────────────────────────

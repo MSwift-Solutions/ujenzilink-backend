@@ -3,8 +3,10 @@ package com.ujenzilink.ujenzilink_backend.projects.controllers;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.PlanFileResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPlanBasicDTO;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.EditProjectPlanRequest;
 import com.ujenzilink.ujenzilink_backend.projects.services.ProjectPlanFileService;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanVisibility;
+import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -49,6 +51,20 @@ public class ProjectPlanController {
     @GetMapping("/{planId}/has-paid")
     public ResponseEntity<ApiCustomResponse<Boolean>> hasUserPaidForPlan(@PathVariable UUID planId) {
         ApiCustomResponse<Boolean> response = planFileService.hasUserPaidForPlan(planId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/{planId}/editable-data")
+    public ResponseEntity<ApiCustomResponse<EditProjectPlanRequest>> getEditablePlanData(@PathVariable UUID planId) {
+        ApiCustomResponse<EditProjectPlanRequest> response = planFileService.getEditablePlanData(planId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @PutMapping("/{planId}/edit")
+    public ResponseEntity<ApiCustomResponse<Void>> editPlan(
+            @PathVariable UUID planId,
+            @RequestBody @Valid EditProjectPlanRequest request) {
+        ApiCustomResponse<Void> response = planFileService.editPlan(planId, request);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
