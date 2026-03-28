@@ -3,8 +3,11 @@ package com.ujenzilink.ujenzilink_backend.auth.admin.controller;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.AdminMetricsResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.UnverifiedUserResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.UserDeletionRequestResponse;
+import com.ujenzilink.ujenzilink_backend.auth.admin.enums.AdminActionType;
+import com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminAuditService;
 import com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminUserManagementService;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,9 +22,15 @@ import java.util.UUID;
 public class AdminUserManagementController {
 
     private final AdminUserManagementService adminUserManagementService;
+    private final AdminAuditService adminAuditService;
+    private final HttpServletRequest httpServletRequest;
 
-    public AdminUserManagementController(AdminUserManagementService adminUserManagementService) {
+    public AdminUserManagementController(AdminUserManagementService adminUserManagementService,
+                                         AdminAuditService adminAuditService,
+                                            HttpServletRequest httpServletRequest) {
         this.adminUserManagementService = adminUserManagementService;
+        this.adminAuditService = adminAuditService;
+        this.httpServletRequest = httpServletRequest;
     }
 
     @GetMapping("/metrics")
@@ -39,6 +48,14 @@ public class AdminUserManagementController {
     @PostMapping("/revert-deletion/{userId}")
     public ResponseEntity<ApiCustomResponse<String>> revertDeletion(@PathVariable UUID userId) {
         ApiCustomResponse<String> response = adminUserManagementService.revertUserDeletion(userId);
+        if (response.statusCode() == 200) {
+            adminAuditService.logAction(
+                com.ujenzilink.ujenzilink_backend.auth.admin.enums.AdminActionType.REVERT_USER_DELETION,
+                userId.toString(),
+                "Reverted user deletion request: " + response.message(),
+                httpServletRequest
+            );
+        }
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
@@ -51,6 +68,14 @@ public class AdminUserManagementController {
     @PostMapping("/verify/{userId}")
     public ResponseEntity<ApiCustomResponse<String>> verifyUser(@PathVariable UUID userId) {
         ApiCustomResponse<String> response = adminUserManagementService.verifyUserByAdmin(userId);
+        if (response.statusCode() == 200) {
+            adminAuditService.logAction(
+                AdminActionType.VERIFY_USER,
+                userId.toString(),
+                "Manually verified user account: " + response.message(),
+                httpServletRequest
+            );
+        }
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }

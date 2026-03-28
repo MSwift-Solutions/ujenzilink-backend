@@ -2,10 +2,13 @@ package com.ujenzilink.ujenzilink_backend.legal.controllers;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ujenzilink.ujenzilink_backend.auth.admin.enums.AdminActionType;
+import com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminAuditService;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.legal.dtos.LegalDocumentDto;
 import com.ujenzilink.ujenzilink_backend.legal.dtos.UpdateLegalDocRequest;
 import com.ujenzilink.ujenzilink_backend.legal.services.LegalAdminService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -21,9 +24,15 @@ public class AdminLegalController {
 
     private final LegalAdminService legalAdminService;
     private final ObjectMapper customMapper;
+    private final AdminAuditService adminAuditService;
+    private final HttpServletRequest httpServletRequest;
 
-    public AdminLegalController(LegalAdminService legalAdminService) {
+    public AdminLegalController(LegalAdminService legalAdminService,
+                                AdminAuditService adminAuditService,
+                                HttpServletRequest httpServletRequest) {
         this.legalAdminService = legalAdminService;
+        this.adminAuditService = adminAuditService;
+        this.httpServletRequest = httpServletRequest;
         this.customMapper = new ObjectMapper();
         this.customMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);
     }
@@ -48,6 +57,14 @@ public class AdminLegalController {
             @RequestBody String rawJson) {
         String content = extractContent(rawJson);
         LegalDocumentDto updated = legalAdminService.updateTermsAndConditions(content);
+        
+        adminAuditService.logAction(
+           AdminActionType.UPDATE_TERMS_AND_CONDITIONS,
+            "TERMS-" + updated.version(),
+            "Updated Terms and Conditions to version " + updated.version(),
+            httpServletRequest
+        );
+
         return ResponseEntity.ok(new ApiCustomResponse<>(
                 updated,
                 "Terms and Conditions updated successfully to version " + updated.version(),
@@ -60,6 +77,14 @@ public class AdminLegalController {
             @RequestBody String rawJson) {
         String content = extractContent(rawJson);
         LegalDocumentDto updated = legalAdminService.updatePrivacyPolicy(content);
+        
+        adminAuditService.logAction(
+            AdminActionType.UPDATE_PRIVACY_POLICY,
+            "PRIVACY-" + updated.version(),
+            "Updated Privacy Policy to version " + updated.version(),
+            httpServletRequest
+        );
+
         return ResponseEntity.ok(new ApiCustomResponse<>(
                 updated,
                 "Privacy Policy updated successfully to version " + updated.version(),

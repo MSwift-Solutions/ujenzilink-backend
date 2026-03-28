@@ -2,6 +2,7 @@ package com.ujenzilink.ujenzilink_backend.auth.admin.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.admin.AdminLoginHistory;
 import com.ujenzilink.ujenzilink_backend.auth.admin.AdminUser;
+import com.ujenzilink.ujenzilink_backend.auth.admin.enums.AdminActionType;
 import com.ujenzilink.ujenzilink_backend.auth.admin.repos.AdminLoginHistoryRepository;
 import com.ujenzilink.ujenzilink_backend.auth.admin.repos.AdminUserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,11 +19,14 @@ public class AdminAuthService implements UserDetailsService {
 
     private final AdminUserRepository adminUserRepository;
     private final AdminLoginHistoryRepository adminLoginHistoryRepository;
+    private final AdminAuditService adminAuditService;
 
     public AdminAuthService(AdminUserRepository adminUserRepository,
-                            AdminLoginHistoryRepository adminLoginHistoryRepository) {
+                            AdminLoginHistoryRepository adminLoginHistoryRepository,
+                            AdminAuditService adminAuditService) {
         this.adminUserRepository = adminUserRepository;
         this.adminLoginHistoryRepository = adminLoginHistoryRepository;
+        this.adminAuditService = adminAuditService;
     }
 
     @Override
@@ -43,6 +47,13 @@ public class AdminAuthService implements UserDetailsService {
             history.setIpAddress(resolveClientIp(request));
             history.setUserAgent(request.getHeader("User-Agent"));
             adminLoginHistoryRepository.save(history);
+
+            adminAuditService.logAction(
+                AdminActionType.LOGIN_SUCCESS,
+                admin.getId().toString(),
+                "Admin logged in successfully",
+                request
+            );
         });
     }
 
@@ -56,6 +67,13 @@ public class AdminAuthService implements UserDetailsService {
             history.setIpAddress(resolveClientIp(request));
             history.setUserAgent(request.getHeader("User-Agent"));
             adminLoginHistoryRepository.save(history);
+
+            adminAuditService.logAction(
+                com.ujenzilink.ujenzilink_backend.auth.admin.enums.AdminActionType.LOGIN_FAILURE,
+                email,
+                "Admin login failed: " + reason,
+                request
+            );
         });
     }
 

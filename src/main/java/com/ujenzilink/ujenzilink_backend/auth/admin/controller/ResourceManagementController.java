@@ -1,8 +1,11 @@
 package com.ujenzilink.ujenzilink_backend.auth.admin.controller;
 
+import com.ujenzilink.ujenzilink_backend.auth.admin.enums.AdminActionType;
+import com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminAuditService;
 import com.ujenzilink.ujenzilink_backend.images.dtos.HangingResourcesResponse;
 import com.ujenzilink.ujenzilink_backend.images.services.CloudinaryAdminService;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,9 +21,15 @@ import java.util.Map;
 public class ResourceManagementController {
 
     private final CloudinaryAdminService cloudinaryAdminService;
+    private final com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminAuditService adminAuditService;
+    private final jakarta.servlet.http.HttpServletRequest httpServletRequest;
 
-    public ResourceManagementController(CloudinaryAdminService cloudinaryAdminService) {
+    public ResourceManagementController(CloudinaryAdminService cloudinaryAdminService,
+                                        AdminAuditService adminAuditService,
+                                        HttpServletRequest httpServletRequest) {
         this.cloudinaryAdminService = cloudinaryAdminService;
+        this.adminAuditService = adminAuditService;
+        this.httpServletRequest = httpServletRequest;
     }
 
     // --- User Profile Pictures ---
@@ -101,6 +110,14 @@ public class ResourceManagementController {
     @PostMapping("/bulk-delete")
     public ResponseEntity<ApiCustomResponse<java.util.Map<String, String>>> deleteResources(@RequestBody List<String> publicIds) {
         Map<String, String> results = cloudinaryAdminService.deleteResources(publicIds);
+        
+        adminAuditService.logAction(
+            AdminActionType.BULK_DELETE_RESOURCES,
+            "BULK-" + publicIds.size(),
+            "Bulk deleted " + publicIds.size() + " resources from cloud storage",
+            httpServletRequest
+        );
+
         return ResponseEntity.ok(new ApiCustomResponse<>(
                 results,
                 "Bulk deletion processed (" + publicIds.size() + " files total)",
