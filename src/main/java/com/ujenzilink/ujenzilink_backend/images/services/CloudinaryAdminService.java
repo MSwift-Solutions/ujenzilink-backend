@@ -9,7 +9,9 @@ import com.ujenzilink.ujenzilink_backend.posts.repositories.PostImageRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.StagePhotoRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Object;
@@ -17,6 +19,7 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -181,5 +184,23 @@ public class CloudinaryAdminService {
         } while (continuationToken != null);
 
         return allObjects;
+    }
+
+    @Transactional
+    public Map<String, String> deleteResources(List<String> publicIds) {
+        java.util.Map<String, String> results = new java.util.HashMap<>();
+        for (String publicId : publicIds) {
+            try {
+                // 1. Delete from R2 storage ONLY
+                s3Client.deleteObject(DeleteObjectRequest.builder()
+                        .bucket(r2Props.bucketName())
+                        .key(publicId)
+                        .build());
+                results.put(publicId, "DELETED: File removed from R2.");
+            } catch (Exception e) {
+                results.put(publicId, "ERROR: " + e.getMessage());
+            }
+        }
+        return results;
     }
 }

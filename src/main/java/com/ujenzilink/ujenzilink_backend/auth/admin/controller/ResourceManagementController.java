@@ -8,6 +8,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/v1/admin/resources")
 @CrossOrigin
@@ -92,6 +95,15 @@ public class ResourceManagementController {
         return ResponseEntity.ok(new ApiCustomResponse<>(
                 cloudinaryAdminService.getParentDeletedProjectImages(),
                 "Project images with deleted projects retrieved successfully",
+                HttpStatus.OK.value()));
+    }
+
+    @PostMapping("/bulk-delete")
+    public ResponseEntity<ApiCustomResponse<java.util.Map<String, String>>> deleteResources(@RequestBody List<String> publicIds) {
+        Map<String, String> results = cloudinaryAdminService.deleteResources(publicIds);
+        return ResponseEntity.ok(new ApiCustomResponse<>(
+                results,
+                "Bulk deletion processed (" + publicIds.size() + " files total)",
                 HttpStatus.OK.value()));
     }
 }
