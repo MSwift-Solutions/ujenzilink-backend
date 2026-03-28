@@ -38,6 +38,12 @@ public class ProjectPlanController {
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
+    @GetMapping("/{planId}/has-paid")
+    public ResponseEntity<ApiCustomResponse<Boolean>> hasUserPaidForPlan(@PathVariable UUID planId) {
+        ApiCustomResponse<Boolean> response = planFileService.hasUserPaidForPlan(planId);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
     @DeleteMapping("/files/{fileId}")
     public ResponseEntity<ApiCustomResponse<Void>> deletePlanFile(@PathVariable UUID fileId) {
         ApiCustomResponse<Void> response = planFileService.deletePlanFile(fileId);

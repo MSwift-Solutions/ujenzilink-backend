@@ -6,11 +6,14 @@ import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.configs.R2StorageProperties;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.PlanFileResponse;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanFileFormat;
+import com.ujenzilink.ujenzilink_backend.projects.enums.PlanPurchaseStatus;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanVisibility;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectPlan;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectPlanFile;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectPlanFileRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
+import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectPlanPurchaseRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectPlanRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,6 +61,8 @@ public class ProjectPlanFileService {
     private final ProjectRepository projectRepository;
     private final ProjectPlanRepository planRepository;
     private final ProjectPlanFileRepository planFileRepository;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectPlanPurchaseRepository purchaseRepository;
     private final SecurityUtil securityUtil;
 
     @Value("${folders.project-floor-plans}")
@@ -68,12 +73,16 @@ public class ProjectPlanFileService {
                                   ProjectRepository projectRepository,
                                   ProjectPlanRepository planRepository,
                                   ProjectPlanFileRepository planFileRepository,
+                                  ProjectMemberRepository projectMemberRepository,
+                                  ProjectPlanPurchaseRepository purchaseRepository,
                                   SecurityUtil securityUtil) {
         this.s3Client = s3Client;
         this.r2Props = r2Props;
         this.projectRepository = projectRepository;
         this.planRepository = planRepository;
         this.planFileRepository = planFileRepository;
+        this.projectMemberRepository = projectMemberRepository;
+        this.purchaseRepository = purchaseRepository;
         this.securityUtil = securityUtil;
     }
 
@@ -175,6 +184,49 @@ public class ProjectPlanFileService {
         planFileRepository.save(planFile);
 
         return new ApiCustomResponse<>(null, "File deleted successfully.", HttpStatus.OK.value());
+    }
+
+    public ApiCustomResponse<Boolean> hasUserPaidForPlan(UUID planId) {
+        User currentUser = securityUtil.getAuthenticatedUser().orElse(null);
+        if (currentUser == null) {
+            return new ApiCustomResponse<>(null, "Unauthorized.", HttpStatus.UNAUTHORIZED.value());
+        }
+
+        ProjectPlan plan = planRepository.findById(planId).orElse(null);
+        if (plan == null || plan.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Project plan not found.", HttpStatus.NOT_FOUND.value());
+        }
+
+        // If plan is public, anyone can view it
+        if (plan.getVisibility() == PlanVisibility.PUBLIC) {
+            return new ApiCustomResponse<>(true, "Plan is public and can be viewed by anyone.", HttpStatus.OK.value());
+        }
+
+        // Project creator and Plan creator automatically have access
+        if (plan.getProject().getOwner().getId().equals(currentUser.getId()) ||
+            plan.getCreatedBy().getId().equals(currentUser.getId())) {
+            return new ApiCustomResponse<>(true, "User is the owner/creator and has access.", HttpStatus.OK.value());
+        }
+
+        // If plan is members only, check if user is a member (no purchase required)
+        if (plan.getVisibility() == PlanVisibility.MEMBERS) {
+            boolean isMember = projectMemberRepository.existsByProjectAndUserAndIsDeletedFalse(plan.getProject(), currentUser);
+            if (isMember) {
+                return new ApiCustomResponse<>(true, "User is a project member and has access.", HttpStatus.OK.value());
+            } else {
+                return new ApiCustomResponse<>(false, "User is not a member of this project.", HttpStatus.OK.value());
+            }
+        }
+
+        // For the sake of "has paid", if it does not require a purchase, we check if they are authorized
+        if (!plan.isRequiresPurchase()) {
+             return new ApiCustomResponse<>(true, "Plan is free.", HttpStatus.OK.value());
+        }
+
+        // Only private plans needing purchase end up here.
+        boolean hasPaid = purchaseRepository.existsByPlanIdAndBuyerIdAndStatus(planId, currentUser.getId(), PlanPurchaseStatus.COMPLETED);
+        
+        return new ApiCustomResponse<>(hasPaid, hasPaid ? "User has paid for this plan." : "User has not paid for this plan.", HttpStatus.OK.value());
     }
 
     // ── Private helpers ─────────────────────────────────────────────────────
