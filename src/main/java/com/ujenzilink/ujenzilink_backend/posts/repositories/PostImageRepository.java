@@ -13,6 +13,8 @@ public interface PostImageRepository extends JpaRepository<PostImage, UUID> {
 
     List<PostImage> findByPostOrderByImageOrderAsc(Post post);
 
+    java.util.Optional<PostImage> findFirstByImage(com.ujenzilink.ujenzilink_backend.images.models.Image image);
+
     long countByPost(Post post);
 
     void deleteByPost(Post post);
