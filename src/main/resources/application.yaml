@@ -3,10 +3,18 @@ server:
   address: 0.0.0.0
 
 logging:
+  file:
+    name: /var/log/ujenzilink/app.log
+  logback:
+    rolling-policy:
+      file-name-pattern: /var/log/ujenzilink/app-%d{yyyy-'W'ww}.log
+      max-history: 52                   # keep 52 weeks
+      total-size-cap: 10GB
   level:
     root: INFO
-    org.springframework: WARN
-    org.hibernate.SQL: ERROR
+    com.ujenzilink: DEBUG
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
 
 springdoc:
   api-docs:
