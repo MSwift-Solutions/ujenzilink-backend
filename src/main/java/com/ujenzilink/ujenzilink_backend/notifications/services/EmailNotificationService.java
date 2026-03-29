@@ -80,10 +80,19 @@ public class EmailNotificationService {
             mailSender.send(mailMessage);
 
             // Log email to database
-            logEmail(to, emailType, body, user);
+            if (user != null) {
+                logEmail(to, emailType, body, user);
+            }
         } catch (Exception e) {
             System.err.println("Failed to send email: " + e.getMessage());
         }
+    }
+
+    public void sendSystemFailureReportEmail(String to, String hostname, String timestamp, String backupFile, String step,
+            String errorMessage, String destHost, String destDir) {
+        String body = EmailTemplates.getBackupFailureReportEmail(hostname, timestamp, backupFile, step, errorMessage,
+                destHost, destDir);
+        sendEmail(to, "URGENT: Backup Failure Notification", body, null, null);
     }
 
     // Helper method to log emails to database

@@ -103,4 +103,19 @@ public class EmailTemplates {
                 "Best regards,\n\n" +
                 "~Musa";
     }
+
+    public static String getBackupFailureReportEmail(String hostname, String timestamp, String backupFile, String step,
+            String errorMessage, String destHost, String destDir) {
+        return "URGENT: Backup Failure Detected\n\n" +
+                "Hostname: " + hostname + "\n" +
+                "Timestamp: " + timestamp + "\n" +
+                "Backup File: " + backupFile + "\n" +
+                "Step: " + step + "\n" +
+                "Error Message: " + errorMessage + "\n" +
+                "Destination Host: " + destHost + "\n" +
+                "Destination Directory: " + destDir + "\n\n" +
+                "Please investigate this issue immediately.\n\n" +
+                "~Musa System Monitor";
+    }
 }
+

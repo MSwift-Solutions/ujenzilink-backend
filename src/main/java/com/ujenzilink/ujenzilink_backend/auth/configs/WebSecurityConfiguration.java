@@ -55,6 +55,7 @@ public class WebSecurityConfiguration {
                                 "/v1/auth/**",
                                 "/v1/admin/auth/**",
                                 "/v1/public/**",
+                                "/api/backup/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**")
                         .permitAll()
@@ -102,7 +103,7 @@ public class WebSecurityConfiguration {
                 "http://localhost:4200",
                 "https://ujenzilink-frontend.mangabomoses.workers.dev")); // Avoid "*" in production
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "x-api-key"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

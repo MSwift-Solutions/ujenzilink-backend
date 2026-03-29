@@ -7,8 +7,8 @@ logging:
     name: /var/log/ujenzilink/app.log
   logback:
     rolling-policy:
-      file-name-pattern: /var/log/ujenzilink/app-%d{yyyy-'W'ww}.log
-      max-history: 52                   # keep 52 weeks
+      file-name-pattern: /var/log/ujenzilink/app-%d{yyyy-'W'ww}.%i.log
+      max-history: 52
       total-size-cap: 10GB
   level:
     root: INFO
@@ -96,3 +96,5 @@ folders:
 
 app:
   frontend-url: http://localhost:4200
+  admin-api-key: musa
+  report-recipient: ujenzilink@gmail.com
