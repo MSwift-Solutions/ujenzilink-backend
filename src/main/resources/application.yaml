@@ -23,6 +23,9 @@ springdoc:
     enabled: false
 
 spring:
+  output:
+    ansi:
+      enabled: ALWAYS
   servlet:
     multipart:
       max-file-size: 8MB
