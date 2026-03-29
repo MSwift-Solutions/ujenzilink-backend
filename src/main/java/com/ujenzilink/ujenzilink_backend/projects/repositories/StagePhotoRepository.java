@@ -12,6 +12,8 @@ import java.util.UUID;
 public interface StagePhotoRepository extends JpaRepository<StagePhoto, UUID> {
     List<StagePhoto> findByStageOrderByPhotoOrder(ProjectStage stage);
 
+    java.util.Optional<StagePhoto> findFirstByImage(com.ujenzilink.ujenzilink_backend.images.models.Image image);
+
     List<StagePhoto> findByStage_IdOrderByPhotoOrder(UUID stageId);
 
     long countByStage(ProjectStage stage);

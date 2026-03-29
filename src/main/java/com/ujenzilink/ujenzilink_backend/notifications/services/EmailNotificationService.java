@@ -15,6 +15,9 @@ public class EmailNotificationService {
     private final JavaMailSender mailSender;
     private final EmailRepository emailRepository;
 
+    @org.springframework.beans.factory.annotation.Value("${app.frontend-url}")
+    private String frontendUrl;
+
     public EmailNotificationService(JavaMailSender mailSender, EmailRepository emailRepository) {
         this.mailSender = mailSender;
         this.emailRepository = emailRepository;
@@ -22,7 +25,7 @@ public class EmailNotificationService {
 
     private void sendConfirmationEmail(EmailNotificationDTO emailDetails, User user) {
         try {
-            String body = EmailTemplates.getVerificationCodeEmail(emailDetails.name(), emailDetails.token());
+            String body = EmailTemplates.getVerificationCodeEmail(emailDetails.name(), emailDetails.token(), emailDetails.email(), frontendUrl);
             sendEmail(emailDetails.email(), "Customer", body, user, EmailTypes.VERIFICATION_CODE);
         } catch (Exception e) {
             System.out.println("Failed to send mail " + e.getMessage());

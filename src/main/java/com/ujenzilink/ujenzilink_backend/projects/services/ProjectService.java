@@ -23,6 +23,8 @@ import com.ujenzilink.ujenzilink_backend.projects.enums.PostType;
 import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
 import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
 import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
+import com.ujenzilink.ujenzilink_backend.projects.enums.PlanVisibility;
+import com.ujenzilink.ujenzilink_backend.projects.enums.PlanFileFormat;
 
 import com.ujenzilink.ujenzilink_backend.projects.models.StagePhoto;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
@@ -1245,6 +1247,15 @@ public class ProjectService {
                                                 ProjectUtils.formatEnumName(role.name())))
                                 .toList();
 
+                List<DropdownResponse> planVisibilities = Arrays.stream(PlanVisibility.values())
+                                .map(v -> new DropdownResponse(v.name(),
+                                                ProjectUtils.formatEnumName(v.name())))
+                                .toList();
+
+                List<DropdownResponse> planFileFormats = Arrays.stream(PlanFileFormat.values())
+                                .map(f -> new DropdownResponse(f.name(), f.name()))
+                                .toList();
+
                 ProjectDropdownsResponse response = new ProjectDropdownsResponse(
                                 types,
                                 statuses,
@@ -1252,7 +1263,9 @@ public class ProjectService {
                                 budgetVisibilities,
                                 constructionStages,
                                 postTypes,
-                                memberRoles);
+                                memberRoles,
+                                planVisibilities,
+                                planFileFormats);
 
                 return new ApiCustomResponse<>(response, "Project dropdowns retrieved successfully",
                                 HttpStatus.OK.value());

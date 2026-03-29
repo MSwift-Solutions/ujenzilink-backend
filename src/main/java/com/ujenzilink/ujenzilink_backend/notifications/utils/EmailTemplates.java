@@ -2,11 +2,12 @@ package com.ujenzilink.ujenzilink_backend.notifications.utils;
 
 public class EmailTemplates {
 
-    public static String getVerificationCodeEmail(String name, String token) {
+    public static String getVerificationCodeEmail(String name, String token, String email, String frontendUrl) {
+        String confirmationLink = frontendUrl + "/auth/confirm?token=" + token + "&email=" + email;
         return "Dear " + name.toUpperCase() + ",\n\n" +
                 "Thanks for registering. Please confirm your account using the code or link below:\n" +
                 "Code: " + token + "\n" +
-                "Link: http://localhost:8080/auth/confirm?token=" + token +
+                "Link: " + confirmationLink +
                 "\n\nNote: The confirmation token and link expires in 15 minutes.\n\n" +
                 "Best,\nMusa";
     }
@@ -91,6 +92,15 @@ public class EmailTemplates {
                 "Your account is now fully restored, and you can continue to use our services as usual.<br><br>" +
                 "If you have any questions, please feel free to reach out to our support team.<br><br>" +
                 "Best regards,<br><br>" +
+                "~Musa";
+    }
+
+    public static String getAdminVerifiedEmail(String name) {
+        return "Dear " + name.toUpperCase() + ",\n\n" +
+                "Great news! Your account on UJENZI LINK has been manually verified by one of our administrators.\n\n" +
+                "You can now log in and start using all features of the platform.\n\n" +
+                "If you have any questions or need assistance getting started, feel free to reach out to our support team.\n\n" +
+                "Best regards,\n\n" +
                 "~Musa";
     }
 }

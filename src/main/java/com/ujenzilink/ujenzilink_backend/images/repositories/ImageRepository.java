@@ -8,5 +8,6 @@ import java.util.UUID;
 
 @Repository
 public interface ImageRepository extends JpaRepository<Image, UUID> {
+    java.util.Optional<Image> findByUrl(String url);
 }
 

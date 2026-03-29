@@ -9,6 +9,7 @@ import com.ujenzilink.ujenzilink_backend.notifications.repositories.EmailReposit
 import com.ujenzilink.ujenzilink_backend.notifications.utils.EmailTemplates;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -25,6 +26,9 @@ public class ResendNotificationService {
     private final String fromEmail;
     private final EmailRepository emailRepository;
 
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
     public ResendNotificationService(
             WebClient resendWebClient,
             ResendConfig resendConfig,
@@ -36,7 +40,7 @@ public class ResendNotificationService {
     }
 
     public void sendConfirmationEmail(EmailNotificationDTO emailDetails, User user) {
-        String body = EmailTemplates.getVerificationCodeEmail(emailDetails.name(), emailDetails.token());
+        String body = EmailTemplates.getVerificationCodeEmail(emailDetails.name(), emailDetails.token(), emailDetails.email(), frontendUrl);
         sendEmail(emailDetails.email(), "Verification Code", body, user, EmailTypes.VERIFICATION_CODE);
     }
 
@@ -83,6 +87,11 @@ public class ResendNotificationService {
     public void sendAccountDeletionRevertEmail(String email, String name, User user) {
         String body = EmailTemplates.getAccountDeletionRevertEmail(name);
         sendEmail(email, "Account Deletion Reverted", body, user, EmailTypes.ACCOUNT_DELETION_REVERT);
+    }
+
+    public void sendAdminVerifiedEmail(String email, String name, User user) {
+        String body = EmailTemplates.getAdminVerifiedEmail(name);
+        sendEmail(email, "Account Verified by Administrator", body, user, EmailTypes.ADMIN_VERIFIED);
     }
 
     private void sendEmail(String to, String subject, String htmlContent, User user, EmailTypes emailType) {
