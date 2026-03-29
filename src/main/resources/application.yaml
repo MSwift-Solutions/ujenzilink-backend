@@ -8,6 +8,12 @@ logging:
     org.springframework: WARN
     org.hibernate.SQL: ERROR
 
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 spring:
   servlet:
     multipart:
