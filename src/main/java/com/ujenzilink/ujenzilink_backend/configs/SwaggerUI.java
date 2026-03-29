@@ -17,7 +17,7 @@ public class SwaggerUI {
             version = "1.0.0",
             license = @License(name = "license name", url = "https://someurl.com")),
             servers = {@Server(description = "Local ENV", url = "http://localhost:${server.port}"),
-                    @Server(description = "Prod ENV", url = "http://102.210.244.222:${server.port}")
+//                    @Server(description = "Prod ENV", url = "http://102.210.244.222:${server.port}")
 
             }, security = {@SecurityRequirement(name = "bearerAuth")})
     @SecurityScheme(name = "bearerAuth",
