@@ -81,7 +81,7 @@ cloudinary:
 
 resend:
   api-key: ${RESEND_API_KEY}
-  from-email: onboarding@resend.dev
+  from-email: noreply@mail.ujenzilink.com
 
 r2:
   account-id: ${R2_ACCOUNT_ID}

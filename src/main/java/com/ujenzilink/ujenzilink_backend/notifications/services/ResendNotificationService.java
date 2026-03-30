@@ -97,7 +97,7 @@ public class ResendNotificationService {
     private void sendEmail(String to, String subject, String htmlContent, User user, EmailTypes emailType) {
 
         //TODO fix to email to the one on resend till we buy domain name
-        to = "mswiftsolutions01@gmail.com";
+        //to = "mswiftsolutions01@gmail.com";
         try {
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("from", fromEmail);

@@ -129,7 +129,6 @@ public class SignUpService {
     public String generateToken(User user) {
         // Use SecureRandom for cryptographically secure token generation
         String resetCode = String.format("%06d", secureRandom.nextInt(1000000));
-        System.out.println("Registration code: " + resetCode);
         Instant expiresAt = Instant.now().plus(15, ChronoUnit.MINUTES);
 
         VerificationToken verificationToken = new VerificationToken(resetCode, user.getId(), expiresAt);
