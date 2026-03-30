@@ -98,6 +98,6 @@ folders:
   project-floor-plans: floor-plans
 
 app:
-  frontend-url: http://localhost:4200
+  frontend-url: https://ujenzilink.com
   admin-api-key: musa
   report-recipient: ujenzilink@gmail.com
