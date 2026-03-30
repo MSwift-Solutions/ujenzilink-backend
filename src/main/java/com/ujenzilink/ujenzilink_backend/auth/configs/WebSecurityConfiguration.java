@@ -101,7 +101,7 @@ public class WebSecurityConfiguration {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of(
                 "http://localhost:4200",
-                "https://ujenzilink-frontend.mangabomoses.workers.dev")); // Avoid "*" in production
+                "https://ujenzilink.com")); // Avoid "*" in production
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "x-api-key"));
         config.setAllowCredentials(true);
