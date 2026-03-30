@@ -104,7 +104,6 @@ public class PassActionsService {
 
         // Generate reset code
         String resetCode = generatePasswordResetToken(user);
-        System.out.println("Reset code generated: " + resetCode);
 
         // Send reset email
         EmailNotificationDTO emailDetails = new EmailNotificationDTO(user.getEmail(), user.getFirstName(), resetCode);
