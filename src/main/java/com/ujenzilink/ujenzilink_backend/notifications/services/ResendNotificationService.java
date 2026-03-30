@@ -41,56 +41,56 @@ public class ResendNotificationService {
 
     public void sendConfirmationEmail(EmailNotificationDTO emailDetails, User user) {
         String body = EmailTemplates.getVerificationCodeEmail(emailDetails.name(), emailDetails.token(), emailDetails.email(), frontendUrl);
-        sendEmail(emailDetails.email(), "Verification Code", body, user, EmailTypes.VERIFICATION_CODE);
+        sendEmail(emailDetails.email(), "Email Verification", body, user, EmailTypes.VERIFICATION_CODE);
     }
 
     public void sendSuccessfulCreationEmail(EmailNotificationDTO emailDetails, User user) {
-        String body = EmailTemplates.getWelcomeEmail(emailDetails.name());
-        sendEmail(emailDetails.email(), "Welcome to UJENZI LINK", body, user, EmailTypes.WELCOME_EMAIL);
+        String body = EmailTemplates.getWelcomeEmail(emailDetails.name(), frontendUrl);
+        sendEmail(emailDetails.email(), "Account Confirmed - Welcome to Ujenzilink", body, user, EmailTypes.WELCOME_EMAIL);
     }
 
     public void sendPassChangeEmail(EmailNotificationDTO emailDetails, User user) {
-        String body = EmailTemplates.getPasswordChangedEmail(emailDetails.name());
-        sendEmail(emailDetails.email(), "Password Changed", body, user, EmailTypes.PASSWORD_CHANGED);
+        String body = EmailTemplates.getPasswordChangedEmail(emailDetails.name(), frontendUrl);
+        sendEmail(emailDetails.email(), "Password Changed Successfully", body, user, EmailTypes.PASSWORD_CHANGED);
     }
 
     public void sendPassResetEmail(EmailNotificationDTO emailDetails, User user) {
-        String body = EmailTemplates.getPasswordResetEmail(emailDetails.name(), emailDetails.token());
-        sendEmail(emailDetails.email(), "Password Reset", body, user, EmailTypes.PASSWORD_RESET);
+        String body = EmailTemplates.getPasswordResetEmail(emailDetails.name(), emailDetails.token(), frontendUrl);
+        sendEmail(emailDetails.email(), "Password Reset Request", body, user, EmailTypes.PASSWORD_RESET);
     }
 
     public void sendSignInNotificationEmail(String email, String name, String loginTime, User user) {
-        String body = EmailTemplates.getSignInNotificationEmail(name, loginTime);
-        sendEmail(email, "Sign-in Notification", body, user, EmailTypes.SIGNIN_NOTIFICATION);
+        String body = EmailTemplates.getSignInNotificationEmail(name, loginTime, frontendUrl);
+        sendEmail(email, "New Sign-In Detected", body, user, EmailTypes.SIGNIN_NOTIFICATION);
     }
 
     public void sendSignUpNotificationEmail(String email, String name, User user) {
-        String body = EmailTemplates.getSignUpNotificationEmail(name);
-        sendEmail(email, "Welcome to UJENZI LINK", body, user, EmailTypes.SIGNUP_NOTIFICATION);
+        String body = EmailTemplates.getSignUpNotificationEmail(name, frontendUrl);
+        sendEmail(email, "Welcome to Ujenzilink", body, user, EmailTypes.SIGNUP_NOTIFICATION);
     }
 
     public void sendProjectInvitationEmail(String email, String name, String projectName, String inviterName, User user) {
-        String body = EmailTemplates.getProjectInvitationEmail(name, projectName, inviterName);
-        sendEmail(email, "Project Invitation: " + projectName, body, user, EmailTypes.PROJECT_INVITATION);
+        String body = EmailTemplates.getProjectInvitationEmail(name, projectName, inviterName, frontendUrl);
+        sendEmail(email, "You've Been Added to a Project - " + projectName, body, user, EmailTypes.PROJECT_INVITATION);
     }
 
     public void sendAccountLockedEmail(String email, String name, User user) {
-        String body = EmailTemplates.getAccountLockedEmail(name);
-        sendEmail(email, "Account Locked", body, user, EmailTypes.ACCOUNT_LOCKED);
+        String body = EmailTemplates.getAccountLockedEmail(name, frontendUrl);
+        sendEmail(email, "Account Temporarily Locked", body, user, EmailTypes.ACCOUNT_LOCKED);
     }
 
     public void sendAccountDeletionEmail(String email, String name, User user) {
-        String body = EmailTemplates.getAccountDeletionEmail(name);
+        String body = EmailTemplates.getAccountDeletionEmail(name, frontendUrl);
         sendEmail(email, "Account Deletion Initiated", body, user, EmailTypes.ACCOUNT_DELETION);
     }
 
     public void sendAccountDeletionRevertEmail(String email, String name, User user) {
-        String body = EmailTemplates.getAccountDeletionRevertEmail(name);
-        sendEmail(email, "Account Deletion Reverted", body, user, EmailTypes.ACCOUNT_DELETION_REVERT);
+        String body = EmailTemplates.getAccountDeletionRevertEmail(name, frontendUrl);
+        sendEmail(email, "Account Deletion Cancelled", body, user, EmailTypes.ACCOUNT_DELETION_REVERT);
     }
 
     public void sendAdminVerifiedEmail(String email, String name, User user) {
-        String body = EmailTemplates.getAdminVerifiedEmail(name);
+        String body = EmailTemplates.getAdminVerifiedEmail(name, frontendUrl);
         sendEmail(email, "Account Verified by Administrator", body, user, EmailTypes.ADMIN_VERIFIED);
     }
 
