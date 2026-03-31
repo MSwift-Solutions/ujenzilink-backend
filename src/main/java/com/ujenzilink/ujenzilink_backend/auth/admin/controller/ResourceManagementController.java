@@ -3,7 +3,7 @@ package com.ujenzilink.ujenzilink_backend.auth.admin.controller;
 import com.ujenzilink.ujenzilink_backend.auth.admin.enums.AdminActionType;
 import com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminAuditService;
 import com.ujenzilink.ujenzilink_backend.images.dtos.HangingResourcesResponse;
-import com.ujenzilink.ujenzilink_backend.images.services.CloudinaryAdminService;
+import com.ujenzilink.ujenzilink_backend.images.services.CloudflareAdminService;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -20,11 +20,11 @@ import java.util.Map;
 @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
 public class ResourceManagementController {
 
-    private final CloudinaryAdminService cloudinaryAdminService;
+    private final CloudflareAdminService cloudinaryAdminService;
     private final com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminAuditService adminAuditService;
     private final jakarta.servlet.http.HttpServletRequest httpServletRequest;
 
-    public ResourceManagementController(CloudinaryAdminService cloudinaryAdminService,
+    public ResourceManagementController(CloudflareAdminService cloudinaryAdminService,
                                         AdminAuditService adminAuditService,
                                         HttpServletRequest httpServletRequest) {
         this.cloudinaryAdminService = cloudinaryAdminService;

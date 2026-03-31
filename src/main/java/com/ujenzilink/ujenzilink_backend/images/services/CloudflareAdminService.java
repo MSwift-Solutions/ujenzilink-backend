@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
-public class CloudinaryAdminService {
+public class CloudflareAdminService {
 
     private final ImageRepository imageRepository;
     private final PostImageRepository postImageRepository;
@@ -40,11 +40,11 @@ public class CloudinaryAdminService {
     @Value("${folders.project-stage-images}")
     private String projectStageImagesFolder;
 
-    public CloudinaryAdminService(ImageRepository imageRepository,
-                                 PostImageRepository postImageRepository,
-                                 StagePhotoRepository stagePhotoRepository,
-                                 S3Client s3Client,
-                                 R2StorageProperties r2Props) {
+    public CloudflareAdminService(ImageRepository imageRepository,
+                                  PostImageRepository postImageRepository,
+                                  StagePhotoRepository stagePhotoRepository,
+                                  S3Client s3Client,
+                                  R2StorageProperties r2Props) {
         this.imageRepository = imageRepository;
         this.postImageRepository = postImageRepository;
         this.stagePhotoRepository = stagePhotoRepository;
