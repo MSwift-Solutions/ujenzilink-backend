@@ -8,7 +8,7 @@ import java.util.Set;
 @Service
 public class ImageValidationService {
 
-    private static final long MAX_FILE_SIZE = 10_485_760L; // 10MB - Cloudinary can handle it
+    private static final long MAX_FILE_SIZE = 52_428_800L; // 50MB - Cloudinary/R2 can handle it
     private static final Set<String> ALLOWED_TYPES = Set.of("image/jpeg", "image/png", "image/webp", "image/heic");
 
     public ImageMetadata validateAndExtractMetadata(MultipartFile file) {
