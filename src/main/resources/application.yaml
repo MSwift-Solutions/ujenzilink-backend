@@ -68,6 +68,7 @@ spring:
 
 jwt:
   secret-key: ${JWT_SECRET}
+  expiration-hours: ${JWT_EXPIRATION:24}
 
 google:
   oauth:

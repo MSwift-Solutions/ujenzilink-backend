@@ -21,14 +21,17 @@ import java.util.function.Function;
 public class JWTUtil {
 
     private final SecretKey signingKey;
+    private final long expirationHours;
 
-    public JWTUtil(@Value("${jwt.secret-key}") String secretKey) {
+    public JWTUtil(@Value("${jwt.secret-key}") String secretKey,
+                   @Value("${jwt.expiration-hours}") long expirationHours) {
         this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey));
+        this.expirationHours = expirationHours;
     }
 
     public String generateToken(UserDetails userDetails) {
         Instant now = Instant.now();
-        Instant expiration = now.plus(24, ChronoUnit.HOURS);
+        Instant expiration = now.plus(expirationHours, ChronoUnit.HOURS);
 
         var builder = Jwts.builder()
                 .subject(userDetails.getUsername())
