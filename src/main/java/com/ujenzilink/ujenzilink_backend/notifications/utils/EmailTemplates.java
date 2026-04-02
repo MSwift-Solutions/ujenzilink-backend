@@ -4,17 +4,20 @@ public class EmailTemplates {
 
     private static String getRegards(String frontendUrl) {
         return "<br><br>" +
-               "<p style='margin: 0;'>Best regards,</p>" +
-               "<p style='margin: 0; font-weight: 600; color: #f28c18;'>Ujenzilink Team</p>" +
-               "<p style='margin: 0;'><a href='mailto:ujenzilink@gmail.com' style='color: #1f2f57; text-decoration: none;'>ujenzilink@gmail.com</a> | 0727587966</p>" +
-               "<p style='margin: 0;'><a href='" + frontendUrl + "' style='color: #f28c18; text-decoration: none;'>" + frontendUrl + "</a></p>";
+                "<p style='margin: 0;'>Best regards,</p>" +
+                "<p style='margin: 0; font-weight: 600; color: #f28c18;'>Ujenzilink Team</p>" +
+                "<p style='margin: 0;'><a href='mailto:ujenzilink@gmail.com' style='color: #1f2f57; text-decoration: none;'>ujenzilink@gmail.com</a> | 0727587966</p>"
+                +
+                "<p style='margin: 0;'><a href='" + frontendUrl + "' style='color: #f28c18; text-decoration: none;'>"
+                + frontendUrl + "</a></p>";
     }
 
     private static String wrap(String content, String frontendUrl) {
-        return "<div style='font-family: Arial, sans-serif; font-size: 15px; color: #2e2e2e; line-height: 1.6; max-width: 600px; padding: 16px;'>" +
-               content +
-               getRegards(frontendUrl) +
-               "</div>";
+        return "<div style='font-family: Arial, sans-serif; font-size: 15px; color: #2e2e2e; line-height: 1.6; max-width: 600px; padding: 16px;'>"
+                +
+                content +
+                getRegards(frontendUrl) +
+                "</div>";
     }
 
     public static String getVerificationCodeEmail(String name, String token, String email, String frontendUrl) {
@@ -50,18 +53,21 @@ public class EmailTemplates {
         return getPasswordChangedEmail(name, "https://ujenzilink.com");
     }
 
-    public static String getPasswordResetEmail(String name, String token, String frontendUrl) {
+    public static String getPasswordResetEmail(String name, String token, String email, String frontendUrl) {
+        String resetLink = frontendUrl + "/auth/forgot-password?email=" + email + "&token=" + token;
         String content = "<p>Dear <strong>" + name.toUpperCase() + "</strong>,</p>" +
-                "<p>We hope this email finds you well! 😊</p>" +
-                "<p>You recently requested to reset your password. To complete the password reset process, please use the following verification code:</p>" +
-                "<p><strong>Verification Code:</strong> " + token + "</p>" +
+                "<p>We hope this email finds you well! </p>" +
+                "<p>You recently requested to reset your password. To complete the password reset process, please use the following verification code or link below:</p>"
+                +
+                "<p><strong>Verification Code:</strong> " + token + "<br>" +
+                "<strong>Link:</strong> <a href='" + resetLink + "'>" + resetLink + "</a></p>" +
                 "<p>If you didn't request a password reset, you can safely ignore this email.</p>" +
                 "<p>Thank you for using Ujenzilink. If you have any questions or need further assistance, feel free to contact our support team.</p>";
         return wrap(content, frontendUrl);
     }
 
-    public static String getPasswordResetEmail(String name, String token) {
-        return getPasswordResetEmail(name, token, "https://ujenzilink.com");
+    public static String getPasswordResetEmail(String name, String token, String email) {
+        return getPasswordResetEmail(name, token, email, "https://ujenzilink.com");
     }
 
     public static String getSignInNotificationEmail(String name, String loginTime, String frontendUrl) {
@@ -88,9 +94,11 @@ public class EmailTemplates {
         return getSignUpNotificationEmail(name, "https://ujenzilink.com");
     }
 
-    public static String getProjectInvitationEmail(String name, String projectName, String inviterName, String frontendUrl) {
+    public static String getProjectInvitationEmail(String name, String projectName, String inviterName,
+            String frontendUrl) {
         String content = "<p>Dear <strong>" + name.toUpperCase() + "</strong>,</p>" +
-                "<p>You have been added to the project '<strong>" + projectName + "</strong>' by " + inviterName + ".</p>" +
+                "<p>You have been added to the project '<strong>" + projectName + "</strong>' by " + inviterName
+                + ".</p>" +
                 "<p>You can now access the project details and collaborate with the team.</p>";
         return wrap(content, frontendUrl);
     }
@@ -112,7 +120,8 @@ public class EmailTemplates {
 
     public static String getAccountDeletionEmail(String name, String frontendUrl) {
         String content = "<p>Dear <strong>" + name.toUpperCase() + "</strong>,</p>" +
-                "<p>This action will initiate the permanent deletion of your account. All your data will be erased after 14 days.</p>" +
+                "<p>This action will initiate the permanent deletion of your account. All your data will be erased after 14 days.</p>"
+                +
                 "<p>Your account will be deleted permanently after <strong>14 days</strong>. " +
                 "Until then, you can reclaim your account by logging back in.</p>" +
                 "<p>If you did not initiate this request, please secure your account immediately.</p>";
@@ -125,7 +134,8 @@ public class EmailTemplates {
 
     public static String getAccountDeletionRevertEmail(String name, String frontendUrl) {
         String content = "<p>Dear <strong>" + name.toUpperCase() + "</strong>,</p>" +
-                "<p>We are pleased to inform you that your account deletion request has been successfully reverted by an administrator.</p>" +
+                "<p>We are pleased to inform you that your account deletion request has been successfully reverted by an administrator.</p>"
+                +
                 "<p>Your account is now fully restored, and you can continue to use our services as usual.</p>" +
                 "<p>If you have any questions, please feel free to reach out to our support team.</p>";
         return wrap(content, frontendUrl);
@@ -137,7 +147,8 @@ public class EmailTemplates {
 
     public static String getAdminVerifiedEmail(String name, String frontendUrl) {
         String content = "<p>Dear <strong>" + name.toUpperCase() + "</strong>,</p>" +
-                "<p>Great news! Your account on Ujenzilink has been manually verified by one of our administrators.</p>" +
+                "<p>Great news! Your account on Ujenzilink has been manually verified by one of our administrators.</p>"
+                +
                 "<p>You can now log in and start using all features of the platform.</p>" +
                 "<p>If you have any questions or need assistance getting started, feel free to reach out to our support team.</p>";
         return wrap(content, frontendUrl);

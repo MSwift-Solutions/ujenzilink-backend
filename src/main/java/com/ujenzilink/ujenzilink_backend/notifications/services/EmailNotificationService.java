@@ -43,7 +43,7 @@ public class EmailNotificationService {
     }
 
     private void sendPassResetEmail(EmailNotificationDTO emailDetails, User user) {
-        String body = EmailTemplates.getPasswordResetEmail(emailDetails.name(), emailDetails.token());
+        String body = EmailTemplates.getPasswordResetEmail(emailDetails.name(), emailDetails.token(), emailDetails.email(), frontendUrl);
         sendEmail(emailDetails.email(), "Customer", body, user, EmailTypes.PASSWORD_RESET);
     }
 

@@ -55,7 +55,7 @@ public class ResendNotificationService {
     }
 
     public void sendPassResetEmail(EmailNotificationDTO emailDetails, User user) {
-        String body = EmailTemplates.getPasswordResetEmail(emailDetails.name(), emailDetails.token(), frontendUrl);
+        String body = EmailTemplates.getPasswordResetEmail(emailDetails.name(), emailDetails.token(), emailDetails.email(), frontendUrl);
         sendEmail(emailDetails.email(), "Password Reset Request", body, user, EmailTypes.PASSWORD_RESET);
     }
 
