@@ -11,6 +11,10 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 
 @Service
@@ -27,46 +31,62 @@ public class R2StorageService {
         this.optimizationService = optimizationService;
     }
 
+    /**
+     * Uploads an image to R2 using safe streaming — no file.getBytes(), no RAM spike.
+     * The optimizer writes to a temp file on disk; we then stream from that file.
+     */
     public R2UploadResponse upload(MultipartFile file, String folder, String fileName) {
+        String originalName = file.getOriginalFilename() != null
+                ? file.getOriginalFilename()
+                : "image";
+
+        String key = folder + "/" + fileName;
+
+        String contentType = file.getContentType() != null
+                ? file.getContentType()
+                : "application/octet-stream";
+
+        // Write optimized image to a temp file on disk (never held in RAM)
+        Path tempFile = optimizationService.optimizeToTempFile(file);
         try {
-            byte[] optimizedBytes = optimizationService.optimize(file);
-
-            String originalName = file.getOriginalFilename() != null
-                    ? file.getOriginalFilename()
-                    : "image";
-
-            String key = folder + "/" + fileName;
-
-            String contentType = file.getContentType() != null
-                    ? file.getContentType()
-                    : "application/octet-stream";
+            long fileSize = Files.size(tempFile);
 
             PutObjectRequest request = PutObjectRequest.builder()
                     .bucket(r2Props.bucketName())
                     .key(key)
                     .contentType(contentType)
-                    .contentLength((long) optimizedBytes.length)
+                    .contentLength(fileSize)
                     .build();
 
-            PutObjectResponse response = s3Client.putObject(
-                    request,
-                    RequestBody.fromBytes(optimizedBytes)
-            );
+            // Safe streaming: read from disk, stream to R2 — never loads into RAM
+            try (InputStream inputStream = Files.newInputStream(tempFile)) {
+                PutObjectResponse response = s3Client.putObject(
+                        request,
+                        RequestBody.fromInputStream(inputStream, fileSize)
+                );
 
-            String fileUrl = r2Props.publicUrl() + "/" + key;
+                String fileUrl = r2Props.publicUrl() + "/" + key;
 
-            return new R2UploadResponse(
-                    originalName,
-                    key,
-                    fileUrl,
-                    contentType,
-                    optimizedBytes.length,
-                    response.eTag(),
-                    Instant.now()
-            );
+                return new R2UploadResponse(
+                        originalName,
+                        key,
+                        fileUrl,
+                        contentType,
+                        (int) fileSize,
+                        response.eTag(),
+                        Instant.now()
+                );
+            }
 
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new RuntimeException("R2 upload failed: " + e.getMessage(), e);
+        } finally {
+            // Always clean up the temp file regardless of success or failure
+            try {
+                Files.deleteIfExists(tempFile);
+            } catch (IOException ignored) {
+                // best-effort cleanup
+            }
         }
     }
 

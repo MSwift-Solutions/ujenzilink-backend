@@ -28,6 +28,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -120,25 +121,19 @@ public class ProjectPlanFileService {
         PlanFileFormat format = EXT_TO_FORMAT.get(ext);
         String contentType = EXT_TO_CONTENT_TYPE.getOrDefault(ext, "application/octet-stream");
         String key = floorPlansFolder + "/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
+        long fileSize = file.getSize();
 
-        byte[] bytes;
-        try {
-            bytes = file.getBytes();
-        } catch (IOException e) {
-            return new ApiCustomResponse<>(null, "Failed to read file: " + e.getMessage(),
-                    HttpStatus.INTERNAL_SERVER_ERROR.value());
-        }
-
-        try {
+        // Safe streaming: never loads file into RAM — streams directly from disk to R2
+        try (InputStream inputStream = file.getInputStream()) {
             s3Client.putObject(
                     PutObjectRequest.builder()
                             .bucket(r2Props.bucketName())
                             .key(key)
                             .contentType(contentType)
-                            .contentLength((long) bytes.length)
+                            .contentLength(fileSize)
                             .build(),
-                    RequestBody.fromBytes(bytes));
-        } catch (Exception e) {
+                    RequestBody.fromInputStream(inputStream, fileSize));
+        } catch (IOException e) {
             return new ApiCustomResponse<>(null, "R2 upload failed: " + e.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR.value());
         }
@@ -160,7 +155,7 @@ public class ProjectPlanFileService {
         planFile.setPlan(savedPlan);
         planFile.setFileName(file.getOriginalFilename());
         planFile.setFileStorageKey(key);
-        planFile.setFileSize((long) bytes.length);
+        planFile.setFileSize(fileSize);
         planFile.setFormat(format);
         planFile.setDisplayLabel(displayLabel != null ? displayLabel : name);
         planFile.setVersion(internalVersion);

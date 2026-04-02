@@ -4,9 +4,11 @@ import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Locale;
 
 @Service
@@ -22,34 +24,44 @@ public class ImageOptimizationService {
         this.imageValidationService = imageValidationService;
     }
 
-    public byte[] optimize(MultipartFile file) {
+    /**
+     * Optimizes the image and writes it to a temporary file on disk.
+     * The caller MUST delete the returned Path when finished (use a try/finally).
+     * This method never loads the full image into JVM heap memory.
+     */
+    public Path optimizeToTempFile(MultipartFile file) {
         imageValidationService.validateAndExtractMetadata(file);
 
         String contentType = file.getContentType();
         if (contentType == null) {
-            return getOriginalBytes(file);
+            return writeOriginalToTempFile(file);
         }
 
         String format = resolveFormat(contentType.toLowerCase(Locale.ROOT));
 
-        // If unsupported (e.g. HEIC), return original
+        // If unsupported (e.g. HEIC), write original bytes directly to disk
         if (format == null) {
-            return getOriginalBytes(file);
+            return writeOriginalToTempFile(file);
         }
 
-        try (InputStream input = file.getInputStream();
-             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+        try {
+            Path tempFile = Files.createTempFile("img-opt-", "." + format);
 
-            Thumbnails.Builder<?> builder = Thumbnails.of(input)
-                    .size(MAX_WIDTH, MAX_HEIGHT)
-                    .outputFormat(format);
+            try (InputStream input = file.getInputStream();
+                 OutputStream output = Files.newOutputStream(tempFile)) {
 
-            if ("jpg".equals(format)) {
-                builder.outputQuality(JPEG_QUALITY);
+                Thumbnails.Builder<?> builder = Thumbnails.of(input)
+                        .size(MAX_WIDTH, MAX_HEIGHT)
+                        .outputFormat(format);
+
+                if ("jpg".equals(format)) {
+                    builder.outputQuality(JPEG_QUALITY);
+                }
+
+                builder.toOutputStream(output);
             }
 
-            builder.toOutputStream(output);
-            return output.toByteArray();
+            return tempFile;
 
         } catch (IOException e) {
             throw new RuntimeException("Image optimization failed", e);
@@ -65,11 +77,19 @@ public class ImageOptimizationService {
         };
     }
 
-    private byte[] getOriginalBytes(MultipartFile file) {
+    /**
+     * Streams the original file bytes to a temp file without any RAM buffering.
+     */
+    private Path writeOriginalToTempFile(MultipartFile file) {
         try {
-            return file.getBytes();
+            Path tempFile = Files.createTempFile("img-orig-", ".tmp");
+            try (InputStream input = file.getInputStream();
+                 OutputStream output = Files.newOutputStream(tempFile)) {
+                input.transferTo(output);
+            }
+            return tempFile;
         } catch (IOException e) {
-            throw new RuntimeException("Failed to read image bytes", e);
+            throw new RuntimeException("Failed to write original image to temp file", e);
         }
     }
 }

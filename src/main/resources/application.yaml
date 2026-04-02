@@ -34,6 +34,8 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 60MB
+      file-size-threshold: 1KB   # Force disk write for large files
+      location: /tmp/uploads   
 
   # Postgres for local
   datasource:
