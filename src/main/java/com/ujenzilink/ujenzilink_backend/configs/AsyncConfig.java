@@ -15,10 +15,7 @@ public class AsyncConfig {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncConfig.class);
 
-    /**
-     * Dedicated executor for async R2 upload/delete tasks.
-     * Kept small to avoid competing with Tomcat threads on a 1 GB server.
-     */
+    /** Dedicated executor for async R2 upload/delete tasks. */
     @Bean(name = "r2TaskExecutor")
     public Executor r2TaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

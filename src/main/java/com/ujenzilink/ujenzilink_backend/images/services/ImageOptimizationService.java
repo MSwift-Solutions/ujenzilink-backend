@@ -16,16 +16,12 @@ public class ImageOptimizationService {
 
     private static final int MAX_WIDTH = 2000;
     private static final int MAX_HEIGHT = 2000;
-    private static final float IMAGE_QUALITY = 0.90f; // High quality for visual excellence
+    private static final float IMAGE_QUALITY = 0.90f;
 
     public ImageOptimizationService() {
     }
 
-    /**
-     * Optimizes the image and writes it to a temporary file on disk.
-     * The caller MUST delete the returned Path when finished (use a try/finally).
-     * This method never loads the full image into JVM heap memory.
-     */
+    /** Optimizes the image and writes it to a temporary file on disk. */
     public Path optimizeToTempFile(MultipartFile file) {
         String contentType = file.getContentType();
         if (contentType == null) {
@@ -48,13 +44,7 @@ public class ImageOptimizationService {
         }
     }
 
-    /**
-     * Optimizes the image and writes it to {@code targetPath}.
-     * Parent directories are created automatically.
-     * The file is NEVER deleted — the caller owns its lifecycle.
-     * Use this when you want the file to live in a specific, organized location
-     * (e.g. a local mirror that matches the R2 key structure).
-     */
+    /** Optimizes the image and writes it to {@code targetPath}. */
     public void optimizeToPath(MultipartFile file, Path targetPath) {
         try {
             Files.createDirectories(targetPath.getParent());
@@ -83,7 +73,6 @@ public class ImageOptimizationService {
                     .size(MAX_WIDTH, MAX_HEIGHT)
                     .outputFormat(format);
 
-            // Apply 90% quality to lossy formats (JPEG, WebP)
             if ("jpg".equals(format) || "webp".equals(format)) {
                 builder.outputQuality(IMAGE_QUALITY);
             }
@@ -101,9 +90,7 @@ public class ImageOptimizationService {
         };
     }
 
-    /**
-     * Streams the original file bytes to a temp file without any RAM buffering.
-     */
+    /** Streams the original file bytes to a temp file. */
     private Path writeOriginalToTempFile(MultipartFile file) {
         try {
             Path tempFile = Files.createTempFile("img-orig-", ".tmp");

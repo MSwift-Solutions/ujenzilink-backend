@@ -36,10 +36,6 @@ public class R2StorageService {
         this.optimizationService = optimizationService;
     }
 
-    /**
-     * Uploads an image to R2 using safe streaming — no file.getBytes(), no RAM spike.
-     * The optimizer writes to a temp file on disk; we then stream from that file.
-     */
     public R2UploadResponse upload(MultipartFile file, String folder, String fileName) {
         String originalName = file.getOriginalFilename() != null
                 ? file.getOriginalFilename()
@@ -51,7 +47,6 @@ public class R2StorageService {
                 ? file.getContentType()
                 : "application/octet-stream";
 
-        // Write optimized image to a temp file on disk (never held in RAM)
         Path tempFile = optimizationService.optimizeToTempFile(file);
         try {
             long fileSize = Files.size(tempFile);
@@ -63,7 +58,6 @@ public class R2StorageService {
                     .contentLength(fileSize)
                     .build();
 
-            // Safe streaming: read from disk, stream to R2 — never loads into RAM
             try (InputStream inputStream = Files.newInputStream(tempFile)) {
                 PutObjectResponse response = s3Client.putObject(
                         request,
@@ -86,11 +80,9 @@ public class R2StorageService {
         } catch (IOException e) {
             throw new RuntimeException("R2 upload failed: " + e.getMessage(), e);
         } finally {
-            // Always clean up the temp file regardless of success or failure
             try {
                 Files.deleteIfExists(tempFile);
             } catch (IOException ignored) {
-                // best-effort cleanup
             }
         }
     }
@@ -137,12 +129,6 @@ public class R2StorageService {
         return existsAfter;
     }
 
-    // ── async operations (run on r2TaskExecutor — never block the HTTP thread) ──
-
-    /**
-     * Uploads a file from a local path to R2 asynchronously.
-     * The local file is NOT deleted after upload — it acts as a persistent mirror.
-     */
     @Async("r2TaskExecutor")
     public void uploadFromPathAsync(Path localPath, String key, String contentType) {
         try {
@@ -163,9 +149,6 @@ public class R2StorageService {
         }
     }
 
-    /**
-     * Deletes an object from R2 asynchronously (best-effort, single idempotent DELETE).
-     */
     @Async("r2TaskExecutor")
     public void deleteImageAsync(String key) {
         if (key == null || key.isBlank()) return;

@@ -89,27 +89,21 @@ public class ProfileImageService {
                                         HttpStatus.FORBIDDEN.value());
                 }
 
-                // ── Phase 2: validate + write to organised local mirror (CPU only, no network) ──
-                //    The local path mirrors the R2 key exactly:
-                //      {localMirrorBase}/{folder}/{fileName}
-                //    e.g. /tmp/uploads/profile-pictures/42/avatar-abc.jpg
                 ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
 
                 String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg";
                 String extension = originalName.substring(originalName.lastIndexOf(".") + 1);
                 String folder   = profilePicturesFolder + "/" + user.getId();
                 String fileName = "avatar-" + UUID.randomUUID() + "." + extension;
-                String key      = folder + "/" + fileName;  // same key used in R2
+                String key      = folder + "/" + fileName;
 
                 String contentType = file.getContentType() != null
                         ? file.getContentType()
                         : "application/octet-stream";
 
-                // Write optimised bytes to local mirror — parent dirs created automatically
                 Path localPath = Paths.get(localMirrorBase, key);
                 imageOptimizationService.optimizeToPath(file, localPath);
 
-                // ── Phase 3: DB writes only (transaction open for milliseconds) ─────────────
                 String oldKey = transactionTemplate.execute(status -> {
                         User freshUser = userRepository.findById(user.getId())
                                         .orElseThrow(() -> new RuntimeException("User no longer exists."));
@@ -132,9 +126,6 @@ public class ProfileImageService {
                         return previousKey;
                 });
 
-                // ── Phase 4: async R2 ops — fire and forget, response already committed ──
-                //    uploadFromPathAsync reads from the local mirror (never deleted).
-                //    deleteImageAsync does a single idempotent DELETE on the old key.
                 r2StorageService.uploadFromPathAsync(localPath, key, contentType);
                 if (oldKey != null) {
                         r2StorageService.deleteImageAsync(oldKey);
