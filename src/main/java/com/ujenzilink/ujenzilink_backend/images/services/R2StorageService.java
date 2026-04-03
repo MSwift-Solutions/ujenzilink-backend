@@ -27,7 +27,7 @@ public class R2StorageService {
         this.r2Props = r2Props;
     }
 
-    @Async("r2TaskExecutor")
+    @Async("taskExecutor")
     public void uploadFromPathAsync(Path localPath, String key, String contentType) {
         try {
             long fileSize = Files.size(localPath);
@@ -47,7 +47,7 @@ public class R2StorageService {
         }
     }
 
-    @Async("r2TaskExecutor")
+    @Async("taskExecutor")
     public void deleteImageAsync(String key) {
         if (key == null || key.isBlank()) return;
         try {
