@@ -108,3 +108,9 @@ app:
   frontend-url: https://ujenzilink.com
   admin-api-key: musa
   report-recipient: ujenzilink@gmail.com
+  upload:
+    max-file-size: 52428800          # 50 MB in bytes
+    image-accept-types: jpg,jpeg,png,webp
+    plan-accept-types: pdf,jpg,jpeg,png,dwg
+    max-post-photos: 4
+    max-stage-photos: 4

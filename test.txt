@@ -189,12 +189,7 @@ throw new IllegalArgumentException("File exceeds the " + MAX_SIZE_LABEL + " limi
 
 ---
 
-#### 10. `uploadProfilePicture` and `changeProfilePicture` are identical
-Both methods in `ProfileImageService` (lines 48–101 and 103–157) contain identical logic. The only difference is the response message string. This is a maintenance risk — any bug fixed in one must be manually fixed in the other.
 
-**Fix:** Extract shared logic into a private `doUpload(User user, MultipartFile file)` method.
-
----
 
 #### 11. `ImageOptimizationService` validates twice AND holds `MultipartFile` open across two streams
 `optimizeToTempFile` calls `validateAndExtractMetadata` (which calls `file.getSize()` and `file.getContentType()`) and then opens `file.getInputStream()`. On disk-backed multipart files this is fine, but it is architecturally fragile — if the temp file backing the `MultipartFile` is cleaned up between the two reads (e.g. by the OS or a misconfigured temp cleaner), it will fail silently.
