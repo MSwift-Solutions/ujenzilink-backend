@@ -179,11 +179,11 @@ public class PassActionsService {
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         user.setIsLocked(false);
         user.setFailedLoginAttempts(0);
-        userRepository.save(user);
+        userRepository.saveAndFlush(user); // Force immediate database sync
 
         // Mark the password reset action as completed
         passwordAction.setCompleted(true);
-        passwordActionRepository.save(passwordAction);
+        passwordActionRepository.saveAndFlush(passwordAction);
 
         // Send confirmation email
         EmailNotificationDTO emailDetails = new EmailNotificationDTO(user.getEmail(), user.getFirstName(), null);
