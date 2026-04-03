@@ -18,10 +18,7 @@ public class ImageOptimizationService {
     private static final int MAX_HEIGHT = 2000;
     private static final float JPEG_QUALITY = 0.85f;
 
-    private final ImageValidationService imageValidationService;
-
-    public ImageOptimizationService(ImageValidationService imageValidationService) {
-        this.imageValidationService = imageValidationService;
+    public ImageOptimizationService() {
     }
 
     /**
@@ -30,8 +27,6 @@ public class ImageOptimizationService {
      * This method never loads the full image into JVM heap memory.
      */
     public Path optimizeToTempFile(MultipartFile file) {
-        imageValidationService.validateAndExtractMetadata(file);
-
         String contentType = file.getContentType();
         if (contentType == null) {
             return writeOriginalToTempFile(file);
