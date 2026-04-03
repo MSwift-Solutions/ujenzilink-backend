@@ -1,0 +1,41 @@
+package com.ujenzilink.ujenzilink_backend.configs;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import java.util.concurrent.Executor;
+
+@EnableAsync
+@Configuration
+public class AsyncConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(AsyncConfig.class);
+
+    /**
+     * Dedicated executor for async R2 upload/delete tasks.
+     * Kept small to avoid competing with Tomcat threads on a 1 GB server.
+     */
+    @Bean(name = "r2TaskExecutor")
+    public Executor r2TaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("r2-async-");
+        executor.setRejectedExecutionHandler((runnable, pool) ->
+                log.error("R2 async task rejected — queue full. Consider increasing r2TaskExecutor queue capacity."));
+        executor.setTaskDecorator(runnable -> () -> {
+            try {
+                runnable.run();
+            } catch (Exception ex) {
+                log.error("Uncaught exception in r2-async thread", ex);
+            }
+        });
+        executor.initialize();
+        return executor;
+    }
+}

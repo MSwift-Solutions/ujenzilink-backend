@@ -16,7 +16,7 @@ public class ImageOptimizationService {
 
     private static final int MAX_WIDTH = 2000;
     private static final int MAX_HEIGHT = 2000;
-    private static final float JPEG_QUALITY = 0.85f;
+    private static final float IMAGE_QUALITY = 0.90f; // High quality for visual excellence
 
     public ImageOptimizationService() {
     }
@@ -41,25 +41,54 @@ public class ImageOptimizationService {
 
         try {
             Path tempFile = Files.createTempFile("img-opt-", "." + format);
-
-            try (InputStream input = file.getInputStream();
-                 OutputStream output = Files.newOutputStream(tempFile)) {
-
-                Thumbnails.Builder<?> builder = Thumbnails.of(input)
-                        .size(MAX_WIDTH, MAX_HEIGHT)
-                        .outputFormat(format);
-
-                if ("jpg".equals(format)) {
-                    builder.outputQuality(JPEG_QUALITY);
-                }
-
-                builder.toOutputStream(output);
-            }
-
+            doOptimize(file, tempFile);
             return tempFile;
-
         } catch (IOException e) {
             throw new RuntimeException("Image optimization failed", e);
+        }
+    }
+
+    /**
+     * Optimizes the image and writes it to {@code targetPath}.
+     * Parent directories are created automatically.
+     * The file is NEVER deleted — the caller owns its lifecycle.
+     * Use this when you want the file to live in a specific, organized location
+     * (e.g. a local mirror that matches the R2 key structure).
+     */
+    public void optimizeToPath(MultipartFile file, Path targetPath) {
+        try {
+            Files.createDirectories(targetPath.getParent());
+            doOptimize(file, targetPath);
+        } catch (IOException e) {
+            throw new RuntimeException("Image optimization failed writing to " + targetPath, e);
+        }
+    }
+
+
+    private void doOptimize(MultipartFile file, Path targetPath) throws IOException {
+        String contentType = file.getContentType();
+        String format = (contentType != null)
+                ? resolveFormat(contentType.toLowerCase(Locale.ROOT))
+                : null;
+
+        try (InputStream input = file.getInputStream();
+             OutputStream output = Files.newOutputStream(targetPath)) {
+
+            if (format == null) {
+                input.transferTo(output);
+                return;
+            }
+
+            Thumbnails.Builder<?> builder = Thumbnails.of(input)
+                    .size(MAX_WIDTH, MAX_HEIGHT)
+                    .outputFormat(format);
+
+            // Apply 90% quality to lossy formats (JPEG, WebP)
+            if ("jpg".equals(format) || "webp".equals(format)) {
+                builder.outputQuality(IMAGE_QUALITY);
+            }
+
+            builder.toOutputStream(output);
         }
     }
 
