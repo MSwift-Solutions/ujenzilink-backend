@@ -47,61 +47,17 @@ public class ProfileImageService {
 
         @Transactional
         public ApiCustomResponse<String> uploadProfilePicture(MultipartFile file) {
-                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
-
-                if (userOpt.isEmpty()) {
-                        return new ApiCustomResponse<>(
-                                        null,
-                                        "User not authenticated or not found.",
-                                        HttpStatus.UNAUTHORIZED.value());
-                }
-
-                User user = userOpt.get();
-
-                if (!user.getIsEnabled()) {
-                        return new ApiCustomResponse<>(
-                                        null,
-                                        "Account not confirmed. Please confirm your account before uploading a profile picture.",
-                                        HttpStatus.FORBIDDEN.value());
-                }
-
-                ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
-
-                String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg";
-                String extension = originalName.substring(originalName.lastIndexOf(".") + 1);
-
-                String folder = profilePicturesFolder + "/" + user.getId();
-                String fileName = "avatar-" + UUID.randomUUID().toString() + "." + extension;
-                R2UploadResponse uploadResponse = r2StorageService.upload(file, folder, fileName);
-
-                Image profileImage = new Image();
-                profileImage.setUrl(uploadResponse.key());
-                profileImage.setFilename(metadata.filename());
-                profileImage.setFileType(metadata.fileType());
-                profileImage.setFileSize(metadata.fileSize());
-                profileImage.setUser(user);
-
-                // Delete old image from R2 if it exists
-                if (user.getProfilePicture() != null) {
-                        String oldKey = user.getProfilePicture().getUrl(); // The key is stored in the url field
-                        if (r2StorageService.deleteImageWithVerification(oldKey)) {
-                                throw new RuntimeException("Failed to delete old profile picture from R2. Rolling back.");
-                        }
-                }
-
-                profileImage = imageRepository.save(profileImage);
-
-                user.setProfilePicture(profileImage);
-                userRepository.save(user);
-
-                return new ApiCustomResponse<>(
-                                uploadResponse.key(),
-                                "Profile picture uploaded successfully.",
-                                HttpStatus.OK.value());
+                return doUpload(file, "Profile picture uploaded successfully.",
+                                "Account not confirmed. Please confirm your account before uploading a profile picture.");
         }
 
         @Transactional
         public ApiCustomResponse<String> changeProfilePicture(MultipartFile file) {
+                return doUpload(file, "Profile picture changed successfully.",
+                                "Account not confirmed. Please confirm your account before changing your profile picture.");
+        }
+
+        private ApiCustomResponse<String> doUpload(MultipartFile file, String successMessage, String notEnabledMessage) {
                 Optional<User> userOpt = securityUtil.getAuthenticatedUser();
 
                 if (userOpt.isEmpty()) {
@@ -116,7 +72,7 @@ public class ProfileImageService {
                 if (!user.getIsEnabled()) {
                         return new ApiCustomResponse<>(
                                         null,
-                                        "Account not confirmed. Please confirm your account before changing your profile picture.",
+                                        notEnabledMessage,
                                         HttpStatus.FORBIDDEN.value());
                 }
 
@@ -146,13 +102,12 @@ public class ProfileImageService {
 
                 profileImage = imageRepository.save(profileImage);
 
-                // Note: We are only updating the reference. The old image remains in the database.
                 user.setProfilePicture(profileImage);
                 userRepository.save(user);
 
                 return new ApiCustomResponse<>(
                                 uploadResponse.key(),
-                                "Profile picture changed successfully.",
+                                successMessage,
                                 HttpStatus.OK.value());
         }
 

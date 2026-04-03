@@ -1,0 +1,215 @@
+# Image Upload Pipeline — Analysis & Recommendations
+> Context: 1 GB RAM Ubuntu VPS · Spring Boot (Tomcat) · Cloudflare R2 storage · Thumbnailator optimisation
+
+---
+
+## How the Upload Currently Works (end-to-end)
+
+```
+Client  →  Tomcat (multipart)  →  Controller  →  ProfileImageService
+                                                      │
+                                          ImageValidationService
+                                          (size + MIME check)
+                                                      │
+                                          ImageOptimizationService
+                                          (Thumbnailator → temp file on /tmp)
+                                                      │
+                                          R2StorageService
+                                          (stream temp file → Cloudflare R2)
+                                                      │
+                                          ImageRepository + UserRepository
+                                          (Postgres save + user link update)
+```
+
+### What is already done well ✅
+| Area | Detail |
+|---|---|
+| Disk-first multipart | `file-size-threshold: 1KB` forces Tomcat to spill to `/tmp/uploads` immediately — no heap spike from the raw upload |
+| No `getBytes()` in upload path | `R2StorageService` streams from the Thumbnailator temp file via `Files.newInputStream` — never loads the image into RAM |
+| Temp file cleanup | `try/finally` in `R2StorageService.upload()` always deletes the temp file |
+| 50 MB limit | `max-file-size: 50MB` + Tomcat `max-swallow-size: 50MB` are consistent |
+| Exception handling | `MaxUploadSizeExceededException` and `MultipartException` return proper 413 / 400 JSON |
+| MIME type guard | Only JPEG, PNG, WEBP, HEIC accepted before any heavy processing starts |
+
+---
+
+## Issues & Recommendations
+
+### 🔴 Critical — likely to cause failures today
+
+---
+
+#### 2. Double validation — `ImageOptimizationService` calls `validateAndExtractMetadata` again
+`ProfileImageService` already calls `imageValidationService.validateAndExtractMetadata(file)` on line 68, and then `ImageOptimizationService.optimizeToTempFile()` calls it **again** on line 33.
+On a 50 MB file this wastes CPU time and introduces a second read of the `MultipartFile` metadata path redundantly.
+
+**Fix:** Remove the validation call from `optimizeToTempFile()`. Validation is the caller's responsibility.
+
+---
+
+#### 3. `deleteImageWithVerification` logic is inverted — throws on success
+```java
+// R2StorageService.java line 122–133
+public boolean deleteImageWithVerification(String key) {
+    boolean existsBefore = imageExists(key);
+    if (!existsBefore) return false;        // not found → "no error"
+    boolean deleted = deleteImage(key);
+    if (!deleted) return true;              // failed to delete → "error"
+    boolean existsAfter = imageExists(key);
+    return existsAfter;                     // still exists → "error"
+}
+```
+Then in `ProfileImageService`:
+```java
+if (r2StorageService.deleteImageWithVerification(oldKey)) {   // true = ERROR
+    throw new RuntimeException("Failed to delete old profile picture from R2. Rolling back.");
+}
+```
+This makes **3 synchronous HTTP calls to R2** (HEAD + DELETE + HEAD) inside a `@Transactional` block holding an open DB connection. If R2 is slow (even 300 ms/call → 900 ms) every upload blocks a Hikari connection for nearly a second.
+
+The double-verification strategy also **makes new uploads fail if R2 confirms deletion but the subsequent HEAD check races**. This causes unnecessary 500 errors in production.
+
+**Fix:** Simplify to a single DELETE call. R2 (S3-compatible) DELETE is idempotent — it succeeds even if the object does not exist. No HEAD + re-check needed.
+
+```java
+// Simplified, non-blocking version
+public void deleteImageAsync(String key) {
+    if (key == null || key.isBlank()) return;
+    s3Client.deleteObject(DeleteObjectRequest.builder()
+            .bucket(r2Props.bucketName())
+            .key(key)
+            .build());
+}
+```
+
+---
+
+#### 4. Old image delete + new image upload are both inside `@Transactional`
+The `@Transactional` block in `uploadProfilePicture` spans:
+1. DB reads (`securityUtil.getAuthenticatedUser()`)
+2. Image optimisation (CPU-heavy, temp file I/O)
+3. R2 upload (network, can take seconds)
+4. R2 delete of old image (3 × network calls)
+5. DB writes (save image + save user)
+
+A single Hikari connection is held open for the **entire duration** — potentially 5–15 seconds for a large image on a slow connection. With `maximum-pool-size: 5`, **5 concurrent uploads immediately exhaust the connection pool** and all other DB operations in the app start timing out.
+
+**Fix:** Move all external I/O (optimize, upload to R2, delete from R2) **outside** the transaction. Only wrap the DB writes in a transaction.
+
+```
+[No transaction]
+  → validate
+  → optimize to temp file
+  → upload to R2
+
+[@Transactional - milliseconds only]
+  → save Image entity
+  → update user.profilePicture
+  → record old key for deletion
+
+[No transaction, best-effort]
+  → delete old R2 object
+```
+
+---
+
+### 🟠 High Impact — will hurt under load
+
+---
+
+#### 5. Hikari pool size is very small (max 5)
+With the current `@Transactional` scope wrapping long I/O (see #4 above), 5 connections is extremely tight. Even after fixing #4, the pool needs tuning for a 1 GB server.
+
+**Recommended settings for 1 GB RAM:**
+```yaml
+hikari:
+  maximum-pool-size: 10          # up from 5
+  minimum-idle: 2                # up from 1
+  connection-timeout: 20000      # 20s before giving up
+  idle-timeout: 300000           # 5 min
+  max-lifetime: 1800000          # 30 min
+  keepalive-time: 60000          # keep idle connections alive
+```
+
+---
+
+#### 6. No rate limiting on the upload endpoint
+A single user can hammer `POST /v1/images/upload-profile-picture` with many concurrent large files. Each request:
+- Holds a Hikari DB connection for the full duration
+- Spawns Thumbnailator processing (CPU-bound)
+- Writes temp files to disk
+
+There is no throttle. On a 1 GB server, 3–4 concurrent requests from the same user could saturate CPU and disk simultaneously.
+
+**Fix:** Add a simple per-user rate limit using [Bucket4j](https://github.com/bucket4j/bucket4j) or a Servlet filter. Example: max 5 profile picture uploads per user per hour.
+
+---
+
+#### 7. Thumbnailator processes PNG losslessly — PNG can be huge
+`ImageOptimizationService` applies `outputQuality()` only for JPEG. A 50 MB PNG will be written to disk at full quality. A 50 MB input PNG cold still produce a 40+ MB temp file that must then stream to R2.
+
+**Fix:** For PNG, convert to WebP or JPEG (with user consent if applicable), or cap PNG at a lower limit (e.g. 10 MB) in `ImageValidationService`.
+
+---
+
+#### 8. No Tomcat thread pool tuning
+Default Tomcat uses 200 worker threads. On a 1 GB server with 1–2 vCPUs, 200 threads competing for CPU during image processing will thrash. Each Thumbnailator resize call is CPU-bound.
+
+**Fix:**
+```yaml
+server:
+  tomcat:
+    threads:
+      max: 40          # was 200 by default
+      min-spare: 5
+    accept-count: 20   # queue depth before rejecting
+    max-swallow-size: 50MB
+    max-http-form-post-size: 50MB
+```
+
+---
+
+### 🟡 Medium — quality & maintainability
+
+---
+
+#### 9. Misleading error message in `ImageValidationService`
+```java
+private static final long MAX_FILE_SIZE = 52_428_800L; // 50MB
+...
+throw new IllegalArgumentException("File exceeds the 10MB limit."); // ← says 10MB, not 50MB
+```
+The constant says 50 MB, the error message says 10 MB. This will confuse users and operators.
+
+**Fix:** Use a constant for the limit text:
+```java
+private static final String MAX_SIZE_LABEL = "50MB";
+throw new IllegalArgumentException("File exceeds the " + MAX_SIZE_LABEL + " limit.");
+```
+
+---
+
+#### 10. `uploadProfilePicture` and `changeProfilePicture` are identical
+Both methods in `ProfileImageService` (lines 48–101 and 103–157) contain identical logic. The only difference is the response message string. This is a maintenance risk — any bug fixed in one must be manually fixed in the other.
+
+**Fix:** Extract shared logic into a private `doUpload(User user, MultipartFile file)` method.
+
+---
+
+#### 11. `ImageOptimizationService` validates twice AND holds `MultipartFile` open across two streams
+`optimizeToTempFile` calls `validateAndExtractMetadata` (which calls `file.getSize()` and `file.getContentType()`) and then opens `file.getInputStream()`. On disk-backed multipart files this is fine, but it is architecturally fragile — if the temp file backing the `MultipartFile` is cleaned up between the two reads (e.g. by the OS or a misconfigured temp cleaner), it will fail silently.
+
+---
+
+
+## Summary — Priority Order
+
+| Priority | Item | Effort | Impact |
+|---|---|---|---|
+| 🔴 3 | Fix inverted `deleteImageWithVerification` logic | 15 min | Eliminates false 500 errors |
+| 🔴 4 | Move R2 I/O outside `@Transactional` | 1 hr | Fixes connection pool exhaustion |
+| 🟠 5 | Tune Hikari pool (max 10, timeouts) | 5 min | Better concurrency |
+| 🟠 6 | Tune Tomcat thread pool (max 40) | 5 min | Reduces CPU thrashing |
+| 🟠 8 | Cap PNG size or convert to WebP | 30 min | Reduces disk/memory pressure |
+| 🟡 9 | Fix misleading "10MB" error message | 2 min | Correctness |
+| 🟡 10 | Merge duplicate upload methods | 30 min | Maintainability |
