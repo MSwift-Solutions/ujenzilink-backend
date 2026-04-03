@@ -4,7 +4,6 @@ import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.images.dtos.R2UploadResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.ImageMetadata;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
@@ -15,10 +14,9 @@ import com.ujenzilink.ujenzilink_backend.posts.models.Post;
 import com.ujenzilink.ujenzilink_backend.posts.models.PostImage;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostImageRepository;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostRepository;
-import com.ujenzilink.ujenzilink_backend.posts.utils.PostUtils;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectLikeDTO;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,444 +24,440 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
 import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
-import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
+import com.ujenzilink.ujenzilink_backend.images.services.ImageOptimizationService;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class PostService {
 
-    @Autowired
-    private PostRepository postRepository;
-
-    @Autowired
-    private PostImageRepository postImageRepository;
-
-    @Autowired
-    private ImageRepository imageRepository;
-
-    @Autowired
-    private ImageValidationService imageValidationService;
-
-    @Autowired
-    private R2StorageService r2StorageService;
+    private final PostRepository postRepository;
+    private final PostImageRepository postImageRepository;
+    private final ImageRepository imageRepository;
+    private final ImageValidationService imageValidationService;
+    private final ImageOptimizationService imageOptimizationService;
+    private final R2StorageService r2StorageService;
+    private final SecurityUtil securityUtil;
+    private final UserRepository userRepository;
+    private final com.ujenzilink.ujenzilink_backend.posts.repositories.PostBookmarkRepository postBookmarkRepository;
+    private final com.ujenzilink.ujenzilink_backend.posts.repositories.PostLikeRepository postLikeRepository;
+    private final NotificationService notificationService;
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${folders.post-images}")
     private String postImagesFolder;
 
-    @Autowired
-    private SecurityUtil securityUtil;
+    @Value("${app.upload.local-mirror-base}")
+    private String localMirrorBase;
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private com.ujenzilink.ujenzilink_backend.posts.repositories.PostBookmarkRepository postBookmarkRepository;
-
-    @Autowired
-    private com.ujenzilink.ujenzilink_backend.posts.repositories.PostLikeRepository postLikeRepository;
-
-    @Autowired
-    private NotificationService notificationService;
-
-    @Transactional(rollbackFor = Exception.class)
-    public ApiCustomResponse<CreatePostResponse> createPost(CreatePostRequest request, List<MultipartFile> images) {
-        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
-        if (userOpt.isEmpty()) {
-            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
-        }
-
-        User user = userOpt.get();
-
-        boolean hasContent = request.content() != null && !request.content().trim().isEmpty();
-        boolean hasImages = images != null && !images.isEmpty();
-
-        if (!hasContent && !hasImages) {
-            return new ApiCustomResponse<>(null, "Post must have either content, images, or both.",
-                    HttpStatus.BAD_REQUEST.value());
-        }
-
-        if (hasImages && images.size() > 10) {
-            return new ApiCustomResponse<>(null, "Maximum 10 images allowed per post.", HttpStatus.BAD_REQUEST.value());
-        }
-
-        Post post = new Post();
-        post.setContent(hasContent ? request.content().trim() : "");
-        post.setCreator(user);
-
-        Post savedPost = postRepository.save(post);
-
-        if (hasImages) {
-            int order = 0;
-            for (MultipartFile file : images) {
-                if (file.isEmpty())
-                    continue;
-
-                ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
-
-                String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg";
-                String folder = postImagesFolder + "/" + savedPost.getId();
-                String fileName = java.util.UUID.randomUUID().toString() + "-" + originalName;
-
-                R2UploadResponse uploadResponse = r2StorageService.upload(file, folder, fileName);
-
-                Image image = new Image();
-                image.setUrl(uploadResponse.key());
-                image.setFilename(metadata.filename());
-                image.setFileType(metadata.fileType());
-                image.setFileSize(metadata.fileSize());
-                image.setUser(user);
-                image = imageRepository.save(image);
-
-                PostImage postImage = new PostImage();
-                postImage.setPost(savedPost);
-                postImage.setImage(image);
-                postImage.setImageOrder(order++);
-                postImageRepository.save(postImage);
-            }
-        }
-
-        CreatePostResponse response = new CreatePostResponse(savedPost.getId(), "Post created successfully");
-
-        // Send in-app notification
-        notificationService.createNotification(
-                user,
-                null,
-                NotificationType.POST_CREATED,
-                "Post Created",
-                "Your post has been shared successfully.",
-                NotificationPriority.LOW,
-                false,
-                null,
-                null);
-
-        return new ApiCustomResponse<>(response, "Post created successfully.", HttpStatus.CREATED.value());
+    public PostService(
+            PostRepository postRepository,
+            PostImageRepository postImageRepository,
+            ImageRepository imageRepository,
+            ImageValidationService imageValidationService,
+            ImageOptimizationService imageOptimizationService,
+            R2StorageService r2StorageService,
+            SecurityUtil securityUtil,
+            UserRepository userRepository,
+            com.ujenzilink.ujenzilink_backend.posts.repositories.PostBookmarkRepository postBookmarkRepository,
+            com.ujenzilink.ujenzilink_backend.posts.repositories.PostLikeRepository postLikeRepository,
+            NotificationService notificationService,
+            TransactionTemplate transactionTemplate) {
+        this.postRepository = postRepository;
+        this.postImageRepository = postImageRepository;
+        this.imageRepository = imageRepository;
+        this.imageValidationService = imageValidationService;
+        this.imageOptimizationService = imageOptimizationService;
+        this.r2StorageService = r2StorageService;
+        this.securityUtil = securityUtil;
+        this.userRepository = userRepository;
+        this.postBookmarkRepository = postBookmarkRepository;
+        this.postLikeRepository = postLikeRepository;
+        this.notificationService = notificationService;
+        this.transactionTemplate = transactionTemplate;
     }
 
-    @Transactional
-    public ApiCustomResponse<PostPageResponse> getAllPosts(String cursor, Integer size) {
-        if (size == null || size < 1)
-            size = 20;
-        if (size > 100)
-            size = 100;
+        private record PreparedImage(Path localPath, String key, String contentType, ImageMetadata metadata) {}
 
-        Instant cursorTime = null;
-        if (cursor != null && !cursor.isEmpty()) {
-            try {
-                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
-                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson, java.util.Map.class);
-                String timestamp = (String) cursorData.get("timestamp");
-                cursorTime = Instant.parse(timestamp);
-            } catch (Exception e) {
-                return new ApiCustomResponse<>(null, "Invalid cursor format", HttpStatus.BAD_REQUEST.value());
-            }
-        }
-
-        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
-        Pageable pageable = PageRequest.of(0, size + 1, sort);
-
-        List<Post> posts;
-        if (cursorTime != null) {
-            posts = postRepository.findByIsDeletedFalseAndCreatedAtBeforeWithCreator(cursorTime, pageable);
-        } else {
-            posts = postRepository.findByIsDeletedFalseWithCreator(pageable);
-        }
-
-        boolean hasMore = posts.size() > size;
-        if (hasMore)
-            posts = posts.subList(0, size);
-
-        // Increment impressions in bulk
-        if (!posts.isEmpty()) {
-            java.util.List<java.util.UUID> postIds = posts.stream().map(Post::getId).toList();
-            postRepository.incrementImpressionsInBulk(postIds);
-        }
-
-        List<PostListResponse> postResponses = posts.stream().map(this::mapToPostListResponse).toList();
-
-        String nextCursor = null;
-        if (hasMore && !posts.isEmpty()) {
-            try {
-                Post lastPost = posts.get(posts.size() - 1);
-                String cursorJson = String.format("{\"timestamp\":\"%s\"}", lastPost.getCreatedAt().toString());
-                nextCursor = java.util.Base64.getEncoder().encodeToString(cursorJson.getBytes());
-            } catch (Exception e) {
-            }
-        }
-
-        PostPageResponse pageResponse = new PostPageResponse(postResponses, nextCursor, hasMore);
-        return new ApiCustomResponse<>(pageResponse, "Posts retrieved successfully", HttpStatus.OK.value());
-    }
-
-    @Transactional
-    public ApiCustomResponse<PostPageResponse> getMyPosts(String cursor, Integer size) {
-        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
-        if (userOpt.isEmpty()) {
-            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
-        }
-
-        User currentUser = userOpt.get();
-
-        if (size == null || size < 1)
-            size = 20;
-        if (size > 100)
-            size = 100;
-
-        Instant cursorTime = null;
-        if (cursor != null && !cursor.isEmpty()) {
-            try {
-                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
-                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson, java.util.Map.class);
-                String timestamp = (String) cursorData.get("timestamp");
-                cursorTime = Instant.parse(timestamp);
-            } catch (Exception e) {
-                return new ApiCustomResponse<>(null, "Invalid cursor format", HttpStatus.BAD_REQUEST.value());
-            }
-        }
-
-        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
-        Pageable pageable = PageRequest.of(0, size + 1, sort);
-
-        List<Post> posts;
-        if (cursorTime != null) {
-            posts = postRepository.findByCreatorAndIsDeletedFalseAndCreatedAtBeforeWithCreator(currentUser, cursorTime,
-                    pageable);
-        } else {
-            posts = postRepository.findByCreatorAndIsDeletedFalseWithCreator(currentUser, pageable);
-        }
-
-        boolean hasMore = posts.size() > size;
-        if (hasMore)
-            posts = posts.subList(0, size);
-
-        // Increment impressions in bulk
-        if (!posts.isEmpty()) {
-            java.util.List<java.util.UUID> postIds = posts.stream().map(Post::getId).toList();
-            postRepository.incrementImpressionsInBulk(postIds);
-        }
-
-        List<PostListResponse> postResponses = posts.stream().map(this::mapToPostListResponse).toList();
-
-        String nextCursor = null;
-        if (hasMore && !posts.isEmpty()) {
-            try {
-                Post lastPost = posts.get(posts.size() - 1);
-                String cursorJson = String.format("{\"timestamp\":\"%s\"}", lastPost.getCreatedAt().toString());
-                nextCursor = java.util.Base64.getEncoder().encodeToString(cursorJson.getBytes());
-            } catch (Exception e) {
-            }
-        }
-
-        PostPageResponse pageResponse = new PostPageResponse(postResponses, nextCursor, hasMore);
-        return new ApiCustomResponse<>(pageResponse, "My posts retrieved successfully", HttpStatus.OK.value());
-    }
-
-    @Transactional
-    public ApiCustomResponse<PostPageResponse> getUserPosts(String email, String cursor, Integer size) {
-        // Resolve the target user
-        User targetUser = userRepository.findFirstByEmail(email);
-        if (targetUser == null || targetUser.getIsDeleted()) {
-            return new ApiCustomResponse<>(null, "User not found.", HttpStatus.NOT_FOUND.value());
-        }
-
-        if (size == null || size < 1)
-            size = 20;
-        if (size > 100)
-            size = 100;
-
-        Instant cursorTime = null;
-        if (cursor != null && !cursor.isEmpty()) {
-            try {
-                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
-                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson, java.util.Map.class);
-                String timestamp = (String) cursorData.get("timestamp");
-                cursorTime = Instant.parse(timestamp);
-            } catch (Exception e) {
-                return new ApiCustomResponse<>(null, "Invalid cursor format", HttpStatus.BAD_REQUEST.value());
-            }
-        }
-
-        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
-        Pageable pageable = PageRequest.of(0, size + 1, sort);
-
-        List<Post> posts;
-        if (cursorTime != null) {
-            posts = postRepository.findByCreatorAndIsDeletedFalseAndCreatedAtBeforeWithCreator(targetUser, cursorTime,
-                    pageable);
-        } else {
-            posts = postRepository.findByCreatorAndIsDeletedFalseWithCreator(targetUser, pageable);
-        }
-
-        boolean hasMore = posts.size() > size;
-        if (hasMore)
-            posts = posts.subList(0, size);
-
-        // Increment impressions in bulk
-        if (!posts.isEmpty()) {
-            java.util.List<java.util.UUID> postIds = posts.stream().map(Post::getId).toList();
-            postRepository.incrementImpressionsInBulk(postIds);
-        }
-
-        List<PostListResponse> postResponses = posts.stream().map(this::mapToPostListResponse).toList();
-
-        String nextCursor = null;
-        if (hasMore && !posts.isEmpty()) {
-            try {
-                Post lastPost = posts.get(posts.size() - 1);
-                String cursorJson = String.format("{\"timestamp\":\"%s\"}", lastPost.getCreatedAt().toString());
-                nextCursor = java.util.Base64.getEncoder().encodeToString(cursorJson.getBytes());
-            } catch (Exception e) {
-            }
-        }
-
-        PostPageResponse pageResponse = new PostPageResponse(postResponses, nextCursor, hasMore);
-        return new ApiCustomResponse<>(pageResponse, "User posts retrieved successfully", HttpStatus.OK.value());
-    }
-
-    private PostListResponse mapToPostListResponse(Post post) {
-        User creator = post.getCreator();
-        String creatorName = creator.getFullName();
-        String profilePictureUrl = (creator.getProfilePicture() != null)
-                ? creator.getProfilePicture().getUrl()
-                : "https://ui-avatars.com/api/?name=" + creatorName.replace(" ", "+") + "&background=random";
-        String username = (creator.getUserHandle() != null && !creator.getUserHandle().isEmpty())
-                ? creator.getUserHandle()
-                : creator.getEmail();
-        CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creator.getId(), creatorName, username, profilePictureUrl);
-
-        List<String> images = postImageRepository.findByPostOrderByImageOrderAsc(post).stream()
-                .map(pi -> pi.getImage().getUrl())
-                .toList();
-
-        return new PostListResponse(
-                post.getId(),
-                post.getContent(),
-                post.getCreatedAt(),
-                post.getUpdatedAt(),
-                post.isEdited(),
-                creatorInfo,
-                images,
-                post.getLikesCount(),
-                post.getCommentsCount(),
-                post.getBookmarksCount(),
-                post.getViews(),
-                post.getImpressions());
-    }
-
-    public ApiCustomResponse<PostListResponse> getEditablePostData(java.util.UUID postId) {
-        Post post = postRepository.findById(postId).orElse(null);
-        if (post == null || post.isDeleted()) {
-            return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
-        }
-
-        PostListResponse response = mapToPostListResponse(post);
-        return new ApiCustomResponse<>(response, "Post retrieved successfully", HttpStatus.OK.value());
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public ApiCustomResponse<Void> editPost(java.util.UUID postId, EditPostRequest request,
-            List<MultipartFile> images) {
-        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
-        if (userOpt.isEmpty()) {
-            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
-        }
-
-        User currentUser = userOpt.get();
-
-        Post post = postRepository.findById(postId).orElse(null);
-        if (post == null || post.isDeleted()) {
-            return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
-        }
-
-        if (!post.getCreator().getId().equals(currentUser.getId())) {
-            return new ApiCustomResponse<>(null, "You do not have permission to edit this post.",
-                    HttpStatus.FORBIDDEN.value());
-        }
-
-        boolean contentChanged = false;
-
-        // Update content if provided
-        if (request.content() != null) {
-            String newContent = request.content().trim();
-            if (!newContent.equals(post.getContent())) {
-                post.setContent(newContent);
-                contentChanged = true;
-            }
-        }
-
-        // Handle removed images
-        if (request.removedImageIds() != null && !request.removedImageIds().isEmpty()) {
-            for (java.util.UUID imageId : request.removedImageIds()) {
-                Image image = imageRepository.findById(imageId).orElse(null);
-                if (image != null && !image.getIsDeleted()) {
-                    image.setIsDeleted(true);
-                    imageRepository.save(image);
-                    contentChanged = true;
+        public ApiCustomResponse<CreatePostResponse> createPost(CreatePostRequest request, List<MultipartFile> images) {
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+                if (userOpt.isEmpty()) {
+                        return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
                 }
-            }
+
+                User user = userOpt.get();
+
+                boolean hasContent = request.content() != null && !request.content().trim().isEmpty();
+                boolean hasImages = images != null && !images.isEmpty();
+
+                if (!hasContent && !hasImages) {
+                        return new ApiCustomResponse<>(null, "Post must have either content, images, or both.",
+                                        HttpStatus.BAD_REQUEST.value());
+                }
+
+                if (hasImages && images.size() > 10) {
+                        return new ApiCustomResponse<>(null, "Maximum 10 images allowed per post.", HttpStatus.BAD_REQUEST.value());
+                }
+
+                List<PreparedImage> preparedImages = new ArrayList<>();
+                if (hasImages) {
+                        for (MultipartFile file : images) {
+                                if (file.isEmpty()) continue;
+
+                                ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
+                                String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg";
+                                String ext = originalName.substring(originalName.lastIndexOf(".") + 1);
+                                String folder = postImagesFolder + "/" + UUID.randomUUID(); // Temporary stable folder for this post's batch
+                                String fileName = "img-" + UUID.randomUUID() + "." + ext;
+                                String key = folder + "/" + fileName;
+
+                                String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+                                Path localPath = Paths.get(localMirrorBase, key);
+
+                                imageOptimizationService.optimizeToPath(file, localPath);
+                                preparedImages.add(new PreparedImage(localPath, key, contentType, metadata));
+                        }
+                }
+
+                Post savedPost = transactionTemplate.execute(status -> {
+                        Post post = new Post();
+                        post.setContent(hasContent ? request.content().trim() : "");
+                        post.setCreator(user);
+                        Post newPost = postRepository.save(post);
+
+                        int order = 0;
+                        for (PreparedImage prep : preparedImages) {
+                                Image image = new Image();
+                                image.setUrl(prep.key());
+                                image.setFilename(prep.metadata().filename());
+                                image.setFileType(prep.metadata().fileType());
+                                image.setFileSize(prep.metadata().fileSize());
+                                image.setUser(user);
+                                Image sImage = imageRepository.save(image);
+
+                                PostImage postImage = new PostImage();
+                                postImage.setPost(newPost);
+                                postImage.setImage(sImage);
+                                postImage.setImageOrder(order++);
+                                postImageRepository.save(postImage);
+                        }
+                        return newPost;
+                });
+
+                // Async R2 uploads after DB success
+                for (PreparedImage prep : preparedImages) {
+                        r2StorageService.uploadFromPathAsync(prep.localPath(), prep.key(), prep.contentType(), user.getId());
+                }
+
+                CreatePostResponse response = new CreatePostResponse(savedPost.getId(), "Post created successfully");
+
+                notificationService.createNotification(
+                                user, null, NotificationType.POST_CREATED,
+                                "Post Created", "Your post has been shared successfully.",
+                                NotificationPriority.LOW, false, null, null);
+
+                return new ApiCustomResponse<>(response, "Post created successfully.", HttpStatus.CREATED.value());
         }
 
-        // Handle new images
-        if (images != null && !images.isEmpty()) {
-            if (images.size() > 10) {
-                return new ApiCustomResponse<>(null, "Maximum 10 images allowed per post.",
-                        HttpStatus.BAD_REQUEST.value());
-            }
+        @Transactional
+        public ApiCustomResponse<PostPageResponse> getAllPosts(String cursor, Integer size) {
+                if (size == null || size < 1)
+                        size = 20;
+                if (size > 100)
+                        size = 100;
 
-            // Get current max order
-            List<PostImage> existingImages = postImageRepository.findByPostOrderByImageOrderAsc(post);
-            int maxOrder = existingImages.stream()
-                    .mapToInt(PostImage::getImageOrder)
-                    .max()
-                    .orElse(-1);
+                Instant cursorTime = null;
+                if (cursor != null && !cursor.isEmpty()) {
+                        try {
+                                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
+                                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson, java.util.Map.class);
+                                String timestamp = (String) cursorData.get("timestamp");
+                                cursorTime = Instant.parse(timestamp);
+                        } catch (Exception e) {
+                                return new ApiCustomResponse<>(null, "Invalid cursor format", HttpStatus.BAD_REQUEST.value());
+                        }
+                }
 
-            for (MultipartFile file : images) {
-                if (file.isEmpty())
-                    continue;
+                Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                Pageable pageable = PageRequest.of(0, size + 1, sort);
 
-                ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
+                List<Post> posts;
+                if (cursorTime != null) {
+                        posts = postRepository.findByIsDeletedFalseAndCreatedAtBeforeWithCreator(cursorTime, pageable);
+                } else {
+                        posts = postRepository.findByIsDeletedFalseWithCreator(pageable);
+                }
 
-                String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg";
-                String folder = postImagesFolder + "/" + post.getId();
-                String fileName = java.util.UUID.randomUUID().toString() + "-" + originalName;
+                boolean hasMore = posts.size() > size;
+                if (hasMore)
+                        posts = posts.subList(0, size);
 
-                R2UploadResponse uploadResponse = r2StorageService.upload(file, folder, fileName);
+                // Increment impressions in bulk
+                if (!posts.isEmpty()) {
+                        java.util.List<java.util.UUID> postIds = posts.stream().map(Post::getId).toList();
+                        postRepository.incrementImpressionsInBulk(postIds);
+                }
 
-                Image image = new Image();
-                image.setUrl(uploadResponse.key());
-                image.setFilename(metadata.filename());
-                image.setFileType(metadata.fileType());
-                image.setFileSize(metadata.fileSize());
-                image.setUser(currentUser);
-                image = imageRepository.save(image);
+                List<PostListResponse> postResponses = posts.stream().map(this::mapToPostListResponse).toList();
 
-                PostImage postImage = new PostImage();
-                postImage.setPost(post);
-                postImage.setImage(image);
-                postImage.setImageOrder(++maxOrder);
-                postImageRepository.save(postImage);
-                contentChanged = true;
-            }
+                String nextCursor = null;
+                if (hasMore && !posts.isEmpty()) {
+                        try {
+                                Post lastPost = posts.get(posts.size() - 1);
+                                String cursorJson = String.format("{\"timestamp\":\"%s\"}", lastPost.getCreatedAt().toString());
+                                nextCursor = java.util.Base64.getEncoder().encodeToString(cursorJson.getBytes());
+                        } catch (Exception e) {
+                        }
+                }
+
+                PostPageResponse pageResponse = new PostPageResponse(postResponses, nextCursor, hasMore);
+                return new ApiCustomResponse<>(pageResponse, "Posts retrieved successfully", HttpStatus.OK.value());
         }
 
-        if (contentChanged) {
-            post.setEdited(true);
+        @Transactional
+        public ApiCustomResponse<PostPageResponse> getMyPosts(String cursor, Integer size) {
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+                if (userOpt.isEmpty()) {
+                        return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+                }
+
+                User currentUser = userOpt.get();
+
+                if (size == null || size < 1)
+                        size = 20;
+                if (size > 100)
+                        size = 100;
+
+                Instant cursorTime = null;
+                if (cursor != null && !cursor.isEmpty()) {
+                        try {
+                                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
+                                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson, java.util.Map.class);
+                                String timestamp = (String) cursorData.get("timestamp");
+                                cursorTime = Instant.parse(timestamp);
+                        } catch (Exception e) {
+                                return new ApiCustomResponse<>(null, "Invalid cursor format", HttpStatus.BAD_REQUEST.value());
+                        }
+                }
+
+                Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                Pageable pageable = PageRequest.of(0, size + 1, sort);
+
+                List<Post> posts;
+                if (cursorTime != null) {
+                        posts = postRepository.findByCreatorAndIsDeletedFalseAndCreatedAtBeforeWithCreator(currentUser, cursorTime,
+                                        pageable);
+                } else {
+                        posts = postRepository.findByCreatorAndIsDeletedFalseWithCreator(currentUser, pageable);
+                }
+
+                boolean hasMore = posts.size() > size;
+                if (hasMore)
+                        posts = posts.subList(0, size);
+
+                // Increment impressions in bulk
+                if (!posts.isEmpty()) {
+                        java.util.List<java.util.UUID> postIds = posts.stream().map(Post::getId).toList();
+                        postRepository.incrementImpressionsInBulk(postIds);
+                }
+
+                List<PostListResponse> postResponses = posts.stream().map(this::mapToPostListResponse).toList();
+
+                String nextCursor = null;
+                if (hasMore && !posts.isEmpty()) {
+                        try {
+                                Post lastPost = posts.get(posts.size() - 1);
+                                String cursorJson = String.format("{\"timestamp\":\"%s\"}", lastPost.getCreatedAt().toString());
+                                nextCursor = java.util.Base64.getEncoder().encodeToString(cursorJson.getBytes());
+                        } catch (Exception e) {
+                        }
+                }
+
+                PostPageResponse pageResponse = new PostPageResponse(postResponses, nextCursor, hasMore);
+                return new ApiCustomResponse<>(pageResponse, "My posts retrieved successfully", HttpStatus.OK.value());
         }
 
-        postRepository.save(post);
-        return new ApiCustomResponse<>(null, "Post updated successfully", HttpStatus.OK.value());
-    }
+        @Transactional
+        public ApiCustomResponse<PostPageResponse> getUserPosts(String email, String cursor, Integer size) {
+                // Resolve the target user
+                User targetUser = userRepository.findFirstByEmail(email);
+                if (targetUser == null || targetUser.getIsDeleted()) {
+                        return new ApiCustomResponse<>(null, "User not found.", HttpStatus.NOT_FOUND.value());
+                }
 
-    @Transactional(rollbackFor = Exception.class)
-    public ApiCustomResponse<Void> deletePost(java.util.UUID postId) {
+                if (size == null || size < 1)
+                        size = 20;
+                if (size > 100)
+                        size = 100;
+
+                Instant cursorTime = null;
+                if (cursor != null && !cursor.isEmpty()) {
+                        try {
+                                String decodedJson = new String(java.util.Base64.getDecoder().decode(cursor));
+                                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                java.util.Map<String, Object> cursorData = mapper.readValue(decodedJson, java.util.Map.class);
+                                String timestamp = (String) cursorData.get("timestamp");
+                                cursorTime = Instant.parse(timestamp);
+                        } catch (Exception e) {
+                                return new ApiCustomResponse<>(null, "Invalid cursor format", HttpStatus.BAD_REQUEST.value());
+                        }
+                }
+
+                Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+                Pageable pageable = PageRequest.of(0, size + 1, sort);
+
+                List<Post> posts;
+                if (cursorTime != null) {
+                        posts = postRepository.findByCreatorAndIsDeletedFalseAndCreatedAtBeforeWithCreator(targetUser, cursorTime,
+                                        pageable);
+                } else {
+                        posts = postRepository.findByCreatorAndIsDeletedFalseWithCreator(targetUser, pageable);
+                }
+
+                boolean hasMore = posts.size() > size;
+                if (hasMore)
+                        posts = posts.subList(0, size);
+
+                // Increment impressions in bulk
+                if (!posts.isEmpty()) {
+                        java.util.List<java.util.UUID> postIds = posts.stream().map(Post::getId).toList();
+                        postRepository.incrementImpressionsInBulk(postIds);
+                }
+
+                List<PostListResponse> postResponses = posts.stream().map(this::mapToPostListResponse).toList();
+
+                String nextCursor = null;
+                if (hasMore && !posts.isEmpty()) {
+                        try {
+                                Post lastPost = posts.get(posts.size() - 1);
+                                String cursorJson = String.format("{\"timestamp\":\"%s\"}", lastPost.getCreatedAt().toString());
+                                nextCursor = java.util.Base64.getEncoder().encodeToString(cursorJson.getBytes());
+                        } catch (Exception e) {
+                        }
+                }
+
+                PostPageResponse pageResponse = new PostPageResponse(postResponses, nextCursor, hasMore);
+                return new ApiCustomResponse<>(pageResponse, "User posts retrieved successfully", HttpStatus.OK.value());
+        }
+
+        public ApiCustomResponse<Void> editPost(java.util.UUID postId, EditPostRequest request, List<MultipartFile> images) {
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+                if (userOpt.isEmpty()) {
+                        return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
+                }
+
+                User currentUser = userOpt.get();
+                Post post = postRepository.findById(postId).orElse(null);
+
+                if (post == null || post.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                if (!post.getCreator().getId().equals(currentUser.getId())) {
+                        return new ApiCustomResponse<>(null, "You do not have permission to edit this post.",
+                                        HttpStatus.FORBIDDEN.value());
+                }
+
+                List<PreparedImage> newPreparedImages = new ArrayList<>();
+                if (images != null && !images.isEmpty()) {
+                        if (images.size() > 10) {
+                                return new ApiCustomResponse<>(null, "Maximum 10 images allowed per post.",
+                                                HttpStatus.BAD_REQUEST.value());
+                        }
+
+                        for (MultipartFile file : images) {
+                                if (file.isEmpty()) continue;
+
+                                ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
+                                String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg";
+                                String ext = originalName.substring(originalName.lastIndexOf(".") + 1);
+                                String folder = postImagesFolder + "/" + post.getId();
+                                String fileName = "img-" + UUID.randomUUID() + "." + ext;
+                                String key = folder + "/" + fileName;
+
+                                String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+                                Path localPath = Paths.get(localMirrorBase, key);
+
+                                imageOptimizationService.optimizeToPath(file, localPath);
+                                newPreparedImages.add(new PreparedImage(localPath, key, contentType, metadata));
+                        }
+                }
+
+                transactionTemplate.executeWithoutResult(status -> {
+                        boolean contentChanged = false;
+
+                        if (request.content() != null) {
+                                String newContent = request.content().trim();
+                                if (!newContent.equals(post.getContent())) {
+                                        post.setContent(newContent);
+                                        contentChanged = true;
+                                }
+                        }
+
+                        if (request.removedImageIds() != null && !request.removedImageIds().isEmpty()) {
+                                for (java.util.UUID imageId : request.removedImageIds()) {
+                                        Image image = imageRepository.findById(imageId).orElse(null);
+                                        if (image != null && !image.getIsDeleted()) {
+                                                image.setIsDeleted(true);
+                                                imageRepository.save(image);
+                                                contentChanged = true;
+                                        }
+                                }
+                        }
+
+                        if (!newPreparedImages.isEmpty()) {
+                                List<PostImage> existingImages = postImageRepository.findByPostOrderByImageOrderAsc(post);
+                                int maxOrder = existingImages.stream()
+                                                .mapToInt(PostImage::getImageOrder)
+                                                .max()
+                                                .orElse(-1);
+
+                                for (PreparedImage prep : newPreparedImages) {
+                                        Image image = new Image();
+                                        image.setUrl(prep.key());
+                                        image.setFilename(prep.metadata().filename());
+                                        image.setFileType(prep.metadata().fileType());
+                                        image.setFileSize(prep.metadata().fileSize());
+                                        image.setUser(currentUser);
+                                        Image sImage = imageRepository.save(image);
+
+                                        PostImage postImage = new PostImage();
+                                        postImage.setPost(post);
+                                        postImage.setImage(sImage);
+                                        postImage.setImageOrder(++maxOrder);
+                                        postImageRepository.save(postImage);
+                                        contentChanged = true;
+                                }
+                        }
+
+                        if (contentChanged) {
+                                post.setEdited(true);
+                        }
+                        postRepository.save(post);
+                });
+
+                // Async R2 uploads for new images
+                for (PreparedImage prep : newPreparedImages) {
+                        r2StorageService.uploadFromPathAsync(prep.localPath(), prep.key(), prep.contentType(), currentUser.getId());
+                }
+
+                return new ApiCustomResponse<>(null, "Post updated successfully", HttpStatus.OK.value());
+        }
+
+        @Transactional(rollbackFor = Exception.class)
+        public ApiCustomResponse<Void> deletePost(java.util.UUID postId) {
         Optional<User> userOpt = securityUtil.getAuthenticatedUser();
         if (userOpt.isEmpty()) {
             return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
@@ -723,5 +717,45 @@ public class PostService {
 
         PostPageResponse pageResponse = new PostPageResponse(postResponses, nextCursor, hasMore);
         return new ApiCustomResponse<>(pageResponse, "Bookmarked posts retrieved successfully", HttpStatus.OK.value());
+    }
+
+    private PostListResponse mapToPostListResponse(Post post) {
+        User creator = post.getCreator();
+        String creatorName = creator.getFullName();
+        String profilePictureUrl = (creator.getProfilePicture() != null)
+                ? creator.getProfilePicture().getUrl()
+                : "https://ui-avatars.com/api/?name=" + creatorName.replace(" ", "+") + "&background=random";
+        String username = (creator.getUserHandle() != null && !creator.getUserHandle().isEmpty())
+                ? creator.getUserHandle()
+                : creator.getEmail();
+        CreatorInfoDTO creatorInfo = new CreatorInfoDTO(creator.getId(), creatorName, username, profilePictureUrl);
+
+        List<String> images = postImageRepository.findByPostOrderByImageOrderAsc(post).stream()
+                .map(pi -> pi.getImage().getUrl())
+                .toList();
+
+        return new PostListResponse(
+                post.getId(),
+                post.getContent(),
+                post.getCreatedAt(),
+                post.getUpdatedAt(),
+                post.isEdited(),
+                creatorInfo,
+                images,
+                post.getLikesCount(),
+                post.getCommentsCount(),
+                post.getBookmarksCount(),
+                post.getViews(),
+                post.getImpressions());
+    }
+
+    public ApiCustomResponse<PostListResponse> getEditablePostData(java.util.UUID postId) {
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post == null || post.isDeleted()) {
+            return new ApiCustomResponse<>(null, "Post not found", HttpStatus.NOT_FOUND.value());
+        }
+
+        PostListResponse response = mapToPostListResponse(post);
+        return new ApiCustomResponse<>(response, "Post retrieved successfully", HttpStatus.OK.value());
     }
 }

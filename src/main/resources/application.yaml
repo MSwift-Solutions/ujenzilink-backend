@@ -2,6 +2,10 @@ server:
   port: 8080
   address: 0.0.0.0
   tomcat:
+    threads:
+      max: 40          # was 200 by default - prevents CPU thrashing on 1GB VPS
+      min-spare: 5
+    accept-count: 20   # queue depth before rejecting
     max-swallow-size: 50MB
     max-http-form-post-size: 50MB
 
@@ -44,10 +48,12 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 5
-      minimum-idle: 1
-      idle-timeout: 30000
-      max-lifetime: 600000
+      maximum-pool-size: 10     # up from 5 — supports more concurrent requests
+      minimum-idle: 2           # keep 2 warm connections at all times
+      connection-timeout: 20000 # 20 s — fail fast rather than queue forever
+      idle-timeout: 300000      # 5 min — release idle connections
+      max-lifetime: 1800000     # 30 min — recycle before DB drops the connection
+      keepalive-time: 60000     # 60 s — ping idle connections to keep them alive
 
   jpa:
     hibernate:
@@ -108,3 +114,10 @@ app:
   frontend-url: https://ujenzilink.com
   admin-api-key: musa
   report-recipient: ujenzilink@gmail.com
+  upload:
+    max-file-size: 52428800          # 50 MB in bytes
+    image-accept-types: jpg,jpeg,png,webp
+    plan-accept-types: pdf,jpg,jpeg,png,dwg
+    max-post-photos: 4
+    max-stage-photos: 4
+    local-mirror-base: /tmp/uploads  # local copy mirrors R2 key structure — never deleted

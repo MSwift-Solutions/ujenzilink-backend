@@ -9,6 +9,7 @@ import com.ujenzilink.ujenzilink_backend.notifications.services.ResendNotificati
 import com.ujenzilink.ujenzilink_backend.user_mgt.enums.ActivityType;
 import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
 import org.springframework.context.annotation.Primary;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -43,6 +44,14 @@ public class SignInService implements UserDetailsService {
 
         if (user.getIsDeleted()) {
             throw new UsernameNotFoundException("Account is deleted. Please register again.");
+        }
+
+        if (user.getIsSuspended()) {
+            throw new LockedException("Account is suspended. Contact admin to resolve");
+        }
+
+        if (user.getIsLocked()) {
+            throw new LockedException("Account locked due to multiple failed login attempts. Reset password and try again.");
         }
 
         // Return Spring Security User with correct status flags
@@ -92,11 +101,12 @@ public class SignInService implements UserDetailsService {
         }
     }
 
-    // Track failed login attempt and lock account after 3 attempts
     @Transactional
     public void trackFailedLoginAttempt(String email) {
         User user = userRepository.findFirstByEmail(email.toLowerCase());
-        if (user != null) {
+        
+        // Only track and potentially lock if the account is not already suspended or locked.
+        if (user != null && !user.getIsSuspended() && !user.getIsLocked()) {
             int failedAttempts = user.getFailedLoginAttempts() + 1;
             user.setFailedLoginAttempts(failedAttempts);
 

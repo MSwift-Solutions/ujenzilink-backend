@@ -1,11 +1,15 @@
 package com.ujenzilink.ujenzilink_backend.auth.admin.services;
 
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.AdminMetricsResponse;
+import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.SuspendedUserResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.UnverifiedUserResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.UserDeletionRequestResponse;
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
+import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
 import com.ujenzilink.ujenzilink_backend.notifications.services.ResendNotificationService;
 import com.ujenzilink.ujenzilink_backend.posts.repositories.PostRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectRepository;
@@ -29,18 +33,21 @@ public class AdminUserManagementService {
     private final PostRepository postRepository;
     private final UserActivityRepository userActivityRepository;
     private final ResendNotificationService resendNotificationService;
+    private final NotificationService notificationService;
 
     public AdminUserManagementService(
             UserRepository userRepository,
             ProjectRepository projectRepository,
             PostRepository postRepository,
             UserActivityRepository userActivityRepository,
-            ResendNotificationService resendNotificationService) {
+            ResendNotificationService resendNotificationService,
+            NotificationService notificationService) {
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.postRepository = postRepository;
         this.userActivityRepository = userActivityRepository;
         this.resendNotificationService = resendNotificationService;
+        this.notificationService = notificationService;
     }
 
     public ApiCustomResponse<AdminMetricsResponse> getAdminMetrics() {
@@ -152,6 +159,28 @@ public class AdminUserManagementService {
         );
     }
 
+    public ApiCustomResponse<List<SuspendedUserResponse>> getSuspendedUsers() {
+        List<User> suspendedUsers = userRepository.findByIsSuspendedTrueOrderByDateOfCreationDesc();
+
+        List<SuspendedUserResponse> responseDtos = suspendedUsers.stream()
+                .map(user -> new SuspendedUserResponse(
+                        user.getId(),
+                        user.getFullName(),
+                        user.getEmail(),
+                        user.getUserHandle(),
+                        user.getDateOfCreation(),
+                        user.getProfilePicture() != null ? user.getProfilePicture().getUrl() : null,
+                        user.getSuspensionReason()
+                ))
+                .collect(Collectors.toList());
+
+        return new ApiCustomResponse<>(
+                responseDtos,
+                "Suspended users retrieved successfully",
+                HttpStatus.OK.value()
+        );
+    }
+
     public ApiCustomResponse<String> verifyUserByAdmin(UUID userId) {
         Optional<User> userOpt = userRepository.findById(userId);
 
@@ -190,6 +219,94 @@ public class AdminUserManagementService {
         return new ApiCustomResponse<>(
                 null,
                 "User account has been verified successfully.",
+                HttpStatus.OK.value()
+        );
+    }
+
+    public ApiCustomResponse<String> suspendUser(UUID userId, String reason, User adminUser) {
+        Optional<User> userOpt = userRepository.findById(userId);
+
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "User not found.", HttpStatus.NOT_FOUND.value());
+        }
+
+        User user = userOpt.get();
+
+        if (user.getIsDeleted()) {
+            return new ApiCustomResponse<>(null, "Cannot suspend a deleted account.", HttpStatus.BAD_REQUEST.value());
+        }
+
+        if (user.getIsSuspended()) {
+            return new ApiCustomResponse<>(null, "User is already suspended.", HttpStatus.BAD_REQUEST.value());
+        }
+
+        user.setIsSuspended(true);
+        user.setSuspensionReason(reason);
+        userRepository.save(user);
+
+        // Send email
+        resendNotificationService.sendAccountSuspendedEmail(user.getEmail(), user.getFirstName(), reason, user);
+
+        // In-app notification
+        notificationService.createNotification(
+                user,
+                adminUser,
+                NotificationType.ACCOUNT_SUSPENSION,
+                "Account Suspended",
+                "Your account has been suspended. Reason: " + reason,
+                NotificationPriority.URGENT,
+                false,
+                null,
+                null
+        );
+
+        return new ApiCustomResponse<>(
+                null,
+                "User account suspended successfully.",
+                HttpStatus.OK.value()
+        );
+    }
+
+    public ApiCustomResponse<String> unsuspendUser(UUID userId, String reason, User adminUser) {
+        Optional<User> userOpt = userRepository.findById(userId);
+
+        if (userOpt.isEmpty()) {
+            return new ApiCustomResponse<>(null, "User not found.", HttpStatus.NOT_FOUND.value());
+        }
+
+        User user = userOpt.get();
+
+        if (user.getIsDeleted()) {
+            return new ApiCustomResponse<>(null, "Cannot unsuspend a deleted account.", HttpStatus.BAD_REQUEST.value());
+        }
+
+        if (!user.getIsSuspended()) {
+            return new ApiCustomResponse<>(null, "User is not suspended.", HttpStatus.BAD_REQUEST.value());
+        }
+
+        user.setIsSuspended(false);
+        user.setSuspensionReason(reason);
+        userRepository.save(user);
+
+        // Send email
+        resendNotificationService.sendAccountUnsuspendedEmail(user.getEmail(), user.getFirstName(), reason, user);
+
+        // In-app notification
+        notificationService.createNotification(
+                user,
+                adminUser,
+                NotificationType.ACCOUNT_UNSUSPENSION,
+                "Account Unsuspended",
+                "Your account suspension has been lifted. Reason: " + reason,
+                NotificationPriority.HIGH,
+                false,
+                null,
+                null
+        );
+
+        return new ApiCustomResponse<>(
+                null,
+                "User account unsuspended successfully.",
                 HttpStatus.OK.value()
         );
     }

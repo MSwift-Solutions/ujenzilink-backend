@@ -89,6 +89,13 @@ public class GoogleAuthService {
                             HttpStatus.FORBIDDEN.value());
                 }
 
+                if (user.getIsSuspended()) {
+                    return new ApiCustomResponse<>(
+                            null,
+                            "Account is suspended. Contact admin to resolve",
+                            HttpStatus.LOCKED.value());
+                }
+
                 // Track successful login for Google users
                 user.setLastSuccessfulLogin(Instant.now());
                 userRepository.save(user);

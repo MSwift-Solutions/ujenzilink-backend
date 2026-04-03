@@ -107,10 +107,35 @@ public class GlobalExceptionHandler {
 
         @ExceptionHandler(LockedException.class)
         public ResponseEntity<ApiCustomResponse<Void>> handleLockedAccount(LockedException ex) {
-                return ResponseEntity.status(HttpStatus.LOCKED).body(new ApiCustomResponse<>(
+                String message = ex.getMessage();
+
+                // If it's a suspension or a documented lockout message, return that specific error.
+                if (message != null && (message.toLowerCase().contains("suspended") || 
+                                       message.toLowerCase().contains("locked") || 
+                                       message.contains("Reason"))) {
+                        return ResponseEntity.status(HttpStatus.LOCKED).body(new ApiCustomResponse<>(
+                                        null,
+                                        message,
+                                        HttpStatus.LOCKED.value()));
+                }
+
+                // Default fallback for ambiguous LockedExceptions
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiCustomResponse<>(
                                 null,
-                                "Account locked due to multiple failed login attempts. Reset password and try again.",
-                                HttpStatus.LOCKED.value()));
+                                "Invalid email or password",
+                                HttpStatus.UNAUTHORIZED.value()));
+        }
+
+        @ExceptionHandler(org.springframework.security.authentication.InternalAuthenticationServiceException.class)
+        public ResponseEntity<ApiCustomResponse<Void>> handleInternalAuthException(
+                        org.springframework.security.authentication.InternalAuthenticationServiceException ex) {
+                if (ex.getCause() instanceof LockedException) {
+                        return handleLockedAccount((LockedException) ex.getCause());
+                }
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiCustomResponse<>(
+                                null,
+                                ex.getMessage() != null ? ex.getMessage() : "Authentication failed.",
+                                HttpStatus.UNAUTHORIZED.value()));
         }
 
         @ExceptionHandler(ExpiredJwtException.class)
@@ -180,7 +205,9 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(MethodArgumentTypeMismatchException.class)
         public ResponseEntity<ApiCustomResponse<Void>> handleMethodArgumentTypeMismatch(
                         MethodArgumentTypeMismatchException ex) {
-                String error = "Unable to delete image, retry later";
+                String error = String.format("Invalid parameter value for '%s'. Expected type %s.",
+                                ex.getName(),
+                                ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown");
 
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiCustomResponse<>(
                                 null,

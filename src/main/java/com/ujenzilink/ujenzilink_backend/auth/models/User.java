@@ -75,6 +75,12 @@ public class User implements UserDetails {
     private boolean isLocked = false;
 
     @Column(nullable = false)
+    private boolean isSuspended = false;
+
+    @Column(length = 500)
+    private String suspensionReason;
+
+    @Column(nullable = false)
     private boolean isDeleted = false;
 
     private Instant deletedAt;
@@ -137,7 +143,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return !this.isLocked && !this.isSuspended;
     }
 
     @Override
@@ -346,6 +352,22 @@ public class User implements UserDetails {
 
     public void setIsLocked(boolean isLocked) {
         this.isLocked = isLocked;
+    }
+
+    public boolean getIsSuspended() {
+        return isSuspended;
+    }
+
+    public void setIsSuspended(boolean isSuspended) {
+        this.isSuspended = isSuspended;
+    }
+
+    public String getSuspensionReason() {
+        return suspensionReason;
+    }
+
+    public void setSuspensionReason(String suspensionReason) {
+        this.suspensionReason = suspensionReason;
     }
 
     public boolean getIsDeleted() {

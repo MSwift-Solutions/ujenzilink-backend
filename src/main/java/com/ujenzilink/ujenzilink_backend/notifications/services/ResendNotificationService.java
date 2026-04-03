@@ -94,6 +94,16 @@ public class ResendNotificationService {
         sendEmail(email, "Account Verified by Administrator", body, user, EmailTypes.ADMIN_VERIFIED);
     }
 
+    public void sendAccountSuspendedEmail(String email, String name, String reason, User user) {
+        String body = EmailTemplates.getAccountSuspendedEmail(name, reason, frontendUrl);
+        sendEmail(email, "Account Suspended", body, user, EmailTypes.ACCOUNT_SUSPENDED);
+    }
+
+    public void sendAccountUnsuspendedEmail(String email, String name, String reason, User user) {
+        String body = EmailTemplates.getAccountUnsuspendedEmail(name, reason, frontendUrl);
+        sendEmail(email, "Account Suspension Lifted", body, user, EmailTypes.ACCOUNT_UNSUSPENDED);
+    }
+
     private void sendEmail(String to, String subject, String htmlContent, User user, EmailTypes emailType) {
 
         //TODO fix to email to the one on resend till we buy domain name

@@ -2,8 +2,14 @@ package com.ujenzilink.ujenzilink_backend.auth.admin.controller;
 
 import com.ujenzilink.ujenzilink_backend.auth.admin.enums.AdminActionType;
 import com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminAuditService;
+import com.ujenzilink.ujenzilink_backend.images.dtos.AsyncOperationLogDTO;
+import com.ujenzilink.ujenzilink_backend.images.dtos.AsyncOperationLogPageResponse;
+import com.ujenzilink.ujenzilink_backend.images.enums.AsyncOperationStatus;
+import com.ujenzilink.ujenzilink_backend.images.enums.AsyncOperationType;
 import com.ujenzilink.ujenzilink_backend.images.dtos.HangingResourcesResponse;
+import com.ujenzilink.ujenzilink_backend.images.services.AsyncOperationLogService;
 import com.ujenzilink.ujenzilink_backend.images.services.CloudflareAdminService;
+import com.ujenzilink.ujenzilink_backend.images.services.R2RetryService;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -23,13 +29,19 @@ public class ResourceManagementController {
     private final CloudflareAdminService cloudinaryAdminService;
     private final com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminAuditService adminAuditService;
     private final jakarta.servlet.http.HttpServletRequest httpServletRequest;
+    private final AsyncOperationLogService asyncOperationLogService;
+    private final R2RetryService r2RetryService;
 
     public ResourceManagementController(CloudflareAdminService cloudinaryAdminService,
                                         AdminAuditService adminAuditService,
-                                        HttpServletRequest httpServletRequest) {
+                                        HttpServletRequest httpServletRequest,
+                                        AsyncOperationLogService asyncOperationLogService,
+                                        R2RetryService r2RetryService) {
         this.cloudinaryAdminService = cloudinaryAdminService;
         this.adminAuditService = adminAuditService;
         this.httpServletRequest = httpServletRequest;
+        this.asyncOperationLogService = asyncOperationLogService;
+        this.r2RetryService = r2RetryService;
     }
 
     // --- User Profile Pictures ---
@@ -121,6 +133,42 @@ public class ResourceManagementController {
         return ResponseEntity.ok(new ApiCustomResponse<>(
                 results,
                 "Bulk deletion processed (" + publicIds.size() + " files total)",
+                HttpStatus.OK.value()));
+    }
+
+    // --- Async Failures ---
+    @GetMapping("/async-failures")
+    public ResponseEntity<ApiCustomResponse<AsyncOperationLogPageResponse>> getAsyncFailures(
+            @RequestParam(defaultValue = "FAILED") AsyncOperationStatus status,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) Integer size) {
+
+        AsyncOperationLogPageResponse response = asyncOperationLogService.getFailures(status, cursor, size);
+
+        return ResponseEntity.ok(new ApiCustomResponse<>(
+                response,
+                "Async failures retrieved successfully",
+                HttpStatus.OK.value()));
+    }
+
+    @PostMapping("/async-failures/{id}/retry")
+    public ResponseEntity<ApiCustomResponse<AsyncOperationLogDTO>> retryAsyncOperation(@PathVariable java.util.UUID id) {
+        AsyncOperationLogDTO updatedDto = r2RetryService.retryOperation(id);
+
+        AdminActionType actionType = updatedDto.operationType() == AsyncOperationType.UPLOAD
+                ? AdminActionType.RETRY_ASYNC_UPLOAD
+                : AdminActionType.RETRY_ASYNC_DELETE;
+
+        adminAuditService.logAction(
+                actionType,
+                id.toString(),
+                "Admin retried async " + updatedDto.operationType() + " operation for key: " + updatedDto.storageKey(),
+                httpServletRequest
+        );
+
+        return ResponseEntity.ok(new ApiCustomResponse<>(
+                updatedDto,
+                "Operation retried and is now: " + updatedDto.status(),
                 HttpStatus.OK.value()));
     }
 }

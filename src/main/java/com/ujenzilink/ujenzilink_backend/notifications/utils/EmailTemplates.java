@@ -174,4 +174,28 @@ public class EmailTemplates {
                 "<p>Please investigate this issue immediately.</p>";
         return wrap(content, frontendUrl);
     }
+
+    public static String getAccountSuspendedEmail(String name, String reason, String frontendUrl) {
+        String content = "<p>Dear <strong>" + name.toUpperCase() + "</strong>,</p>" +
+                "<p>Your account has been suspended by an administrator.</p>" +
+                "<p><strong>Reason:</strong> " + reason + "</p>" +
+                "<p>If you believe this is a mistake, please contact our support team.</p>";
+        return wrap(content, frontendUrl);
+    }
+
+    public static String getAccountSuspendedEmail(String name, String reason) {
+        return getAccountSuspendedEmail(name, reason, "https://ujenzilink.com");
+    }
+
+    public static String getAccountUnsuspendedEmail(String name, String reason, String frontendUrl) {
+        String content = "<p>Dear <strong>" + name.toUpperCase() + "</strong>,</p>" +
+                "<p>Your account suspension has been lifted by an administrator.</p>" +
+                "<p><strong>Reason:</strong> " + reason + "</p>" +
+                "<p>You can now log in and use our services as usual.</p>";
+        return wrap(content, frontendUrl);
+    }
+
+    public static String getAccountUnsuspendedEmail(String name, String reason) {
+        return getAccountUnsuspendedEmail(name, reason, "https://ujenzilink.com");
+    }
 }

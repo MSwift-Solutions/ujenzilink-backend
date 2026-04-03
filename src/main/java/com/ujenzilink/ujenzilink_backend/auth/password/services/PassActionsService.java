@@ -15,6 +15,9 @@ import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.notifications.dtos.EmailNotificationDTO;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
+import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
+import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
 import com.ujenzilink.ujenzilink_backend.notifications.services.ResendNotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -44,6 +47,9 @@ public class PassActionsService {
 
     @Autowired
     private SecurityUtil securityUtil;
+
+    @Autowired
+    private NotificationService notificationService;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final SecureRandom secureRandom = new SecureRandom();
@@ -175,17 +181,32 @@ public class PassActionsService {
             return new ApiCustomResponse<>(null, "This reset code has already been used.", HttpStatus.BAD_REQUEST.value());
         }
 
-        // Update password
+        // Update password and reset account lock/failed attempts
         user.setPassword(passwordEncoder.encode(request.newPassword()));
-        userRepository.save(user);
+        user.setIsLocked(false);
+        user.setFailedLoginAttempts(0);
+        userRepository.saveAndFlush(user); // Force immediate database sync
 
         // Mark the password reset action as completed
         passwordAction.setCompleted(true);
-        passwordActionRepository.save(passwordAction);
+        passwordActionRepository.saveAndFlush(passwordAction);
 
         // Send confirmation email
         EmailNotificationDTO emailDetails = new EmailNotificationDTO(user.getEmail(), user.getFirstName(), null);
         resendNotificationService.sendPassChangeEmail(emailDetails, user);
+
+        // Create in-app notification
+        notificationService.createNotification(
+                user,
+                null,
+                NotificationType.ACCOUNT_SECURITY,
+                "Password Reset Successful",
+                "Your password has been successfully reset. If you did not perform this action, please contact support immediately.",
+                NotificationPriority.URGENT,
+                false,
+                null,
+                null
+        );
 
         return new ApiCustomResponse<>(null, "Password reset successfully.", HttpStatus.OK.value());
     }

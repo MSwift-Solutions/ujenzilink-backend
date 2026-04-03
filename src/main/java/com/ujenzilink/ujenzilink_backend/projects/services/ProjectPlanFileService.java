@@ -3,7 +3,6 @@ package com.ujenzilink.ujenzilink_backend.projects.services;
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
-import com.ujenzilink.ujenzilink_backend.configs.R2StorageProperties;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.PlanFileResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.ProjectPlanBasicDTO;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.EditProjectPlanRequest;
@@ -22,16 +21,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+import com.ujenzilink.ujenzilink_backend.images.services.R2StorageService;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.UUID;
 
@@ -62,55 +63,59 @@ public class ProjectPlanFileService {
             "png",  "image/png"
     );
 
-    private final S3Client s3Client;
-    private final R2StorageProperties r2Props;
     private final ProjectRepository projectRepository;
     private final ProjectPlanRepository planRepository;
     private final ProjectPlanFileRepository planFileRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final ProjectPlanPurchaseRepository purchaseRepository;
     private final SecurityUtil securityUtil;
+    private final R2StorageService r2StorageService;
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${folders.project-floor-plans}")
     private String floorPlansFolder;
 
-    public ProjectPlanFileService(S3Client s3Client,
-                                  R2StorageProperties r2Props,
-                                  ProjectRepository projectRepository,
+    @Value("${app.upload.local-mirror-base}")
+    private String localMirrorBase;
+
+    @Value("${r2.public-url}")
+    private String publicUrl;
+
+    public ProjectPlanFileService(ProjectRepository projectRepository,
                                   ProjectPlanRepository planRepository,
                                   ProjectPlanFileRepository planFileRepository,
                                   ProjectMemberRepository projectMemberRepository,
                                   ProjectPlanPurchaseRepository purchaseRepository,
-                                  SecurityUtil securityUtil) {
-        this.s3Client = s3Client;
-        this.r2Props = r2Props;
+                                  SecurityUtil securityUtil,
+                                  R2StorageService r2StorageService,
+                                  TransactionTemplate transactionTemplate) {
         this.projectRepository = projectRepository;
         this.planRepository = planRepository;
         this.planFileRepository = planFileRepository;
         this.projectMemberRepository = projectMemberRepository;
         this.purchaseRepository = purchaseRepository;
         this.securityUtil = securityUtil;
+        this.r2StorageService = r2StorageService;
+        this.transactionTemplate = transactionTemplate;
     }
 
     public ApiCustomResponse<PlanFileResponse> createPlanAndUploadFile(UUID projectId,
-                                                                       MultipartFile file,
-                                                                       String name,
-                                                                       String description,
-                                                                       BigDecimal price,
-                                                                       PlanVisibility visibility,
-                                                                       String displayLabel) {
-        User uploader = securityUtil.getAuthenticatedUser().orElse(null);
-        if (uploader == null) {
+                                                                        MultipartFile file,
+                                                                        String name,
+                                                                        String description,
+                                                                        BigDecimal price,
+                                                                        PlanVisibility visibility,
+                                                                        String displayLabel) {
+        Optional<User> uploaderOpt = securityUtil.getAuthenticatedUser();
+        if (uploaderOpt.isEmpty()) {
             return new ApiCustomResponse<>(null, "Unauthorized.", HttpStatus.UNAUTHORIZED.value());
         }
+        User uploader = uploaderOpt.get();
 
         Project project = projectRepository.findById(projectId).orElse(null);
         if (project == null || project.isDeleted()) {
             return new ApiCustomResponse<>(null, "Project not found.", HttpStatus.NOT_FOUND.value());
         }
-
-        // Handle version internally
-        String internalVersion = "1.0";
 
         String validationError = validateFile(file);
         if (validationError != null) {
@@ -123,48 +128,46 @@ public class ProjectPlanFileService {
         String key = floorPlansFolder + "/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
         long fileSize = file.getSize();
 
-        // Safe streaming: never loads file into RAM — streams directly from disk to R2
-        try (InputStream inputStream = file.getInputStream()) {
-            s3Client.putObject(
-                    PutObjectRequest.builder()
-                            .bucket(r2Props.bucketName())
-                            .key(key)
-                            .contentType(contentType)
-                            .contentLength(fileSize)
-                            .build(),
-                    RequestBody.fromInputStream(inputStream, fileSize));
+        // 1. Mirror raw file to local storage (No optimization for plans)
+        Path localPath = Paths.get(localMirrorBase, key);
+        try {
+            Files.createDirectories(localPath.getParent());
+            file.transferTo(localPath);
         } catch (IOException e) {
-            return new ApiCustomResponse<>(null, "R2 upload failed: " + e.getMessage(),
+            return new ApiCustomResponse<>(null, "Failed to cache file locally: " + e.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR.value());
         }
 
-        ProjectPlan plan = new ProjectPlan();
-        plan.setProject(project);
-        plan.setName(name);
-        plan.setDescription(description);
-        plan.setPrice(price != null ? price : BigDecimal.ZERO);
-        plan.setCurrency("KES");
-        plan.setVisibility(visibility != null ? visibility : PlanVisibility.PRIVATE);
-        // Free plans don't strictly require a purchase record, or a 0 amount is logged.
-        plan.setRequiresPurchase(plan.getPrice().compareTo(BigDecimal.ZERO) > 0);
-        plan.setCreatedBy(uploader);
+        // 2. Wrap DB operations in a tight transaction
+        ProjectPlanFile savedFile = transactionTemplate.execute(status -> {
+            ProjectPlan plan = new ProjectPlan();
+            plan.setProject(project);
+            plan.setName(name);
+            plan.setDescription(description);
+            plan.setPrice(price != null ? price : BigDecimal.ZERO);
+            plan.setCurrency("KES");
+            plan.setVisibility(visibility != null ? visibility : PlanVisibility.PRIVATE);
+            plan.setRequiresPurchase(plan.getPrice().compareTo(BigDecimal.ZERO) > 0);
+            plan.setCreatedBy(uploader);
+            ProjectPlan savedPlan = planRepository.save(plan);
 
-        ProjectPlan savedPlan = planRepository.save(plan);
+            ProjectPlanFile planFile = new ProjectPlanFile();
+            planFile.setPlan(savedPlan);
+            planFile.setFileName(file.getOriginalFilename());
+            planFile.setFileStorageKey(key);
+            planFile.setFileSize(fileSize);
+            planFile.setFormat(format);
+            planFile.setDisplayLabel(displayLabel != null ? displayLabel : name);
+            planFile.setVersion("1.0");
+            planFile.setUploadedBy(uploader);
+            return planFileRepository.save(planFile);
+        });
 
-        ProjectPlanFile planFile = new ProjectPlanFile();
-        planFile.setPlan(savedPlan);
-        planFile.setFileName(file.getOriginalFilename());
-        planFile.setFileStorageKey(key);
-        planFile.setFileSize(fileSize);
-        planFile.setFormat(format);
-        planFile.setDisplayLabel(displayLabel != null ? displayLabel : name);
-        planFile.setVersion(internalVersion);
-        planFile.setUploadedBy(uploader);
-
-        ProjectPlanFile savedFile = planFileRepository.save(planFile);
+        // 3. Trigger Async R2 Upload
+        r2StorageService.uploadFromPathAsync(localPath, key, contentType, uploader.getId());
 
         return new ApiCustomResponse<>(
-                PlanFileResponse.from(savedFile, r2Props.publicUrl()),
+                PlanFileResponse.from(savedFile, publicUrl),
                 "Plan and file uploaded successfully.",
                 HttpStatus.CREATED.value());
     }

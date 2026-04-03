@@ -16,22 +16,13 @@ public class ImageOptimizationService {
 
     private static final int MAX_WIDTH = 2000;
     private static final int MAX_HEIGHT = 2000;
-    private static final float JPEG_QUALITY = 0.85f;
+    private static final float IMAGE_QUALITY = 0.90f;
 
-    private final ImageValidationService imageValidationService;
-
-    public ImageOptimizationService(ImageValidationService imageValidationService) {
-        this.imageValidationService = imageValidationService;
+    public ImageOptimizationService() {
     }
 
-    /**
-     * Optimizes the image and writes it to a temporary file on disk.
-     * The caller MUST delete the returned Path when finished (use a try/finally).
-     * This method never loads the full image into JVM heap memory.
-     */
+    /** Optimizes the image and writes it to a temporary file on disk. */
     public Path optimizeToTempFile(MultipartFile file) {
-        imageValidationService.validateAndExtractMetadata(file);
-
         String contentType = file.getContentType();
         if (contentType == null) {
             return writeOriginalToTempFile(file);
@@ -46,25 +37,47 @@ public class ImageOptimizationService {
 
         try {
             Path tempFile = Files.createTempFile("img-opt-", "." + format);
-
-            try (InputStream input = file.getInputStream();
-                 OutputStream output = Files.newOutputStream(tempFile)) {
-
-                Thumbnails.Builder<?> builder = Thumbnails.of(input)
-                        .size(MAX_WIDTH, MAX_HEIGHT)
-                        .outputFormat(format);
-
-                if ("jpg".equals(format)) {
-                    builder.outputQuality(JPEG_QUALITY);
-                }
-
-                builder.toOutputStream(output);
-            }
-
+            doOptimize(file, tempFile);
             return tempFile;
-
         } catch (IOException e) {
             throw new RuntimeException("Image optimization failed", e);
+        }
+    }
+
+    /** Optimizes the image and writes it to {@code targetPath}. */
+    public void optimizeToPath(MultipartFile file, Path targetPath) {
+        try {
+            Files.createDirectories(targetPath.getParent());
+            doOptimize(file, targetPath);
+        } catch (IOException e) {
+            throw new RuntimeException("Image optimization failed writing to " + targetPath, e);
+        }
+    }
+
+
+    private void doOptimize(MultipartFile file, Path targetPath) throws IOException {
+        String contentType = file.getContentType();
+        String format = (contentType != null)
+                ? resolveFormat(contentType.toLowerCase(Locale.ROOT))
+                : null;
+
+        try (InputStream input = file.getInputStream();
+             OutputStream output = Files.newOutputStream(targetPath)) {
+
+            if (format == null) {
+                input.transferTo(output);
+                return;
+            }
+
+            Thumbnails.Builder<?> builder = Thumbnails.of(input)
+                    .size(MAX_WIDTH, MAX_HEIGHT)
+                    .outputFormat(format);
+
+            if ("jpg".equals(format) || "webp".equals(format)) {
+                builder.outputQuality(IMAGE_QUALITY);
+            }
+
+            builder.toOutputStream(output);
         }
     }
 
@@ -77,9 +90,7 @@ public class ImageOptimizationService {
         };
     }
 
-    /**
-     * Streams the original file bytes to a temp file without any RAM buffering.
-     */
+    /** Streams the original file bytes to a temp file. */
     private Path writeOriginalToTempFile(MultipartFile file) {
         try {
             Path tempFile = Files.createTempFile("img-orig-", ".tmp");

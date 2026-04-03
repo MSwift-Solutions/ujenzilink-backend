@@ -5,18 +5,21 @@ import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.images.dtos.ImageMetadata;
-import com.ujenzilink.ujenzilink_backend.images.dtos.R2UploadResponse;
 import com.ujenzilink.ujenzilink_backend.user_mgt.dtos.ProfileImageResponse;
 import com.ujenzilink.ujenzilink_backend.images.models.Image;
 import com.ujenzilink.ujenzilink_backend.images.repositories.ImageRepository;
+import com.ujenzilink.ujenzilink_backend.images.services.ImageOptimizationService;
 import com.ujenzilink.ujenzilink_backend.images.services.ImageValidationService;
 import com.ujenzilink.ujenzilink_backend.images.services.R2StorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,82 +29,48 @@ public class ProfileImageService {
         private final ImageRepository imageRepository;
         private final UserRepository userRepository;
         private final ImageValidationService imageValidationService;
+        private final ImageOptimizationService imageOptimizationService;
         private final R2StorageService r2StorageService;
         private final SecurityUtil securityUtil;
+        private final TransactionTemplate transactionTemplate;
 
         @Value("${folders.profile-pictures}")
         private String profilePicturesFolder;
+
+        @Value("${app.upload.local-mirror-base}")
+        private String localMirrorBase;
 
         public ProfileImageService(
                         ImageRepository imageRepository,
                         UserRepository userRepository,
                         ImageValidationService imageValidationService,
+                        ImageOptimizationService imageOptimizationService,
                         R2StorageService r2StorageService,
-                        SecurityUtil securityUtil) {
+                        SecurityUtil securityUtil,
+                        TransactionTemplate transactionTemplate) {
                 this.imageRepository = imageRepository;
                 this.userRepository = userRepository;
                 this.imageValidationService = imageValidationService;
+                this.imageOptimizationService = imageOptimizationService;
                 this.r2StorageService = r2StorageService;
                 this.securityUtil = securityUtil;
+                this.transactionTemplate = transactionTemplate;
         }
 
-        @Transactional
+        // No @Transactional here — the transaction is scoped tightly inside doUpload()
         public ApiCustomResponse<String> uploadProfilePicture(MultipartFile file) {
-                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
-
-                if (userOpt.isEmpty()) {
-                        return new ApiCustomResponse<>(
-                                        null,
-                                        "User not authenticated or not found.",
-                                        HttpStatus.UNAUTHORIZED.value());
-                }
-
-                User user = userOpt.get();
-
-                if (!user.getIsEnabled()) {
-                        return new ApiCustomResponse<>(
-                                        null,
-                                        "Account not confirmed. Please confirm your account before uploading a profile picture.",
-                                        HttpStatus.FORBIDDEN.value());
-                }
-
-                ImageMetadata metadata = imageValidationService.validateAndExtractMetadata(file);
-
-                String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg";
-                String extension = originalName.substring(originalName.lastIndexOf(".") + 1);
-
-                String folder = profilePicturesFolder + "/" + user.getId();
-                String fileName = "avatar-" + UUID.randomUUID().toString() + "." + extension;
-                R2UploadResponse uploadResponse = r2StorageService.upload(file, folder, fileName);
-
-                Image profileImage = new Image();
-                profileImage.setUrl(uploadResponse.key());
-                profileImage.setFilename(metadata.filename());
-                profileImage.setFileType(metadata.fileType());
-                profileImage.setFileSize(metadata.fileSize());
-                profileImage.setUser(user);
-
-                // Delete old image from R2 if it exists
-                if (user.getProfilePicture() != null) {
-                        String oldKey = user.getProfilePicture().getUrl(); // The key is stored in the url field
-                        if (r2StorageService.deleteImageWithVerification(oldKey)) {
-                                throw new RuntimeException("Failed to delete old profile picture from R2. Rolling back.");
-                        }
-                }
-
-                profileImage = imageRepository.save(profileImage);
-
-                user.setProfilePicture(profileImage);
-                userRepository.save(user);
-
-                return new ApiCustomResponse<>(
-                                uploadResponse.key(),
-                                "Profile picture uploaded successfully.",
-                                HttpStatus.OK.value());
+                return doUpload(file, "Profile picture uploaded successfully.",
+                                "Account not confirmed. Please confirm your account before uploading a profile picture.");
         }
 
-        @Transactional
+        // No @Transactional here — the transaction is scoped tightly inside doUpload()
         public ApiCustomResponse<String> changeProfilePicture(MultipartFile file) {
+                return doUpload(file, "Profile picture changed successfully.",
+                                "Account not confirmed. Please confirm your account before changing your profile picture.");
+        }
+
+        private ApiCustomResponse<String> doUpload(MultipartFile file, String successMessage, String notEnabledMessage) {
+
                 Optional<User> userOpt = securityUtil.getAuthenticatedUser();
 
                 if (userOpt.isEmpty()) {
@@ -116,7 +85,7 @@ public class ProfileImageService {
                 if (!user.getIsEnabled()) {
                         return new ApiCustomResponse<>(
                                         null,
-                                        "Account not confirmed. Please confirm your account before changing your profile picture.",
+                                        notEnabledMessage,
                                         HttpStatus.FORBIDDEN.value());
                 }
 
@@ -124,35 +93,47 @@ public class ProfileImageService {
 
                 String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg";
                 String extension = originalName.substring(originalName.lastIndexOf(".") + 1);
+                String folder   = profilePicturesFolder + "/" + user.getId();
+                String fileName = "avatar-" + UUID.randomUUID() + "." + extension;
+                String key      = folder + "/" + fileName;
 
-                String folder = profilePicturesFolder + "/" + user.getId();
-                String fileName = "avatar-" + UUID.randomUUID().toString() + "." + extension;
-                R2UploadResponse uploadResponse = r2StorageService.upload(file, folder, fileName);
+                String contentType = file.getContentType() != null
+                        ? file.getContentType()
+                        : "application/octet-stream";
 
-                Image profileImage = new Image();
-                profileImage.setUrl(uploadResponse.key());
-                profileImage.setFilename(metadata.filename());
-                profileImage.setFileType(metadata.fileType());
-                profileImage.setFileSize(metadata.fileSize());
-                profileImage.setUser(user);
+                Path localPath = Paths.get(localMirrorBase, key);
+                imageOptimizationService.optimizeToPath(file, localPath);
 
-                // Delete old image from R2 if it exists
-                if (user.getProfilePicture() != null) {
-                        String oldKey = user.getProfilePicture().getUrl();
-                        if (r2StorageService.deleteImageWithVerification(oldKey)) {
-                                throw new RuntimeException("Failed to delete old profile picture from R2. Rolling back.");
-                        }
+                String oldKey = transactionTemplate.execute(status -> {
+                        User freshUser = userRepository.findById(user.getId())
+                                        .orElseThrow(() -> new RuntimeException("User no longer exists."));
+
+                        String previousKey = (freshUser.getProfilePicture() != null)
+                                        ? freshUser.getProfilePicture().getUrl()
+                                        : null;
+
+                        Image profileImage = new Image();
+                        profileImage.setUrl(key);
+                        profileImage.setFilename(metadata.filename());
+                        profileImage.setFileType(metadata.fileType());
+                        profileImage.setFileSize(metadata.fileSize());
+                        profileImage.setUser(freshUser);
+                        Image savedImage = imageRepository.save(profileImage);
+
+                        freshUser.setProfilePicture(savedImage);
+                        userRepository.save(freshUser);
+
+                        return previousKey;
+                });
+
+                r2StorageService.uploadFromPathAsync(localPath, key, contentType, user.getId());
+                if (oldKey != null) {
+                        r2StorageService.deleteImageAsync(oldKey, user.getId());
                 }
 
-                profileImage = imageRepository.save(profileImage);
-
-                // Note: We are only updating the reference. The old image remains in the database.
-                user.setProfilePicture(profileImage);
-                userRepository.save(user);
-
                 return new ApiCustomResponse<>(
-                                uploadResponse.key(),
-                                "Profile picture changed successfully.",
+                                key,
+                                successMessage,
                                 HttpStatus.OK.value());
         }
 
@@ -189,10 +170,10 @@ public class ProfileImageService {
                 image.setDeletedAt(java.time.Instant.now());
                 imageRepository.save(image);
 
-                // Delete from R2 storage
+                // Async delete from R2 storage
                 String key = image.getUrl();
-                if (r2StorageService.deleteImageWithVerification(key)) {
-                        throw new RuntimeException("Failed to delete image from R2. Rolling back.");
+                if (key != null) {
+                        r2StorageService.deleteImageAsync(key, user.getId());
                 }
 
                 if (user.getProfilePicture() != null && user.getProfilePicture().getId().equals(imageId)) {
