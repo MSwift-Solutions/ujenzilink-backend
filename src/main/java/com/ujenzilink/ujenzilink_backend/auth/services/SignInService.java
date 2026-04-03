@@ -9,6 +9,7 @@ import com.ujenzilink.ujenzilink_backend.notifications.services.ResendNotificati
 import com.ujenzilink.ujenzilink_backend.user_mgt.enums.ActivityType;
 import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
 import org.springframework.context.annotation.Primary;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -43,6 +44,10 @@ public class SignInService implements UserDetailsService {
 
         if (user.getIsDeleted()) {
             throw new UsernameNotFoundException("Account is deleted. Please register again.");
+        }
+
+        if (user.getIsSuspended()) {
+            throw new LockedException("Account is suspended.");
         }
 
         // Return Spring Security User with correct status flags

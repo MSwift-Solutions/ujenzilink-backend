@@ -4,6 +4,8 @@ public enum AdminActionType {
     // User Management
     VERIFY_USER,
     REVERT_USER_DELETION,
+    SUSPEND_USER,
+    UNSUSPEND_USER,
     
     // Resource Management
     BULK_DELETE_RESOURCES,

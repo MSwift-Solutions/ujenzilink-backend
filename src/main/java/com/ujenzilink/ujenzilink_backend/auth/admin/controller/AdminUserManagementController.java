@@ -1,6 +1,7 @@
 package com.ujenzilink.ujenzilink_backend.auth.admin.controller;
 
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.AdminMetricsResponse;
+import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.SuspendedUserResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.UnverifiedUserResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.UserDeletionRequestResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.enums.AdminActionType;
@@ -76,6 +77,46 @@ public class AdminUserManagementController {
                 httpServletRequest
             );
         }
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @PostMapping("/suspend/{userId}")
+    public ResponseEntity<ApiCustomResponse<String>> suspendUser(
+            @PathVariable UUID userId,
+            @jakarta.validation.Valid @RequestBody com.ujenzilink.ujenzilink_backend.auth.admin.dtos.UserSuspensionRequest request,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.ujenzilink.ujenzilink_backend.auth.models.User adminUser) {
+        ApiCustomResponse<String> response = adminUserManagementService.suspendUser(userId, request.reason(), adminUser);
+        if (response.statusCode() == 200) {
+            adminAuditService.logAction(
+                AdminActionType.SUSPEND_USER,
+                userId.toString(),
+                "Suspended user account with reason: " + request.reason(),
+                httpServletRequest
+            );
+        }
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @PostMapping("/unsuspend/{userId}")
+    public ResponseEntity<ApiCustomResponse<String>> unsuspendUser(
+            @PathVariable UUID userId,
+            @jakarta.validation.Valid @RequestBody com.ujenzilink.ujenzilink_backend.auth.admin.dtos.UserSuspensionRequest request,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.ujenzilink.ujenzilink_backend.auth.models.User adminUser) {
+        ApiCustomResponse<String> response = adminUserManagementService.unsuspendUser(userId, request.reason(), adminUser);
+        if (response.statusCode() == 200) {
+            adminAuditService.logAction(
+                AdminActionType.UNSUSPEND_USER,
+                userId.toString(),
+                "Unsuspended user account with reason: " + request.reason(),
+                httpServletRequest
+            );
+        }
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/suspended")
+    public ResponseEntity<ApiCustomResponse<List<SuspendedUserResponse>>> getSuspendedUsers() {
+        ApiCustomResponse<List<SuspendedUserResponse>> response = adminUserManagementService.getSuspendedUsers();
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }
