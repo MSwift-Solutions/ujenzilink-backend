@@ -137,20 +137,31 @@ public class AsyncOperationLogService {
                 entry.getRetryCount());
     }
 
+    private String determineContext(String storageKey) {
+        if (storageKey == null) return "file";
+        if (storageKey.startsWith("profile-pictures/")) return "profile picture";
+        if (storageKey.startsWith("posts/")) return "post image";
+        if (storageKey.startsWith("floor-plans/")) return "project plan file";
+        if (storageKey.startsWith("project-stages/")) return "project stage image";
+        return "file";
+    }
+
     private void sendUploadFailureNotification(UUID userId, String storageKey, UUID logId) {
         try {
             User user = userRepository.findById(userId).orElse(null);
             if (user == null)
                 return;
 
+            String context = determineContext(storageKey);
+            String title = context.substring(0, 1).toUpperCase() + context.substring(1) + " upload failed";
             String metadata = String.format("{\"logId\":\"%s\",\"storageKey\":\"%s\"}", logId, storageKey);
 
             notificationService.createNotification(
                     user,
                     null,
                     NotificationType.STORAGE_UPLOAD_FAILED,
-                    "Profile picture upload failed",
-                    "We were unable to save your profile picture to cloud storage. " +
+                    title,
+                    "We encountered an issue processing your " + context + ". " +
                             "Our team has been alerted and will recover your upload shortly.",
                     NotificationPriority.HIGH,
                     false,
@@ -158,7 +169,7 @@ public class AsyncOperationLogService {
                     metadata);
         } catch (Exception ex) {
             log.error("[AsyncOpLog] Failed to send upload-failure notification to userId={}: {}",
-                    userId, ex.getMessage(), ex);
+                    userId, ex.getMessage());
         }
     }
 }

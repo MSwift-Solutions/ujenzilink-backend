@@ -134,6 +134,15 @@ public class R2RetryService {
                 .build());
     }
 
+    private String determineContext(String storageKey) {
+        if (storageKey == null) return "file";
+        if (storageKey.startsWith("profile-pictures/")) return "profile picture";
+        if (storageKey.startsWith("posts/")) return "post image";
+        if (storageKey.startsWith("floor-plans/")) return "project plan file";
+        if (storageKey.startsWith("project-stages/")) return "project stage image";
+        return "file";
+    }
+
     private void sendRecoveryNotification(AsyncOperationLog entry) {
         if (entry.getOperationType() != AsyncOperationType.UPLOAD)
             return;
@@ -145,6 +154,14 @@ public class R2RetryService {
             if (user == null)
                 return;
 
+            String context = determineContext(entry.getStorageKey());
+            String message = "Good news! Your " + context + " that previously failed to upload has been " +
+                    "successfully recovered by our team.";
+            
+            if ("profile picture".equals(context)) {
+                message += " Your profile is now fully up to date.";
+            }
+
             String metadata = String.format(
                     "{\"logId\":\"%s\",\"storageKey\":\"%s\"}", entry.getId(), entry.getStorageKey());
 
@@ -153,8 +170,7 @@ public class R2RetryService {
                     null,
                     NotificationType.STORAGE_OPERATION_RETRIED,
                     "Your upload has been recovered",
-                    "Good news! Your profile picture that previously failed to upload has been " +
-                            "successfully recovered by our team. Your profile is now fully up to date.",
+                    message,
                     NotificationPriority.MEDIUM,
                     false,
                     null,
