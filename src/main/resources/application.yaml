@@ -120,4 +120,4 @@ app:
     plan-accept-types: pdf,jpg,jpeg,png,dwg
     max-post-photos: 4
     max-stage-photos: 4
-    local-mirror-base: /tmp/uploads  # local copy mirrors R2 key structure — never deleted
+    local-mirror-base: /var/uploads  # local copy mirrors R2 key structure — never deleted
