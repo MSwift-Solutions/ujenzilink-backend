@@ -15,16 +15,16 @@ public class AsyncConfig {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncConfig.class);
 
-    /** Dedicated executor for async R2 upload/delete tasks. */
-    @Bean(name = "r2TaskExecutor")
-    public Executor r2TaskExecutor() {
+    /** Primary executor for all async tasks, including R2 operations. */
+    @Bean(name = "taskExecutor")
+    public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(2);
         executor.setMaxPoolSize(4);
         executor.setQueueCapacity(50);
         executor.setThreadNamePrefix("r2-async-");
         executor.setRejectedExecutionHandler((runnable, pool) ->
-                log.error("R2 async task rejected — queue full. Consider increasing r2TaskExecutor queue capacity."));
+                log.error("R2 async task rejected — queue full. Consider increasing taskExecutor queue capacity."));
         executor.setTaskDecorator(runnable -> () -> {
             try {
                 runnable.run();
