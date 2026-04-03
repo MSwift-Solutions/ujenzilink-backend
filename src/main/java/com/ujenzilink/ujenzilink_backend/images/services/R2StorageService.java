@@ -49,7 +49,7 @@ public class R2StorageService {
             }
             log.info("[R2] Async upload complete: {}", key);
         } catch (Exception e) {
-            log.error("[R2] Async upload failed for key '{}': {}", key, e.getMessage(), e);
+            log.error("[R2] Async upload failed for key '{}': {}", key, e.getMessage());
             asyncOperationLogService.recordFailure(
                     AsyncOperationType.UPLOAD,
                     key,
@@ -71,7 +71,7 @@ public class R2StorageService {
                     .build());
             log.info("[R2] Async delete complete: {}", key);
         } catch (Exception e) {
-            log.error("[R2] Async delete failed for key '{}': {}", key, e.getMessage(), e);
+            log.error("[R2] Async delete failed for key '{}': {}", key, e.getMessage());
             asyncOperationLogService.recordFailure(
                     AsyncOperationType.DELETE,
                     key,
