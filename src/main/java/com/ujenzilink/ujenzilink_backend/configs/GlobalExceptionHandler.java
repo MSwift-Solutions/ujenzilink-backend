@@ -108,16 +108,21 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(LockedException.class)
         public ResponseEntity<ApiCustomResponse<Void>> handleLockedAccount(LockedException ex) {
                 String message = ex.getMessage();
-                String finalMessage = "Account locked due to multiple failed login attempts. Reset password and try again.";
 
+                // If it's a suspension, return the suspension message
                 if (message != null && (message.toLowerCase().contains("suspended") || message.contains("Reason"))) {
-                        finalMessage = message;
+                        return ResponseEntity.status(HttpStatus.LOCKED).body(new ApiCustomResponse<>(
+                                        null,
+                                        message,
+                                        HttpStatus.LOCKED.value()));
                 }
 
-                return ResponseEntity.status(HttpStatus.LOCKED).body(new ApiCustomResponse<>(
+                // If it's a generic LockedException (often thrown by Spring Security on wrong password for an already locked/suspended user),
+                // we should return "Invalid email or password" to avoid leaking account status or showing "locked" prematurely.
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiCustomResponse<>(
                                 null,
-                                finalMessage,
-                                HttpStatus.LOCKED.value()));
+                                "Invalid email or password",
+                                HttpStatus.UNAUTHORIZED.value()));
         }
 
         @ExceptionHandler(org.springframework.security.authentication.InternalAuthenticationServiceException.class)
