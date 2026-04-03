@@ -50,6 +50,10 @@ public class SignInService implements UserDetailsService {
             throw new LockedException("Account is suspended. Contact admin to resolve");
         }
 
+        if (user.getIsLocked()) {
+            throw new LockedException("Account locked due to multiple failed login attempts. Reset password and try again.");
+        }
+
         // Return Spring Security User with correct status flags
         // User(username, password, enabled, accountNonExpired, credentialsNonExpired,
         // accountNonLocked, authorities)
@@ -97,11 +101,12 @@ public class SignInService implements UserDetailsService {
         }
     }
 
-    // Track failed login attempt and lock account after 3 attempts
     @Transactional
     public void trackFailedLoginAttempt(String email) {
         User user = userRepository.findFirstByEmail(email.toLowerCase());
-        if (user != null) {
+        
+        // Only track and potentially lock if the account is not already suspended or locked.
+        if (user != null && !user.getIsSuspended() && !user.getIsLocked()) {
             int failedAttempts = user.getFailedLoginAttempts() + 1;
             user.setFailedLoginAttempts(failedAttempts);
 

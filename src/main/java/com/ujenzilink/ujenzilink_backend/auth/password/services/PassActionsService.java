@@ -175,8 +175,10 @@ public class PassActionsService {
             return new ApiCustomResponse<>(null, "This reset code has already been used.", HttpStatus.BAD_REQUEST.value());
         }
 
-        // Update password
+        // Update password and reset account lock/failed attempts
         user.setPassword(passwordEncoder.encode(request.newPassword()));
+        user.setIsLocked(false);
+        user.setFailedLoginAttempts(0);
         userRepository.save(user);
 
         // Mark the password reset action as completed
