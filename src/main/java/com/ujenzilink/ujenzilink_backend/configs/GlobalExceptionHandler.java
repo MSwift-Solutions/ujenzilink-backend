@@ -180,7 +180,9 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(MethodArgumentTypeMismatchException.class)
         public ResponseEntity<ApiCustomResponse<Void>> handleMethodArgumentTypeMismatch(
                         MethodArgumentTypeMismatchException ex) {
-                String error = "Unable to delete image, retry later";
+                String error = String.format("Invalid parameter value for '%s'. Expected type %s.",
+                                ex.getName(),
+                                ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown");
 
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiCustomResponse<>(
                                 null,
