@@ -107,10 +107,29 @@ public class GlobalExceptionHandler {
 
         @ExceptionHandler(LockedException.class)
         public ResponseEntity<ApiCustomResponse<Void>> handleLockedAccount(LockedException ex) {
+                String message = ex.getMessage();
+                String finalMessage = "Account locked due to multiple failed login attempts. Reset password and try again.";
+
+                if (message != null && (message.toLowerCase().contains("suspended") || message.contains("Reason"))) {
+                        finalMessage = message;
+                }
+
                 return ResponseEntity.status(HttpStatus.LOCKED).body(new ApiCustomResponse<>(
                                 null,
-                                "Account locked due to multiple failed login attempts. Reset password and try again.",
+                                finalMessage,
                                 HttpStatus.LOCKED.value()));
+        }
+
+        @ExceptionHandler(org.springframework.security.authentication.InternalAuthenticationServiceException.class)
+        public ResponseEntity<ApiCustomResponse<Void>> handleInternalAuthException(
+                        org.springframework.security.authentication.InternalAuthenticationServiceException ex) {
+                if (ex.getCause() instanceof LockedException) {
+                        return handleLockedAccount((LockedException) ex.getCause());
+                }
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiCustomResponse<>(
+                                null,
+                                ex.getMessage() != null ? ex.getMessage() : "Authentication failed.",
+                                HttpStatus.UNAUTHORIZED.value()));
         }
 
         @ExceptionHandler(ExpiredJwtException.class)

@@ -47,7 +47,7 @@ public class SignInService implements UserDetailsService {
         }
 
         if (user.getIsSuspended()) {
-            throw new LockedException("Account is suspended.");
+            throw new LockedException("Account is suspended. Contact admin to resolve");
         }
 
         // Return Spring Security User with correct status flags
