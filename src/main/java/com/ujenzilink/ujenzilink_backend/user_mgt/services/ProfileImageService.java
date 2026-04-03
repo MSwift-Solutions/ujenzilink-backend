@@ -170,10 +170,10 @@ public class ProfileImageService {
                 image.setDeletedAt(java.time.Instant.now());
                 imageRepository.save(image);
 
-                // Delete from R2 storage
+                // Async delete from R2 storage
                 String key = image.getUrl();
-                if (r2StorageService.deleteImageWithVerification(key)) {
-                        throw new RuntimeException("Failed to delete image from R2. Rolling back.");
+                if (key != null) {
+                        r2StorageService.deleteImageAsync(key);
                 }
 
                 if (user.getProfilePicture() != null && user.getProfilePicture().getId().equals(imageId)) {
