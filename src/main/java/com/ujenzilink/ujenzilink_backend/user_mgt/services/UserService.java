@@ -199,6 +199,7 @@ public class UserService {
 
         // Build the response
         UserSummaryResponse response = new UserSummaryResponse(
+                user.getId(),
                 user.getFullName(),
                 user.getUserHandle(),
                 user.getLocation(),
@@ -267,6 +268,7 @@ public class UserService {
 
         // Build the response
         UserSummaryResponse response = new UserSummaryResponse(
+                targetUser.getId(),
                 targetUser.getFullName(),
                 targetUser.getUserHandle(),
                 targetUser.getLocation(),
