@@ -40,8 +40,23 @@ public class ActivityService {
     @Async
     @Transactional
     public void logActivity(User user, ActivityType activityType, UUID entityId) {
-        if (user == null || activityType == null) {
+        if (user == null || user.getId() == null || activityType == null) {
             return;
+        }
+
+        // Potential race condition fix: if the user record hasn't fully committed yet,
+        // retry the existence check once after a small delay.
+        if (!userRepository.existsById(user.getId())) {
+            try {
+                Thread.sleep(2000); // Wait 2 seconds for main transaction to commit
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            // Retry existence check
+            if (!userRepository.existsById(user.getId())) {
+                return;
+            }
         }
 
         LocalDate activityDate = LocalDate.now(ZoneId.systemDefault());
