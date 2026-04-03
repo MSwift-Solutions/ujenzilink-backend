@@ -164,7 +164,7 @@ public class ProjectPlanFileService {
         });
 
         // 3. Trigger Async R2 Upload
-        r2StorageService.uploadFromPathAsync(localPath, key, contentType);
+        r2StorageService.uploadFromPathAsync(localPath, key, contentType, uploader.getId());
 
         return new ApiCustomResponse<>(
                 PlanFileResponse.from(savedFile, publicUrl),

@@ -163,7 +163,7 @@ public class ProjectStageService {
 
         // Async R2 uploads
         for (PreparedImage prep : preparedImages) {
-            r2StorageService.uploadFromPathAsync(prep.localPath(), prep.key(), prep.contentType());
+            r2StorageService.uploadFromPathAsync(prep.localPath(), prep.key(), prep.contentType(), user.getId());
         }
 
         CreateProjectStageResponse response = new CreateProjectStageResponse(

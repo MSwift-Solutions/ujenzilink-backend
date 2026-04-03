@@ -7,6 +7,8 @@ public enum AdminActionType {
     
     // Resource Management
     BULK_DELETE_RESOURCES,
+    RETRY_ASYNC_UPLOAD,
+    RETRY_ASYNC_DELETE,
     
     // Legal Management
     UPDATE_TERMS_AND_CONDITIONS,

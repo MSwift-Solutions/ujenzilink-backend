@@ -34,5 +34,9 @@ public enum NotificationType {
 
     // System
     SYSTEM_ANNOUNCEMENT,
-    ACCOUNT_SECURITY
+    ACCOUNT_SECURITY,
+
+    // Storage operations
+    STORAGE_UPLOAD_FAILED,
+    STORAGE_OPERATION_RETRIED
 }

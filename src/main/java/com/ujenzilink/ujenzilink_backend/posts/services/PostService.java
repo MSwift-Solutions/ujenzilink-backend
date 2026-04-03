@@ -156,7 +156,7 @@ public class PostService {
 
                 // Async R2 uploads after DB success
                 for (PreparedImage prep : preparedImages) {
-                        r2StorageService.uploadFromPathAsync(prep.localPath(), prep.key(), prep.contentType());
+                        r2StorageService.uploadFromPathAsync(prep.localPath(), prep.key(), prep.contentType(), user.getId());
                 }
 
                 CreatePostResponse response = new CreatePostResponse(savedPost.getId(), "Post created successfully");
@@ -450,7 +450,7 @@ public class PostService {
 
                 // Async R2 uploads for new images
                 for (PreparedImage prep : newPreparedImages) {
-                        r2StorageService.uploadFromPathAsync(prep.localPath(), prep.key(), prep.contentType());
+                        r2StorageService.uploadFromPathAsync(prep.localPath(), prep.key(), prep.contentType(), currentUser.getId());
                 }
 
                 return new ApiCustomResponse<>(null, "Post updated successfully", HttpStatus.OK.value());

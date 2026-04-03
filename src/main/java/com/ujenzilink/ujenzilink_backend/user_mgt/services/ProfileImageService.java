@@ -126,9 +126,9 @@ public class ProfileImageService {
                         return previousKey;
                 });
 
-                r2StorageService.uploadFromPathAsync(localPath, key, contentType);
+                r2StorageService.uploadFromPathAsync(localPath, key, contentType, user.getId());
                 if (oldKey != null) {
-                        r2StorageService.deleteImageAsync(oldKey);
+                        r2StorageService.deleteImageAsync(oldKey, user.getId());
                 }
 
                 return new ApiCustomResponse<>(
@@ -173,7 +173,7 @@ public class ProfileImageService {
                 // Async delete from R2 storage
                 String key = image.getUrl();
                 if (key != null) {
-                        r2StorageService.deleteImageAsync(key);
+                        r2StorageService.deleteImageAsync(key, user.getId());
                 }
 
                 if (user.getProfilePicture() != null && user.getProfilePicture().getId().equals(imageId)) {
