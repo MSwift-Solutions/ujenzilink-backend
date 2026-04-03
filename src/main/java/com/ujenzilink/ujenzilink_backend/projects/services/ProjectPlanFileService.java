@@ -26,7 +26,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.ujenzilink.ujenzilink_backend.images.services.R2StorageService;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -79,7 +78,7 @@ public class ProjectPlanFileService {
     @Value("${app.upload.local-mirror-base}")
     private String localMirrorBase;
 
-    @Value("${app.upload.public-url}")
+    @Value("${r2.public-url}")
     private String publicUrl;
 
     public ProjectPlanFileService(ProjectRepository projectRepository,
