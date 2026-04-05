@@ -1,6 +1,8 @@
 package com.ujenzilink.ujenzilink_backend.auth.admin.controller;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.AdminProjectPageResponse;
+import com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminProjectSearchService;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.UpdateProjectPrivacyAdminRequest;
 import com.ujenzilink.ujenzilink_backend.projects.services.ProjectService;
 import jakarta.validation.Valid;
@@ -15,9 +17,11 @@ import java.util.UUID;
 public class AdminProjectController {
 
     private final ProjectService projectService;
+    private final AdminProjectSearchService adminProjectSearchService;
 
-    public AdminProjectController(ProjectService projectService) {
+    public AdminProjectController(ProjectService projectService, AdminProjectSearchService adminProjectSearchService) {
         this.projectService = projectService;
+        this.adminProjectSearchService = adminProjectSearchService;
     }
 
     @PostMapping("/{projectId}/admin/privacy-status")
@@ -26,6 +30,17 @@ public class AdminProjectController {
             @PathVariable UUID projectId,
             @Valid @RequestBody UpdateProjectPrivacyAdminRequest request) {
         ApiCustomResponse<Void> response = projectService.setProjectPrivacyAdmin(projectId, request);
+        return ResponseEntity.status(response.statusCode()).body(response);
+    }
+
+    @GetMapping("/admin/search")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
+    public ResponseEntity<ApiCustomResponse<AdminProjectPageResponse>> searchProjectsAdmin(
+            @RequestParam String query,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) Integer limit) {
+        ApiCustomResponse<AdminProjectPageResponse> response = adminProjectSearchService.searchProjectsAdmin(query,
+                cursor, limit);
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }
