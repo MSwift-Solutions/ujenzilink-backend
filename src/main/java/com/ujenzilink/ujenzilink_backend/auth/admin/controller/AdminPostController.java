@@ -2,8 +2,11 @@ package com.ujenzilink.ujenzilink_backend.auth.admin.controller;
 
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.AdminPostPageResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.DeletePostAdminRequest;
+import com.ujenzilink.ujenzilink_backend.auth.admin.enums.AdminActionType;
+import com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminAuditService;
 import com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminPostManagementService;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +23,25 @@ public class AdminPostController {
     @Autowired
     private AdminPostManagementService adminPostManagementService;
 
+    @Autowired
+    private AdminAuditService adminAuditService;
+
+    @Autowired
+    private HttpServletRequest httpServletRequest;
+
     @GetMapping("/user/{userId}")
     public ResponseEntity<ApiCustomResponse<AdminPostPageResponse>> getPostsByUserId(
             @PathVariable UUID userId,
             @RequestParam(required = false) Integer limit) {
         ApiCustomResponse<AdminPostPageResponse> response = adminPostManagementService.getPostsByUserId(userId, limit);
+        if (response.statusCode() == 200) {
+            adminAuditService.logAction(
+                AdminActionType.ADMIN_USER_POSTS_VIEW,
+                userId.toString(),
+                "Viewed posts for user with ID: " + userId,
+                httpServletRequest
+            );
+        }
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 
@@ -33,6 +50,14 @@ public class AdminPostController {
             @PathVariable UUID postId,
             @Valid @RequestBody DeletePostAdminRequest request) {
         ApiCustomResponse<Void> response = adminPostManagementService.deletePostByAdmin(postId, request);
+        if (response.statusCode() == 200) {
+            adminAuditService.logAction(
+                AdminActionType.DELETE_POST_ADMIN,
+                postId.toString(),
+                "Deleted post by admin. Reason: " + request.reason(),
+                httpServletRequest
+            );
+        }
         return ResponseEntity.status(response.statusCode()).body(response);
     }
 }
