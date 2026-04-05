@@ -27,4 +27,4 @@ Some tools or features on the platform may require a paid subscription. In such 
 ## 6. Liability and Legal
 UjenziLink is governed by the laws of **Kenya**. We work hard to keep the platform running smoothly, but we cannot be held liable for delayed projects, disputes with contractors, financial losses, or system downtime.
 
-If you have any legal questions, you can reach us at **legal@ujenzilink.com**.
+If you have any legal questions, you can reach us at **ujenzilink@gmail.com**.
