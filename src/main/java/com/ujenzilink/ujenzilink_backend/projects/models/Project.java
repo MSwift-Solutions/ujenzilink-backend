@@ -25,7 +25,7 @@ public class Project {
     @Column(nullable = false, length = 255)
     private String title;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)
@@ -85,6 +85,16 @@ public class Project {
 
     @Column(nullable = false)
     private Integer bookmarks = 0;
+
+    @Column(nullable = false)
+    private boolean isAdminPrivate = false;
+
+    @Column(columnDefinition = "TEXT")
+    private String adminPrivateReason;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_private_by_id")
+    private User adminPrivateBy;
 
     public Project() {
     }
@@ -255,5 +265,29 @@ public class Project {
 
     public void setBookmarks(Integer bookmarks) {
         this.bookmarks = bookmarks;
+    }
+
+    public boolean isAdminPrivate() {
+        return isAdminPrivate;
+    }
+
+    public void setAdminPrivate(boolean adminPrivate) {
+        isAdminPrivate = adminPrivate;
+    }
+
+    public String getAdminPrivateReason() {
+        return adminPrivateReason;
+    }
+
+    public void setAdminPrivateReason(String adminPrivateReason) {
+        this.adminPrivateReason = adminPrivateReason;
+    }
+
+    public User getAdminPrivateBy() {
+        return adminPrivateBy;
+    }
+
+    public void setAdminPrivateBy(User adminPrivateBy) {
+        this.adminPrivateBy = adminPrivateBy;
     }
 }

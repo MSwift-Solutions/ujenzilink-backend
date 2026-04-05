@@ -24,7 +24,7 @@ public class PostComment {
     @JoinColumn(name = "user_id", nullable = false)
     private User commenter;
 
-    @Column(nullable = false, length = 1000)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)

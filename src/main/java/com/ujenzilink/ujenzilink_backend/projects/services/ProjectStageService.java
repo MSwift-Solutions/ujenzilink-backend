@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import com.ujenzilink.ujenzilink_backend.images.services.ImageOptimizationService;
+import com.ujenzilink.ujenzilink_backend.posts.utils.TextFormattingUtils;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -129,13 +130,13 @@ public class ProjectStageService {
         ProjectStage savedStage = transactionTemplate.execute(status -> {
             ProjectStage stage = new ProjectStage();
             stage.setProject(project);
-            stage.setDescription(request.description());
+            stage.setDescription(TextFormattingUtils.normalizeContent(request.description()));
             stage.setConstructionStage(request.constructionStage());
             stage.setPostType(request.postType());
             stage.setVisibility(request.visibility() != null ? request.visibility() : "ALL_MEMBERS");
             stage.setStageCost(request.stageCost());
             stage.setTotalWorkers(request.totalWorkers());
-            stage.setMaterialsUsed(request.materialsUsed());
+            stage.setMaterialsUsed(TextFormattingUtils.normalizeContent(request.materialsUsed()));
             stage.setStartDate(LocalDate.now());
             stage.setEndDate(request.endDate());
             stage.setPostedBy(user);

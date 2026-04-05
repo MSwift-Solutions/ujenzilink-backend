@@ -20,7 +20,7 @@ public class Post {
     @JoinColumn(name = "creator_user_id", nullable = false)
     private User creator;
 
-    @Column(nullable = false, length = 5000)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @CreationTimestamp
@@ -49,6 +49,13 @@ public class Post {
 
     @Column(nullable = false)
     private Integer views = 0;
+
+    @Column(columnDefinition = "TEXT")
+    private String adminDeletionReason;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_deleted_by_id")
+    private User adminDeletedBy;
 
     public Post() {
     }
@@ -147,5 +154,21 @@ public class Post {
 
     public void setViews(Integer views) {
         this.views = views;
+    }
+
+    public String getAdminDeletionReason() {
+        return adminDeletionReason;
+    }
+
+    public void setAdminDeletionReason(String adminDeletionReason) {
+        this.adminDeletionReason = adminDeletionReason;
+    }
+
+    public User getAdminDeletedBy() {
+        return adminDeletedBy;
+    }
+
+    public void setAdminDeletedBy(User adminDeletedBy) {
+        this.adminDeletedBy = adminDeletedBy;
     }
 }

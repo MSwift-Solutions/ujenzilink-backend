@@ -29,6 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
 import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
 import com.ujenzilink.ujenzilink_backend.images.services.ImageOptimizationService;
+import com.ujenzilink.ujenzilink_backend.posts.utils.TextFormattingUtils;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -131,7 +132,7 @@ public class PostService {
 
                 Post savedPost = transactionTemplate.execute(status -> {
                         Post post = new Post();
-                        post.setContent(hasContent ? request.content().trim() : "");
+                        post.setContent(hasContent ? TextFormattingUtils.normalizeContent(request.content()) : "");
                         post.setCreator(user);
                         Post newPost = postRepository.save(post);
 
@@ -399,7 +400,7 @@ public class PostService {
                         boolean contentChanged = false;
 
                         if (request.content() != null) {
-                                String newContent = request.content().trim();
+                                String newContent = TextFormattingUtils.normalizeContent(request.content());
                                 if (!newContent.equals(post.getContent())) {
                                         post.setContent(newContent);
                                         contentChanged = true;
