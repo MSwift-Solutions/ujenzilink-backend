@@ -4,7 +4,7 @@ import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.AdminPostPageResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.AdminPostResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.DeletePostAdminRequest;
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
-import com.ujenzilink.ujenzilink_backend.auth.repos.UserRepository;
+import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
 import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
