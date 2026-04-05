@@ -25,7 +25,6 @@ import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
 import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanVisibility;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanFileFormat;
-import com.ujenzilink.ujenzilink_backend.auth.enums.Roles;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.UpdateProjectPrivacyAdminRequest;
 
 import com.ujenzilink.ujenzilink_backend.projects.models.StagePhoto;
@@ -1391,21 +1390,6 @@ public class ProjectService {
 
         @Transactional(rollbackFor = Exception.class)
         public ApiCustomResponse<Void> setProjectPrivacyAdmin(UUID projectId, UpdateProjectPrivacyAdminRequest request) {
-                // Get the authenticated user
-                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
-                if (userOpt.isEmpty()) {
-                        return new ApiCustomResponse<>(null, "User not found. Please log in again.",
-                                        HttpStatus.UNAUTHORIZED.value());
-                }
-
-                User currentUser = userOpt.get();
-
-                // Check permission: only admins can update this
-                if (currentUser.getRole() != Roles.ROLE_ADMIN && currentUser.getRole() != Roles.ROLE_SUPER_ADMIN) {
-                        return new ApiCustomResponse<>(null, "You do not have permission to perform this action.",
-                                        HttpStatus.FORBIDDEN.value());
-                }
-
                 Project project = projectRepository.findById(projectId).orElse(null);
                 if (project == null || project.isDeleted()) {
                         return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
@@ -1413,7 +1397,7 @@ public class ProjectService {
 
                 project.setAdminPrivate(request.makePrivate());
                 project.setAdminPrivateReason(request.reason());
-                project.setAdminPrivateBy(currentUser);
+                project.setAdminPrivateBy(null);
 
                 if (request.makePrivate()) {
                         project.setVisibility(ProjectVisibility.PRIVATE);
@@ -1429,7 +1413,7 @@ public class ProjectService {
 
                 notificationService.createNotification(
                                 project.getOwner(),
-                                currentUser,
+                                null,
                                 NotificationType.SYSTEM_ANNOUNCEMENT,
                                 "Project Restriction Update",
                                 notificationMessage,
