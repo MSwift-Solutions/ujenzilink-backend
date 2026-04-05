@@ -14,13 +14,13 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/v1/admin/posts")
+@PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
 public class AdminPostController {
 
     @Autowired
     private AdminPostManagementService adminPostManagementService;
 
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<ApiCustomResponse<AdminPostPageResponse>> getPostsByUserId(
             @PathVariable UUID userId,
             @RequestParam(required = false) Integer limit) {
@@ -29,7 +29,6 @@ public class AdminPostController {
     }
 
     @DeleteMapping("/{postId}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<ApiCustomResponse<Void>> deletePostByAdmin(
             @PathVariable UUID postId,
             @Valid @RequestBody DeletePostAdminRequest request) {

@@ -14,6 +14,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/v1/projects")
+@PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
 public class AdminProjectController {
 
     private final ProjectService projectService;
@@ -25,7 +26,6 @@ public class AdminProjectController {
     }
 
     @PostMapping("/{projectId}/admin/privacy-status")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<ApiCustomResponse<Void>> setProjectPrivacyAdmin(
             @PathVariable UUID projectId,
             @Valid @RequestBody UpdateProjectPrivacyAdminRequest request) {
@@ -34,7 +34,6 @@ public class AdminProjectController {
     }
 
     @GetMapping("/admin/search")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<ApiCustomResponse<AdminProjectPageResponse>> searchProjectsAdmin(
             @RequestParam String query,
             @RequestParam(required = false) String cursor,
