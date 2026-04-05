@@ -81,12 +81,17 @@ public class AdminPostManagementService {
         postRepository.save(post);
 
         // Notify the creator
+        String contentSnippet = post.getContent();
+        if (contentSnippet.length() > 50) {
+            contentSnippet = contentSnippet.substring(0, 47) + "...";
+        }
+
         notificationService.createNotification(
                 post.getCreator(),
                 currentAdmin,
                 NotificationType.SYSTEM_ANNOUNCEMENT,
-                "Post Deleted by Admin",
-                "Your post has been deleted by an admin. Reason: " + request.reason(),
+                "Post Removed",
+                "Your post (\"" + contentSnippet + "\") has been removed by an admin. Reason: " + request.reason(),
                 NotificationPriority.HIGH,
                 false,
                 null,
