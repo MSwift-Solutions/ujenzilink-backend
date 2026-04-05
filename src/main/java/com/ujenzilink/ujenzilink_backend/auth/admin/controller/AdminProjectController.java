@@ -1,4 +1,4 @@
-package com.ujenzilink.ujenzilink_backend.projects.controllers;
+package com.ujenzilink.ujenzilink_backend.auth.admin.controller;
 
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.UpdateProjectPrivacyAdminRequest;
