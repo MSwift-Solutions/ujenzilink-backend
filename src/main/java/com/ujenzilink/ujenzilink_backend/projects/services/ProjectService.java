@@ -25,6 +25,8 @@ import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
 import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanVisibility;
 import com.ujenzilink.ujenzilink_backend.projects.enums.PlanFileFormat;
+import com.ujenzilink.ujenzilink_backend.auth.enums.Roles;
+import com.ujenzilink.ujenzilink_backend.projects.dtos.UpdateProjectPrivacyAdminRequest;
 
 import com.ujenzilink.ujenzilink_backend.projects.models.StagePhoto;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
@@ -1345,6 +1347,15 @@ public class ProjectService {
                                         HttpStatus.FORBIDDEN.value());
                 }
 
+                // Enforce admin block
+                if (project.isAdminPrivate() && request.visibility() == ProjectVisibility.PUBLIC) {
+                        return new ApiCustomResponse<>(
+                                        null,
+                                        "This project has been restricted to private by an admin for the following reason: "
+                                                        + project.getAdminPrivateReason(),
+                                        HttpStatus.BAD_REQUEST.value());
+                }
+
                 // Enforce budget visibility rule: if project is private, budget can't be public
                 if (request.visibility() == ProjectVisibility.PRIVATE
                                 && project.getBudgetVisibility() == BudgetVisibility.PUBLIC) {
@@ -1376,6 +1387,59 @@ public class ProjectService {
                 }
 
                 return new ApiCustomResponse<>(null, "Project visibility updated successfully", HttpStatus.OK.value());
+        }
+
+        @Transactional(rollbackFor = Exception.class)
+        public ApiCustomResponse<Void> setProjectPrivacyAdmin(UUID projectId, UpdateProjectPrivacyAdminRequest request) {
+                // Get the authenticated user
+                Optional<User> userOpt = securityUtil.getAuthenticatedUser();
+                if (userOpt.isEmpty()) {
+                        return new ApiCustomResponse<>(null, "User not found. Please log in again.",
+                                        HttpStatus.UNAUTHORIZED.value());
+                }
+
+                User currentUser = userOpt.get();
+
+                // Check permission: only admins can update this
+                if (currentUser.getRole() != Roles.ROLE_ADMIN && currentUser.getRole() != Roles.ROLE_SUPER_ADMIN) {
+                        return new ApiCustomResponse<>(null, "You do not have permission to perform this action.",
+                                        HttpStatus.FORBIDDEN.value());
+                }
+
+                Project project = projectRepository.findById(projectId).orElse(null);
+                if (project == null || project.isDeleted()) {
+                        return new ApiCustomResponse<>(null, "Project not found", HttpStatus.NOT_FOUND.value());
+                }
+
+                project.setAdminPrivate(request.makePrivate());
+                project.setAdminPrivateReason(request.reason());
+                project.setAdminPrivateBy(currentUser);
+
+                if (request.makePrivate()) {
+                        project.setVisibility(ProjectVisibility.PRIVATE);
+                }
+
+                projectRepository.saveAndFlush(project);
+
+                // Notify the owner
+                String actionStatus = request.makePrivate() ? "restricted to private"
+                                : "restored to normal visibility";
+                String notificationMessage = "Your project '" + project.getTitle() + "' has been " + actionStatus
+                                + " by an admin. Reason: " + request.reason();
+
+                notificationService.createNotification(
+                                project.getOwner(),
+                                currentUser,
+                                NotificationType.SYSTEM_ANNOUNCEMENT,
+                                "Project Restriction Update",
+                                notificationMessage,
+                                NotificationPriority.HIGH,
+                                false,
+                                null,
+                                null);
+
+                return new ApiCustomResponse<>(null, "Project privacy status updated by admin successfully",
+                                HttpStatus.OK.value());
         }
 
         @Transactional(readOnly = true)
