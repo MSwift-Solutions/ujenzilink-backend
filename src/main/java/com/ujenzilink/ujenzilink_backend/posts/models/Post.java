@@ -20,7 +20,7 @@ public class Post {
     @JoinColumn(name = "creator_user_id", nullable = false)
     private User creator;
 
-    @Column(nullable = false, length = 5000)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @CreationTimestamp

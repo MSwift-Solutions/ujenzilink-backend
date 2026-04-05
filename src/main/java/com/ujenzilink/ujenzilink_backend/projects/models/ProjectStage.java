@@ -24,7 +24,7 @@ public class ProjectStage {
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)
@@ -42,7 +42,7 @@ public class ProjectStage {
 
     private Integer totalWorkers;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "TEXT")
     private String materialsUsed;
 
     private LocalDate startDate;

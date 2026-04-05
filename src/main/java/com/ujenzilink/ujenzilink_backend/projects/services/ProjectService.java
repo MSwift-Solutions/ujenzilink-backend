@@ -30,6 +30,7 @@ import com.ujenzilink.ujenzilink_backend.projects.models.StagePhoto;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectMember;
 import com.ujenzilink.ujenzilink_backend.projects.models.ProjectStage;
+import com.ujenzilink.ujenzilink_backend.posts.utils.TextFormattingUtils;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectCommentRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.StagePhotoRepository;
 import com.ujenzilink.ujenzilink_backend.projects.repositories.ProjectMemberRepository;
@@ -330,7 +331,7 @@ public class ProjectService {
                 // Create new project
                 Project project = new Project();
                 project.setTitle(request.title());
-                project.setDescription(request.description());
+                project.setDescription(TextFormattingUtils.normalizeContent(request.description()));
                 project.setProjectType(request.projectType());
 
                 // Set defaults for optional fields with defaults
@@ -1422,7 +1423,7 @@ public class ProjectService {
                         project.setTitle(request.title());
                 }
                 if (request.description() != null) {
-                        project.setDescription(request.description());
+                        project.setDescription(TextFormattingUtils.normalizeContent(request.description()));
                 }
                 if (request.projectType() != null) {
                         project.setProjectType(request.projectType());

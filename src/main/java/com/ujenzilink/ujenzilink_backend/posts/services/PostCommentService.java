@@ -18,6 +18,7 @@ import com.ujenzilink.ujenzilink_backend.user_mgt.services.ActivityService;
 import com.ujenzilink.ujenzilink_backend.notifications.services.NotificationService;
 import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
 import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
+import com.ujenzilink.ujenzilink_backend.posts.utils.TextFormattingUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -98,7 +99,7 @@ public class PostCommentService {
         PostComment comment = new PostComment();
         comment.setPost(post);
         comment.setCommenter(currentUser);
-        comment.setContent(request.text());
+        comment.setContent(TextFormattingUtils.normalizeContent(request.text()));
 
         if (request.parentId() != null) {
             PostComment parent = postCommentRepository.findById(request.parentId()).orElse(null);
