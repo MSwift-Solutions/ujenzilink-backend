@@ -8,7 +8,6 @@ import com.ujenzilink.ujenzilink_backend.auth.admin.services.AdminPostManagement
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -17,17 +16,21 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/v1/admin/posts")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
 public class AdminPostController {
 
-    @Autowired
-    private AdminPostManagementService adminPostManagementService;
+    private final AdminPostManagementService adminPostManagementService;
+    private final AdminAuditService adminAuditService;
+    private final HttpServletRequest httpServletRequest;
 
-    @Autowired
-    private AdminAuditService adminAuditService;
-
-    @Autowired
-    private HttpServletRequest httpServletRequest;
+    public AdminPostController(AdminPostManagementService adminPostManagementService,
+                               AdminAuditService adminAuditService,
+                               HttpServletRequest httpServletRequest) {
+        this.adminPostManagementService = adminPostManagementService;
+        this.adminAuditService = adminAuditService;
+        this.httpServletRequest = httpServletRequest;
+    }
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<ApiCustomResponse<AdminPostPageResponse>> getPostsByUserId(
@@ -48,8 +51,9 @@ public class AdminPostController {
     @DeleteMapping("/{postId}")
     public ResponseEntity<ApiCustomResponse<Void>> deletePostByAdmin(
             @PathVariable UUID postId,
-            @Valid @RequestBody DeletePostAdminRequest request) {
-        ApiCustomResponse<Void> response = adminPostManagementService.deletePostByAdmin(postId, request);
+            @Valid @RequestBody DeletePostAdminRequest request,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.ujenzilink.ujenzilink_backend.auth.models.User adminUser) {
+        ApiCustomResponse<Void> response = adminPostManagementService.deletePostByAdmin(postId, request, adminUser);
         if (response.statusCode() == 200) {
             adminAuditService.logAction(
                 AdminActionType.DELETE_POST_ADMIN,

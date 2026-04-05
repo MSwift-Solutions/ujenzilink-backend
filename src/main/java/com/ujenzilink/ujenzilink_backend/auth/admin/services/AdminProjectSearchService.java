@@ -5,11 +5,9 @@ import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.AdminProjectPageRespons
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.AdminProjectResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.repos.AdminProjectSearchRepo;
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
-import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.projects.dtos.CreatorInfoDTO;
 import com.ujenzilink.ujenzilink_backend.projects.models.Project;
-import com.ujenzilink.ujenzilink_backend.auth.enums.Roles;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,21 +23,8 @@ public class AdminProjectSearchService {
     @Autowired
     private AdminProjectSearchRepo adminProjectSearchRepo;
 
-    @Autowired
-    private SecurityUtil securityUtil;
-
     @Transactional(readOnly = true)
     public ApiCustomResponse<AdminProjectPageResponse> searchProjectsAdmin(String query, String cursor, Integer limit) {
-        // ── Auth & Role Check ───────────────────────────────────────────────
-        Optional<User> userOpt = securityUtil.getAuthenticatedUser();
-        if (userOpt.isEmpty()) {
-            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
-        }
-        User currentUser = userOpt.get();
-        if (currentUser.getRole() != Roles.ROLE_ADMIN && currentUser.getRole() != Roles.ROLE_SUPER_ADMIN) {
-            return new ApiCustomResponse<>(null, "Access denied. Admin privileges required.", HttpStatus.FORBIDDEN.value());
-        }
-
         // ── Validation ──────────────────────────────────────────────────────
         if (query == null || query.isBlank()) {
             return new ApiCustomResponse<>(null, "Search query must not be blank", HttpStatus.BAD_REQUEST.value());

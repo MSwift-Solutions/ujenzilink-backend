@@ -17,6 +17,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/v1/projects")
+@CrossOrigin
 @PreAuthorize("hasRole('ROLE_SUPER_ADMIN')")
 public class AdminProjectController {
 

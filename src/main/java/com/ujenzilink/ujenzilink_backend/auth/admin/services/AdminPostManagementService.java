@@ -5,7 +5,6 @@ import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.AdminPostResponse;
 import com.ujenzilink.ujenzilink_backend.auth.admin.dtos.DeletePostAdminRequest;
 import com.ujenzilink.ujenzilink_backend.auth.models.User;
 import com.ujenzilink.ujenzilink_backend.auth.repositories.UserRepository;
-import com.ujenzilink.ujenzilink_backend.auth.utils.SecurityUtil;
 import com.ujenzilink.ujenzilink_backend.configs.ApiCustomResponse;
 import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationPriority;
 import com.ujenzilink.ujenzilink_backend.notifications.enums.NotificationType;
@@ -23,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -41,9 +39,6 @@ public class AdminPostManagementService {
 
     @Autowired
     private NotificationService notificationService;
-
-    @Autowired
-    private SecurityUtil securityUtil;
 
     @Transactional(readOnly = true)
     public ApiCustomResponse<AdminPostPageResponse> getPostsByUserId(UUID userId, Integer limit) {
@@ -63,13 +58,7 @@ public class AdminPostManagementService {
     }
 
     @Transactional
-    public ApiCustomResponse<Void> deletePostByAdmin(UUID postId, DeletePostAdminRequest request) {
-        Optional<User> adminOpt = securityUtil.getAuthenticatedUser();
-        if (adminOpt.isEmpty()) {
-            return new ApiCustomResponse<>(null, "Unauthorized", HttpStatus.UNAUTHORIZED.value());
-        }
-        User currentAdmin = adminOpt.get();
-
+    public ApiCustomResponse<Void> deletePostByAdmin(UUID postId, DeletePostAdminRequest request, User currentAdmin) {
         Post post = postRepository.findById(postId).orElse(null);
         if (post == null || post.isDeleted()) {
             return new ApiCustomResponse<>(null, "Post not found or already deleted", HttpStatus.NOT_FOUND.value());
